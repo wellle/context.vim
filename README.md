@@ -20,8 +20,11 @@ This plugin does for you what you would do in these cases:
 
 Damian Conway presented this plugin at OSCON 2013 in his talk
 "[More instantly better Vim](http://programming.oreilly.com/2013/10/more-instantly-better-vim.html)".
+
 The original version of this plugin (only for Mac OX) is available at <http://is.gd/IBV2013>,
-together with other plugins presented in the same talk.
+together with other plugins presented in the same talk. This version has
+been modified to work also on Linux systems. Both Vim and GVim are supported.
+
 
 Installation
 ------------
