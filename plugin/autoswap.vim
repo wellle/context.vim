@@ -1,7 +1,7 @@
 " Vim global plugin for automating response to swapfiles
 " Maintainer: Gioele Barabucci
 " Author:     Damian Conway
-" License:    This file is placed in the public domain.
+" License:    This is free software released into the public domain (CC0 license).
 
 "#############################################################
 "##                                                         ##
