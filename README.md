@@ -43,8 +43,8 @@ switch to the Vim window with the open file.
 Authors
 -------
 
-* Gioele Barabucci (made the plugin Linux-compatible, maintainer)
-* Damian Conway (original author)
+* Gioele Barabucci <http://svario.it/gioele> (made the plugin Linux-compatible, maintainer)
+* Damian Conway <http://damian.conway.org> (original author)
 
 
 License
