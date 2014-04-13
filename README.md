@@ -23,6 +23,19 @@ Damian Conway presented this plugin at OSCON 2013 in his talk
 The original version of this plugin (only for Mac OX) is available at <http://is.gd/IBV2013>,
 together with other plugins presented in the same talk.
 
+Installation
+------------
+
+Copy the `autoswap.vim` file in your `~/.vim/plugin` directory.
+
+Or use pathogen and just clone the git repository:
+
+    $ cd ~/.vim/bundle
+    $ git clone https://github.com/gioele/vim-autoswap.git
+
+*Linux users*: you have to install `wmctrl` to be able to automatically
+switch to the Vim window with the open file.
+
 
 Authors
 -------
