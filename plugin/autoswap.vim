@@ -138,7 +138,6 @@ endfunction
 
 " LINUX: Switch function for Linux, uses wmctrl
 function! AS_SwitchToActiveWindow_Linux (active_window)
-	call system('echo wmctrl -i -a "'.a:active_window.'" >> ~/VIM-log')
 	call system('wmctrl -i -a "'.a:active_window.'"')
 endfunction
 
