@@ -36,8 +36,9 @@ Or use pathogen and just clone the git repository:
     $ cd ~/.vim/bundle
     $ git clone https://github.com/gioele/vim-autoswap.git
 
-*Linux users*: you have to install `wmctrl` to be able to automatically
+*Linux users*: you must install `wmctrl` to be able to automatically
 switch to the Vim window with the open file.
+`wmctrl` is already packaged for most distributions.
 
 
 Authors
