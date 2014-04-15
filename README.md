@@ -47,6 +47,16 @@ Authors
 * Damian Conway <http://damian.conway.org> (original author)
 
 
+Development
+-----------
+
+Code
+: <http://svario.it/vim-autoswap> (redirects to GitHub)
+
+Report issues
+: <http://svario.it/vim-autoswap/issues>
+
+
 License
 -------
 
