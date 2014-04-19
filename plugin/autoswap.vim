@@ -80,7 +80,7 @@ function! AS_DelayedMsg (msg)
 		autocmd BufWinEnter *  echohl NONE
 
 		" And then remove these autocmds, so it's a "one-shot" deal...
-		autocmd BufWinEnter *  augroup AutoSwap_Mac_Msg
+		autocmd BufWinEnter *  augroup AutoSwap_Msg
 		autocmd BufWinEnter *  autocmd!
 		autocmd BufWinEnter *  augroup END
 	augroup END
