@@ -40,6 +40,9 @@ Or use pathogen and just clone the git repository:
 switch to the Vim window with the open file.
 `wmctrl` is already packaged for most distributions.
 
+*KDE/Konsole users*: in addition to `wmctrl` you must install also
+the [`vim-konsole`](https://github.com/gergap/vim-konsole) plugin.
+
 
 Authors
 -------
