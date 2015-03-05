@@ -36,8 +36,6 @@ Or use pathogen and just clone the git repository:
     $ cd ~/.vim/bundle
     $ git clone https://github.com/gioele/vim-autoswap.git
 
-Arch Linux can install via [a package in the AUR](https://aur.archlinux.org/packages/vim-autoswap-git/).
-
 *Linux users*: you must install `wmctrl` to be able to automatically
 switch to the Vim window with the open file.
 `wmctrl` is already packaged for most distributions.
@@ -45,6 +43,9 @@ switch to the Vim window with the open file.
 *KDE/Konsole users*: in addition to `wmctrl` you must install also
 the [`vim-konsole`](https://github.com/gergap/vim-konsole) plugin.
 
+If you use Arch Linux you can install via the [`vim-autoswap-git`
+package in the AUR](https://aur.archlinux.org/packages/vim-autoswap-git/).
+The package will install this plugin and all the needed dependencies.
 
 Authors
 -------
