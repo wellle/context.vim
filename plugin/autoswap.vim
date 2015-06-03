@@ -119,7 +119,7 @@ endfunction
 
 " TMUX: Detection function for tmux, uses tmux
 function! AS_DetectActiveWindow_Tmux (swapname)
-	let find_win_cmd = 'tmux list-panes -aF "#{pane_tty} #{window_index} #{pane_index}"| grep $(ps h $(fuser '.a:swapname.' | cut -d" " -f2) | cut -d" " -f2)'
+	let find_win_cmd = 'tmux list-panes -aF "#{pane_tty} #{window_index} #{pane_index}"| grep $(ps h $(fuser '.a:swapname.' 2>/dev/null | grep -o "[0-9]*" || echo "^$") 2>/dev/null | cut -d" " -f3) 2>/dev/null'
 	return system(find_win_cmd)
 endfunction
 
