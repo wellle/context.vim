@@ -119,8 +119,19 @@ endfunction
 
 " TMUX: Detection function for tmux, uses tmux
 function! AS_DetectActiveWindow_Tmux (swapname)
-	let find_win_cmd = 'tmux list-panes -aF "#{pane_tty} #{window_index} #{pane_index}"| grep $(ps h $(fuser '.a:swapname.' 2>/dev/null | grep -o "[0-9]*" || echo "^$") 2>/dev/null | sed "s/^ *//" | cut -d" " -f2) 2>/dev/null'
-	return system(find_win_cmd)
+	let pid = systemlist('fuser '.a:swapname.' 2>/dev/null | grep -o "[0-9]*"')
+	if (len(pid) == 0)
+		return ''
+	endif
+	let tty = systemlist('ps h '.pid[0].' 2>/dev/null | sed -rn "s/^ *[0-9]+ +([^ ]+).*/\1/p" 2>/dev/null')
+	if (len(tty) == 0)
+		return ''
+	endif
+	let window = systemlist('tmux list-panes -aF "#{pane_tty} #{window_index} #{pane_index}" | grep -F "'.tty[0].'" 2>/dev/null')
+	if (len(window) == 0)
+		return ''
+	endif
+	return window[0]
 endfunction
 
 " LINUX: Detection function for Linux, uses mwctrl
@@ -155,7 +166,7 @@ endfunction
 " TMUX: Switch function for Tmux
 function! AS_SwitchToActiveWindow_Tmux (active_window)
 	let pane_info = split(a:active_window)
-	call system('tmux select-window -t '.get(pane_info, 1 , '').'; tmux select-pane -t '.get(pane_info, 2 , ''))
+	call system('tmux select-window -t '.pane_info[1].'; tmux select-pane -t '.pane_info[2])
 endfunction
 
 " LINUX: Switch function for Linux, uses wmctrl
