@@ -28,6 +28,11 @@ if exists("loaded_autoswap")
 endif
 let loaded_autoswap = 1
 
+" By default we don't try to detect tmux
+if !exists("g:autoswap_detect_tmux")
+	let g:autoswap_detect_tmux = 0
+endif
+
 " Preserve external compatibility options, then enable full vim compatibility...
 let s:save_cpo = &cpo
 set cpo&vim
@@ -107,7 +112,7 @@ endfunction
 "  or else return an empty string to indicate "no active window")...
 "
 function! AS_DetectActiveWindow (filename, swapname)
-	if AS_RunningTmux()
+	if g:autoswap_detect_tmux && AS_RunningTmux()
 		let active_window = AS_DetectActiveWindow_Tmux(a:swapname)
 	elseif has('macunix')
 		let active_window = AS_DetectActiveWindow_Mac(a:filename)
