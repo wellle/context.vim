@@ -52,11 +52,13 @@ If you use Arch Linux you can install via the [`vim-autoswap-git`
 package in the AUR](https://aur.archlinux.org/packages/vim-autoswap-git/).
 The package will install this plugin and all the needed dependencies.
 
+
 Authors
 -------
 
 * Gioele Barabucci <http://svario.it/gioele> (made the plugin Linux-compatible, maintainer)
 * Damian Conway <http://damian.conway.org> (original author)
+* Greg Lutostanski (tmux support)
 
 
 Development
