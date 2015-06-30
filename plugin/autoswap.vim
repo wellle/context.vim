@@ -159,7 +159,7 @@ endfunction
 " Switch to terminal window specified...
 "
 function! AS_SwitchToActiveWindow (active_window)
-	if AS_RunningTmux()
+	if g:autoswap_detect_tmux && AS_RunningTmux()
 		call AS_SwitchToActiveWindow_Tmux(a:active_window)
 	elseif has('macunix')
 		call AS_SwitchToActiveWindow_Mac(a:active_window)
