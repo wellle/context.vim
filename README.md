@@ -43,15 +43,22 @@ switch to the Vim window with the open file.
 *KDE/Konsole users*: in addition to `wmctrl` you must install also
 the [`vim-konsole`](https://github.com/gergap/vim-konsole) plugin.
 
+*tmux users*: if `tmux` is detected, autoswap can change the current
+pane to the one where vim is already open. `tmux` support is disabled
+by default. To enable support for `tmux` add
+`let g:autoswap_detect_tmux = 1` to your `.vimrc`.
+
 If you use Arch Linux you can install via the [`vim-autoswap-git`
 package in the AUR](https://aur.archlinux.org/packages/vim-autoswap-git/).
 The package will install this plugin and all the needed dependencies.
+
 
 Authors
 -------
 
 * Gioele Barabucci <http://svario.it/gioele> (made the plugin Linux-compatible, maintainer)
 * Damian Conway <http://damian.conway.org> (original author)
+* Greg Lutostanski (tmux support)
 
 
 Development

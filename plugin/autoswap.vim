@@ -28,6 +28,11 @@ if exists("loaded_autoswap")
 endif
 let loaded_autoswap = 1
 
+" By default we don't try to detect tmux
+if !exists("g:autoswap_detect_tmux")
+	let g:autoswap_detect_tmux = 0
+endif
+
 " Preserve external compatibility options, then enable full vim compatibility...
 let s:save_cpo = &cpo
 set cpo&vim
@@ -36,16 +41,15 @@ set cpo&vim
 "
 augroup AutoSwap
 	autocmd!
-	autocmd SwapExists *  call AS_HandleSwapfile(expand('<afile>:p'))
+	autocmd SwapExists *  call AS_HandleSwapfile(expand('<afile>:p'), v:swapname)
 augroup END
-
 
 " The automatic behaviour...
 "
-function! AS_HandleSwapfile (filename)
+function! AS_HandleSwapfile (filename, swapname)
 
 	" Is file already open in another Vim session in some other window?
-	let active_window = AS_DetectActiveWindow(a:filename)
+	let active_window = AS_DetectActiveWindow(a:filename, a:swapname)
 
 	" If so, go there instead and terminate this attempt to open the file...
 	if (strlen(active_window) > 0)
@@ -96,17 +100,43 @@ endfunction
 "##                                                             ##
 "#################################################################
 
+function! AS_RunningTmux ()
+	if $TMUX != ""
+		return 1
+	endif
+	return 0
+endfunction
+
 " Return an identifier for a terminal window already editing the named file
 " (Should either return a string identifying the active window,
 "  or else return an empty string to indicate "no active window")...
 "
-function! AS_DetectActiveWindow (filename)
-	if has('macunix')
+function! AS_DetectActiveWindow (filename, swapname)
+	if g:autoswap_detect_tmux && AS_RunningTmux()
+		let active_window = AS_DetectActiveWindow_Tmux(a:swapname)
+	elseif has('macunix')
 		let active_window = AS_DetectActiveWindow_Mac(a:filename)
 	elseif has('unix')
 		let active_window = AS_DetectActiveWindow_Linux(a:filename)
 	endif
 	return active_window
+endfunction
+
+" TMUX: Detection function for tmux, uses tmux
+function! AS_DetectActiveWindow_Tmux (swapname)
+	let pid = systemlist('fuser '.a:swapname.' 2>/dev/null | grep -o "[0-9]*"')
+	if (len(pid) == 0)
+		return ''
+	endif
+	let tty = systemlist('ps h '.pid[0].' 2>/dev/null | sed -rn "s/^ *[0-9]+ +([^ ]+).*/\1/p" 2>/dev/null')
+	if (len(tty) == 0)
+		return ''
+	endif
+	let window = systemlist('tmux list-panes -aF "#{pane_tty} #{window_index} #{pane_index}" | grep -F "'.tty[0].'" 2>/dev/null')
+	if (len(window) == 0)
+		return ''
+	endif
+	return window[0]
 endfunction
 
 " LINUX: Detection function for Linux, uses mwctrl
@@ -129,11 +159,19 @@ endfunction
 " Switch to terminal window specified...
 "
 function! AS_SwitchToActiveWindow (active_window)
-	if has('macunix')
+	if g:autoswap_detect_tmux && AS_RunningTmux()
+		call AS_SwitchToActiveWindow_Tmux(a:active_window)
+	elseif has('macunix')
 		call AS_SwitchToActiveWindow_Mac(a:active_window)
 	elseif has('unix')
 		call AS_SwitchToActiveWindow_Linux(a:active_window)
 	endif
+endfunction
+
+" TMUX: Switch function for Tmux
+function! AS_SwitchToActiveWindow_Tmux (active_window)
+	let pane_info = split(a:active_window)
+	call system('tmux select-window -t '.pane_info[1].'; tmux select-pane -t '.pane_info[2])
 endfunction
 
 " LINUX: Switch function for Linux, uses wmctrl
