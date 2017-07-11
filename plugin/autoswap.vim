@@ -124,15 +124,16 @@ endfunction
 
 " TMUX: Detection function for tmux, uses tmux
 function! AS_DetectActiveWindow_Tmux (swapname)
-	let pid = systemlist('fuser '.a:swapname.' 2>/dev/null | grep -o "[0-9]*"')
+	let pid = systemlist('fuser '.a:swapname.' 2>/dev/null | grep -E -o "[0-9]+"')
 	if (len(pid) == 0)
 		return ''
 	endif
-	let tty = systemlist('ps h '.pid[0].' 2>/dev/null | sed -rn "s/^ *[0-9]+ +([^ ]+).*/\1/p" 2>/dev/null')
+	let tty = systemlist('ps -o "tt=" '.pid[0].' 2>/dev/null')
 	if (len(tty) == 0)
 		return ''
 	endif
-	let window = systemlist('tmux list-panes -aF "#{pane_tty} #{window_index} #{pane_index}" | grep -F "'.tty[0].'" 2>/dev/null')
+	let tty[0] = substitute(tty[0], '\s\+$', '')
+	let window = systemlist('tmux list-panes -aF "#{pane_tty} #{window_index} #{pane_index}" | grep -F "'.tty[0].' " 2>/dev/null')
 	if (len(window) == 0)
 		return ''
 	endif
