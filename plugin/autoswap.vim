@@ -80,7 +80,7 @@ function! AS_DelayedMsg (msg)
 		autocmd!
 		" Print the message on finally entering the buffer...
 		autocmd BufWinEnter *  echohl WarningMsg
-  exec 'autocmd BufWinEnter *  echon "\r'.printf("%-60s", a:msg).'"'
+		exec 'autocmd BufWinEnter *  echon "\r'.printf("%-60s", a:msg).'"'
 		autocmd BufWinEnter *  echohl NONE
 
 		" And then remove these autocmds, so it's a "one-shot" deal...
