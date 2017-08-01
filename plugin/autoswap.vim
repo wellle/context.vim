@@ -132,7 +132,7 @@ function! AS_DetectActiveWindow_Tmux (swapname)
 	if (len(tty) == 0)
 		return ''
 	endif
-	let tty[0] = substitute(tty[0], '\s\+$', '')
+	let tty[0] = substitute(tty[0], '\s\+$', '', '')
 	" The output of `ps -o tt` and `tmux-list panes` varies from
 	" system to system.
 	" * Linux: `pts/1`, `/dev/pts/1`
