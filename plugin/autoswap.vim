@@ -193,3 +193,5 @@ endfunction
 
 " Restore previous external compatibility options
 let &cpo = s:save_cpo
+
+" vim: noexpandtab tabstop=4 softtabstop=4 shiftwidth=4
