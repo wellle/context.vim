@@ -155,13 +155,17 @@ endfunction
 
 " MAC: Detection function for Mac OSX, uses osascript
 function! AS_DetectActiveWindow_Mac (filename)
-	if ($TERM_PROGRAM != 'Apple_Terminal')
+	let shortname = fnamemodify(a:filename,":t")
+	if ($TERM_PROGRAM == 'Apple_Terminal')
+		let find_win_cmd = 'osascript -e ''tell application "Terminal" to get the id of every window whose (name begins with "'.shortname.' " and name contains "VIM")'''
+	elseif ($TERM_PROGRAM == 'iTerm.app')
+		let find_win_cmd = 'osascript -e ''tell application "iTerm2" to get the index of every window whose (name contains "'.shortname.' " and name contains "VIM")'''
+	else
 		return ''
 	endif
-	let shortname = fnamemodify(a:filename,":t")
-	let active_window = system('osascript -e ''tell application "Terminal" to every window whose (name begins with "'.shortname.' " and name contains "VIM")''')
-	let active_window = substitute(active_window, '^window id \d\+\zs\_.*', '', '')
-	return (active_window =~ 'window' ? active_window : "")
+	let active_window = system(find_win_cmd)
+	let active_window = substitute(active_window, '^\d\+\zs\_.*', '', '')
+	return (active_window =~ '\d\+' ? active_window : "")
 endfunction
 
 
@@ -190,9 +194,20 @@ endfunction
 
 " MAC: Switch function for Mac, uses osascript
 function! AS_SwitchToActiveWindow_Mac (active_window)
-	call system('osascript -e ''tell application "Terminal" to set frontmost of '.a:active_window.' to true''')
+	if ($TERM_PROGRAM == 'Apple_Terminal')
+		call system('osascript -e ''tell application "Terminal" to set frontmost of window id '.a:active_window.' to true''')
+	elseif ($TERM_PROGRAM == 'iTerm.app')
+		let switch_win_cmd = 'osascript -e ''tell application "iTerm"''
+					\ -e ''repeat with mywindow in windows''
+					\ -e ''   if index of mywindow is ' .a:active_window. '''
+					\ -e ''     select mywindow''
+					\ -e ''   return''
+					\ -e ''   end if''
+					\ -e '' end repeat''
+					\ -e ''end tell'''
+		call system(switch_win_cmd)
+	endif
 endfunction
-
 
 " Restore previous external compatibility options
 let &cpo = s:save_cpo
