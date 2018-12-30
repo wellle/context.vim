@@ -155,6 +155,9 @@ endfunction
 
 " MAC: Detection function for Mac OSX, uses osascript
 function! AS_DetectActiveWindow_Mac (filename)
+	if ($TERM_PROGRAM != 'Apple_Terminal')
+		return ''
+	endif
 	let shortname = fnamemodify(a:filename,":t")
 	let active_window = system('osascript -e ''tell application "Terminal" to every window whose (name begins with "'.shortname.' " and name ends with "VIM")''')
 	let active_window = substitute(active_window, '^window id \d\+\zs\_.*', '', '')
