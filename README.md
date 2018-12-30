@@ -25,6 +25,12 @@ The original version of this plugin (only for Mac OX) is available at <http://is
 together with other plugins presented in the same talk. This version has
 been modified to work also on Linux systems. Both Vim and GVim are supported.
 
+Limitations
+-----------
+
+At the moment this plugin does not reliably detect files open within tabs in
+Apple Terminal and iTerm2 as it matches based on the window name, not tab name.
+
 
 Installation
 ------------
