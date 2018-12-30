@@ -10,8 +10,10 @@
 "##                                                         ##
 "##     set title titlestring=                              ##
 "##                                                         ##
-"##  On MacOS X this plugin works only for Vim sessions     ##
-"##  running in Terminal.                                   ##
+"##  On MacOS this plugin only works fully for Vim sessions ##
+"##  running in Apple Terminal or iTerm2. Other terminals   ##
+"##  and GUI Vims are partially supported, but detecting    ##
+"##  and switching to the active window will not work.      ##
 "##                                                         ##
 "##  On Linux this plugin requires the external program     ##
 "##  wmctrl, packaged for most distributions.               ##
