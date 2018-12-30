@@ -159,7 +159,7 @@ function! AS_DetectActiveWindow_Mac (filename)
 		return ''
 	endif
 	let shortname = fnamemodify(a:filename,":t")
-	let active_window = system('osascript -e ''tell application "Terminal" to every window whose (name begins with "'.shortname.' " and name ends with "VIM")''')
+	let active_window = system('osascript -e ''tell application "Terminal" to every window whose (name begins with "'.shortname.' " and name contains "VIM")''')
 	let active_window = substitute(active_window, '^window id \d\+\zs\_.*', '', '')
 	return (active_window =~ 'window' ? active_window : "")
 endfunction
