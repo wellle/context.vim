@@ -16,36 +16,50 @@ function! ContextR()
 endfunction
 
 function! Context()
-    let view = winsaveview()
-    normal! H
-    call search('.', 'c')
-    let lines = []
+    let current_line = line('w0') " topmost visible line number
 
-    let line = getline('.')
+    " find line which isn't empty
+    while current_line > 0
+        let line = getline(current_line)
+        " TODO: extract helper function for this?
+        if !empty(matchstr(line, '[^\s]'))
+            let current_indent = indent(current_line)
+            break
+        endif
+        let current_line += 1
+    endwhile
 
-    while 1
-        " if line starts with closing brace: jump to matching opening one and add it to lines
+    let context = []
+    let current_line = line('w0') " topmost visible line number
+    while current_line > 1
+        let allow_same = 0
+
+        " if line starts with closing brace: jump to matching opening one and add it to context
         " also for other prefixes to show the if which belongs to an else etc.
         if line =~ '^\s*\([]})]\|end\|else\|case\|default\)'
-            normal [=
-        else
-            let oldpos = getpos('.')
-            normal [-
-            let newpos = getpos('.')
-            if newpos == oldpos
-                break
-            endif
+            let allow_same = 1
         endif
 
-        let line = getline('.')
-        call insert(lines, line, 0)
-        continue
+        " search for line with same indent (or less)
+        while current_line > 1
+            let current_line -= 1
+            let line = getline(current_line)
+            if empty(matchstr(line, '[^\s]'))
+                continue " ignore empty lines
+            endif
+
+            let indent = indent(current_line)
+            if indent < current_indent || allow_same && indent == current_indent
+                call insert(context, line, 0)
+                let current_indent = indent
+                break
+            endif
+        endwhile
     endwhile
 
     let oldpos = getpos('.')
 
-    call ShowInPreview(lines)
-    call winrestview(view)
+    call ShowInPreview(context)
 endfunction
 
 let s:height=0
@@ -65,10 +79,10 @@ function! ShowInPreview(lines)
     let &previewheight=s:height
     " TODO: set winfixheight too
 
-    let l:command = "silent! pedit! +setlocal\\ " .
-                  \ "buftype=nofile\\ nobuflisted\\ " .
-                  \ "noswapfile\\ nonumber\\ " .
-                  \ "filetype=" . &filetype . " " . s:name
+    let l:command = 'silent! pedit! +setlocal\ ' .
+                  \ 'buftype=nofile\ nobuflisted\ ' .
+                  \ 'noswapfile\ nonumber\ ' .
+                  \ 'filetype=' . &filetype . " " . s:name
 
     exe l:command
 
