@@ -36,7 +36,7 @@ function! Context()
 
         " if line starts with closing brace: jump to matching opening one and add it to context
         " also for other prefixes to show the if which belongs to an else etc.
-        if line =~ '^\s*\([]})]\|end\|else\|case\|default\)'
+        if line =~ '^\s*\([]})]\|end\|else\|case\>\|default\>\)'
             let allow_same = 1
         endif
 
@@ -84,7 +84,7 @@ function! ShowInPreview(lines)
 
     execute 'silent! pedit +setlocal\ ' .
                   \ 'buftype=nofile\ nobuflisted\ ' .
-                  \ 'noswapfile\ nonumber\ ' .
+                  \ 'noswapfile\ nonumber\ nowrap\ ' .
                   \ 'filetype=' . &filetype . " " . s:name
 
     call setbufline(s:name, 1, a:lines)
