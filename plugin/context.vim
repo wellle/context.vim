@@ -77,23 +77,15 @@ function! ShowInPreview(lines)
     endif
 
     let &previewheight=s:height
-    " TODO: set winfixheight too
-
-    let l:command = 'silent! pedit! +setlocal\ ' .
-                  \ 'buftype=nofile\ nobuflisted\ ' .
-                  \ 'noswapfile\ nonumber\ ' .
-                  \ 'filetype=' . &filetype . " " . s:name
-
-    exe l:command
 
     while len(a:lines) < s:height
         call insert(a:lines, "", 0)
     endwhile
 
-    if has('nvim')
-        let l:bufNr = bufnr(s:name)
-        call nvim_buf_set_lines(l:bufNr, 0, -1, 0, a:lines)
-    else
-        call setbufline(s:name, 1, a:lines)
-    endif
+    execute 'silent! pedit +setlocal\ ' .
+                  \ 'buftype=nofile\ nobuflisted\ ' .
+                  \ 'noswapfile\ nonumber\ ' .
+                  \ 'filetype=' . &filetype . " " . s:name
+
+    call setbufline(s:name, 1, a:lines)
 endfunction
