@@ -1,13 +1,13 @@
-nnoremap <C-L> <C-L>:call ContextR()<CR>
-nnoremap <C-E> <C-E>:call Context()<CR>
-nnoremap <C-Y> <C-Y>:call Context()<CR>
-nnoremap <C-D> <C-D>:call ContextR()<CR>
-nnoremap <C-U> <C-U>:call ContextR()<CR>
-nnoremap gg gg:call ContextR()<CR>
-nnoremap G G:call ContextR()<CR>
-nnoremap zz zz:call ContextR()<CR>
-nnoremap zt zt:call ContextR()<CR>
-nnoremap zb zb:call ContextR()<CR>
+nnoremap <silent> <C-L> <C-L>:call ContextR()<CR>
+nnoremap <silent> <C-E> <C-E>:call Context()<CR>
+nnoremap <silent> <C-Y> <C-Y>:call Context()<CR>
+nnoremap <silent> <C-D> <C-D>:call ContextR()<CR>
+nnoremap <silent> <C-U> <C-U>:call ContextR()<CR>
+nnoremap <silent> gg gg:call ContextR()<CR>
+nnoremap <silent> G G:call ContextR()<CR>
+nnoremap <silent> zz zz:call ContextR()<CR>
+nnoremap <silent> zt zt:call ContextR()<CR>
+nnoremap <silent> zb zb:call ContextR()<CR>
 
 " resets s:height
 function! ContextR()
