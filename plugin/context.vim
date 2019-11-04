@@ -1,28 +1,40 @@
-nnoremap <silent> <C-L> <C-L>:call Context(1)<CR>
-nnoremap <silent> <C-E> <C-E>:call Context(0)<CR>
-nnoremap <silent> <C-Y> <C-Y>:call Context(0)<CR>
-nnoremap <silent> <C-D> <C-D>:call Context(0)<CR>
-nnoremap <silent> <C-U> <C-U>:call Context(0)<CR>
-nnoremap <silent> gg gg:call Context(0)<CR>
-nnoremap <silent> G G:call Context(0)<CR>
+nnoremap <silent> <C-L> <C-L>:call Context(1,0)<CR>
+nnoremap <silent> <C-E> <C-E>:call Context(0,0)<CR>
+nnoremap <silent> <C-Y> <C-Y>:call Context(0,0)<CR>
 " NOTE: this is pretty hacky, we call zz/zt/zb twice here
 " if we only do it once it seems to break something
 " to reproduce: search for something, then alternate: n zt n zt n zt ...
-nnoremap <silent> zz zzzz:call Context(0)<CR>
-nnoremap <silent> zt ztzt:call Context(0)<CR>
-nnoremap <silent> zb zbzb:call Context(0)<CR>
+nnoremap <silent> zz zzzz:call Context(0,0)<CR>
+nnoremap <silent> zt ztzt:call Context(0,0)<CR>
+nnoremap <silent> zb zbzb:call Context(0,0)<CR>
 
-let s:min_height=0
-let s:top_line=-10
+" settings
+let s:always_resize=0
+
+" consts
 let s:buffer_name="<context.vim>"
 
-function! Context(force_resize)
-    if a:force_resize
+" state
+let s:min_height=0
+let s:top_line=-10
+let s:ignore_autocmd=0
+
+function! Context(force_resize, from_autocmd)
+    if a:from_autocmd && s:ignore_autocmd
+        " ignore nested calls from auto commands
+        " (using the preview window triggers autocmds)
+        return
+    endif
+
+    if a:force_resize || s:always_resize
         let s:top_line=-10
     endif
 
-    call s:echof('----')
+    call s:echof('==========', a:force_resize, a:from_autocmd)
+
+    let s:ignore_autocmd=1
     call Context1(1)
+    let s:ignore_autocmd=0
 endfunction
 
 function! Context1(allow_resize)
@@ -41,9 +53,10 @@ function! Context1(allow_resize)
     endif
 
     let s:top_line = current_line
+    let max_line = line('$')
 
     " find line which isn't empty
-    while current_line > 0
+    while current_line <= max_line
         let line = getline(current_line)
         if !empty(matchstr(line, '[^\s]'))
             let current_indent = indent(current_line)
@@ -112,6 +125,11 @@ function! ShowInPreview(lines)
 
     call setbufline(s:buffer_name, 1, a:lines)
 endfunction
+
+augroup context.vim
+    autocmd!
+    au BufEnter,CursorMoved * call Context(0,1)
+augroup END
 
 " uncomment to activate
 " let s:logfile = "~/temp/vimlog"
