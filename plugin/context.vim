@@ -1,27 +1,50 @@
-nnoremap <silent> <C-L> <C-L>:call ContextR()<CR>
-nnoremap <silent> <C-E> <C-E>:call Context()<CR>
-nnoremap <silent> <C-Y> <C-Y>:call Context()<CR>
-nnoremap <silent> <C-D> <C-D>:call ContextR()<CR>
-nnoremap <silent> <C-U> <C-U>:call ContextR()<CR>
-nnoremap <silent> gg gg:call ContextR()<CR>
-nnoremap <silent> G G:call ContextR()<CR>
-nnoremap <silent> zz zz:call ContextR()<CR>
-nnoremap <silent> zt zt:call ContextR()<CR>
-nnoremap <silent> zb zb:call ContextR()<CR>
+nnoremap <silent> <C-L> <C-L>:call Context(1)<CR>
+nnoremap <silent> <C-E> <C-E>:call Context(0)<CR>
+nnoremap <silent> <C-Y> <C-Y>:call Context(0)<CR>
+nnoremap <silent> <C-D> <C-D>:call Context(0)<CR>
+nnoremap <silent> <C-U> <C-U>:call Context(0)<CR>
+nnoremap <silent> gg gg:call Context(0)<CR>
+nnoremap <silent> G G:call Context(0)<CR>
+" NOTE: this is pretty hacky, we call zz/zt/zb twice here
+" if we only do it once it seems to break something
+" to reproduce: search for something, then alternate: n zt n zt n zt ...
+nnoremap <silent> zz zzzz:call Context(0)<CR>
+nnoremap <silent> zt ztzt:call Context(0)<CR>
+nnoremap <silent> zb zbzb:call Context(0)<CR>
 
-" resets s:height
-function! ContextR()
-    let s:height=0
-    call Context()
+let s:min_height=0
+let s:top_line=-10
+let s:buffer_name="<context.vim>"
+
+function! Context(force_resize)
+    if a:force_resize
+        let s:top_line=-10
+    endif
+
+    call s:echof('----')
+    call Context1(1)
 endfunction
 
-function! Context()
-    let current_line = line('w0') " topmost visible line number
+function! Context1(allow_resize)
+    let current_line = line('w0')
+    call s:echof("in", s:top_line, current_line)
+    if s:top_line == current_line
+        return
+    endif
+
+    if a:allow_resize
+        " avoid resizing if we only moved a single line
+        " (so scrolling is still somewhat smooth)
+        if abs(s:top_line - current_line) > 1
+            let s:min_height=0
+        endif
+    endif
+
+    let s:top_line = current_line
 
     " find line which isn't empty
     while current_line > 0
         let line = getline(current_line)
-        " TODO: extract helper function for this?
         if !empty(matchstr(line, '[^\s]'))
             let current_indent = indent(current_line)
             break
@@ -30,7 +53,7 @@ function! Context()
     endwhile
 
     let context = []
-    let current_line = line('w0') " topmost visible line number
+    let current_line = s:top_line
     while current_line > 1
         let allow_same = 0
 
@@ -60,32 +83,41 @@ function! Context()
     let oldpos = getpos('.')
 
     call ShowInPreview(context)
+    " call again until it stabilizes
+    " disallow resizing to make sure it will eventually
+    call Context1(0)
 endfunction
-
-let s:height=0
-let s:name="<context.vim>"
 
 " https://vi.stackexchange.com/questions/19056/how-to-create-preview-window-to-display-a-string
 function! ShowInPreview(lines)
     pclose
-    if s:height < len(a:lines)
-        let s:height = len(a:lines)
+    if s:min_height < len(a:lines)
+        let s:min_height = len(a:lines)
     endif
 
-    if s:height == 0
+    if s:min_height == 0
         return
     endif
 
-    let &previewheight=s:height
+    let &previewheight=s:min_height
 
-    while len(a:lines) < s:height
-        call insert(a:lines, "", 0)
+    while len(a:lines) < s:min_height
+        call add(a:lines, "")
     endwhile
 
     execute 'silent! pedit +setlocal\ ' .
                   \ 'buftype=nofile\ nobuflisted\ ' .
                   \ 'noswapfile\ nonumber\ nowrap\ ' .
-                  \ 'filetype=' . &filetype . " " . s:name
+                  \ 'filetype=' . &filetype . " " . s:buffer_name
 
-    call setbufline(s:name, 1, a:lines)
+    call setbufline(s:buffer_name, 1, a:lines)
+endfunction
+
+" uncomment to activate
+" let s:logfile = "~/temp/vimlog"
+
+function! s:echof(...)
+    if exists('s:logfile')
+        silent execute "!echo '" . join(a:000) . "' >> " . s:logfile
+    endif
 endfunction
