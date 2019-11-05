@@ -1,12 +1,12 @@
-nnoremap <silent> <C-L> <C-L>:call Context(1,0)<CR>
-nnoremap <silent> <C-E> <C-E>:call Context(0,0)<CR>
-nnoremap <silent> <C-Y> <C-Y>:call Context(0,0)<CR>
+nnoremap <silent> <C-L> <C-L>:call <SID>show_context(1,0)<CR>
+nnoremap <silent> <C-E> <C-E>:call <SID>show_context(0,0)<CR>
+nnoremap <silent> <C-Y> <C-Y>:call <SID>show_context(0,0)<CR>
 " NOTE: this is pretty hacky, we call zz/zt/zb twice here
 " if we only do it once it seems to break something
 " to reproduce: search for something, then alternate: n zt n zt n zt ...
-nnoremap <silent> zz zzzz:call Context(0,0)<CR>
-nnoremap <silent> zt ztzt:call Context(0,0)<CR>
-nnoremap <silent> zb zbzb:call Context(0,0)<CR>
+nnoremap <silent> zz zzzz:call <SID>show_context(0,0)<CR>
+nnoremap <silent> zt ztzt:call <SID>show_context(0,0)<CR>
+nnoremap <silent> zb zbzb:call <SID>show_context(0,0)<CR>
 
 " settings
 let s:always_resize=0
@@ -20,7 +20,7 @@ let s:min_height=0
 let s:top_line=-10
 let s:ignore_autocmd=0
 
-function! Context(force_resize, from_autocmd)
+function! s:show_context(force_resize, from_autocmd)
     if a:from_autocmd && s:ignore_autocmd
         " ignore nested calls from auto commands
         " (using the preview window triggers autocmds)
@@ -34,11 +34,11 @@ function! Context(force_resize, from_autocmd)
     call s:echof('==========', a:force_resize, a:from_autocmd)
 
     let s:ignore_autocmd=1
-    call Context1(1)
+    call s:update_context(1)
     let s:ignore_autocmd=0
 endfunction
 
-function! Context1(allow_resize)
+function! s:update_context(allow_resize)
     let current_line = line('w0')
     call s:echof("in", s:top_line, current_line)
     if s:top_line == current_line
@@ -96,14 +96,14 @@ function! Context1(allow_resize)
 
     let oldpos = getpos('.')
 
-    call ShowInPreview(context)
+    call s:show_in_preview(context)
     " call again until it stabilizes
     " disallow resizing to make sure it will eventually
-    call Context1(0)
+    call s:update_context(0)
 endfunction
 
 " https://vi.stackexchange.com/questions/19056/how-to-create-preview-window-to-display-a-string
-function! ShowInPreview(lines)
+function! s:show_in_preview(lines)
     pclose
     if s:min_height < len(a:lines)
         let s:min_height = len(a:lines)
@@ -133,7 +133,7 @@ endfunction
 
 augroup context.vim
     autocmd!
-    au BufEnter,CursorMoved * call Context(0,1)
+    au BufEnter,CursorMoved * call <SID>show_context(0,1)
 augroup END
 
 " uncomment to activate
