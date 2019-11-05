@@ -10,6 +10,7 @@ nnoremap <silent> zb zbzb:call Context(0,0)<CR>
 
 " settings
 let s:always_resize=0
+let s:blanks_above=0
 
 " consts
 let s:buffer_name="<context.vim>"
@@ -115,7 +116,11 @@ function! ShowInPreview(lines)
     let &previewheight=s:min_height
 
     while len(a:lines) < s:min_height
-        call add(a:lines, "")
+        if s:blanks_above
+            call insert(a:lines, "", 0)
+        else
+            call add(a:lines, "")
+        endif
     endwhile
 
     execute 'silent! pedit +setlocal\ ' .
