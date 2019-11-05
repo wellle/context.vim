@@ -66,6 +66,8 @@ function! s:update_context(allow_resize)
         let current_line += 1
     endwhile
 
+    let padding = wincol() - virtcol('.')
+    let prefix = repeat(' ', padding)
     let context = []
     let current_line = s:top_line
     while current_line > 1
@@ -87,7 +89,7 @@ function! s:update_context(allow_resize)
 
             let indent = indent(current_line)
             if indent < current_indent || allow_same && indent == current_indent
-                call insert(context, line, 0)
+                call insert(context, prefix . line, 0)
                 let current_indent = indent
                 break
             endif
@@ -123,7 +125,7 @@ function! s:show_in_preview(lines)
         endif
     endwhile
 
-    execute 'silent! pedit +setlocal\ ' .
+    execute 'silent! pedit +setlocal\ modifiable\ ' .
                   \ 'buftype=nofile\ nobuflisted\ ' .
                   \ 'noswapfile\ nonumber\ nowrap\ ' .
                   \ 'filetype=' . &filetype . " " . s:buffer_name
