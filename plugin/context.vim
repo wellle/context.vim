@@ -13,6 +13,7 @@ let s:always_resize=0
 let s:blanks_above=0
 let s:max_height=21
 let s:max_height_per_indent=5
+let s:ellipsis_char='·'
 
 " consts
 let s:buffer_name="<context.vim>"
@@ -104,11 +105,12 @@ function! s:update_context(allow_resize)
     let max = s:max_height_per_indent
     let lines = []
     let indents = []
-    " no more than five lines per ident
+    " no more than five lines per indent
     for indent in sort(keys(context), 'N')
         if len(context[indent]) > max
+            let ellipsis_line = repeat(' ', indent) . repeat(s:ellipsis_char, 3)
             call remove(context[indent], max/2, -(max+1)/2)
-            call insert(context[indent], repeat(' ', indent) . '···', max/2)
+            call insert(context[indent], ellipsis_line, max/2)
         endif
         call extend(lines, context[indent])
         call extend(indents, repeat([indent], len(context[indent])))
@@ -116,8 +118,12 @@ function! s:update_context(allow_resize)
 
     let max = s:max_height
     if len(lines) > max
+        let indent1 = indents[max/2]
+        let indent2 = indents[-(max-1)/2]
+        let ellipsis = repeat(s:ellipsis_char, max([indent2 - indent1, 3]))
+        let ellipsis_line = repeat(' ', indent1) . ellipsis
         call remove(lines, max/2, -(max+1)/2)
-        call insert(lines, repeat(' ', indents[max/2]) . repeat('·', indents[-(max-1)/2] - indents[max/2]), max/2)
+        call insert(lines, ellipsis_line, max/2)
     endif
 
     call s:show_in_preview(lines)
