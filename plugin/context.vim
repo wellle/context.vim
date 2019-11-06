@@ -11,6 +11,8 @@ nnoremap <silent> zb zbzb:call <SID>show_context(0,0)<CR>
 " settings
 let s:always_resize=0
 let s:blanks_above=0
+let s:max_height=21
+let s:max_height_per_indent=5
 
 " consts
 let s:buffer_name="<context.vim>"
@@ -68,7 +70,7 @@ function! s:update_context(allow_resize)
 
     let padding = wincol() - virtcol('.')
     let prefix = repeat(' ', padding)
-    let context = []
+    let context = {}
     let current_line = s:top_line
     while current_line > 1
         let allow_same = 0
@@ -89,16 +91,36 @@ function! s:update_context(allow_resize)
 
             let indent = indent(current_line)
             if indent < current_indent || allow_same && indent == current_indent
-                call insert(context, prefix . line, 0)
+                if !has_key(context, indent)
+                    let context[indent] = []
+                endif
+                call insert(context[indent], prefix . line, 0)
                 let current_indent = indent
                 break
             endif
         endwhile
     endwhile
 
-    let oldpos = getpos('.')
+    let max = s:max_height_per_indent
+    let lines = []
+    let indents = []
+    " no more than five lines per ident
+    for indent in sort(keys(context), 'N')
+        if len(context[indent]) > max
+            call remove(context[indent], max/2, -(max+1)/2)
+            call insert(context[indent], repeat(' ', indent) . '···', max/2)
+        endif
+        call extend(lines, context[indent])
+        call extend(indents, repeat([indent], len(context[indent])))
+    endfor
 
-    call s:show_in_preview(context)
+    let max = s:max_height
+    if len(lines) > max
+        call remove(lines, max/2, -(max+1)/2)
+        call insert(lines, repeat(' ', indents[max/2]) . repeat('·', indents[-(max-1)/2] - indents[max/2]), max/2)
+    endif
+
+    call s:show_in_preview(lines)
     " call again until it stabilizes
     " disallow resizing to make sure it will eventually
     call s:update_context(0)
