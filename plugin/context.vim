@@ -69,8 +69,6 @@ function! s:update_context(allow_resize)
         let current_line += 1
     endwhile
 
-    let padding = wincol() - virtcol('.')
-    let prefix = repeat(' ', padding)
     let context = {}
     let current_line = s:top_line
     while current_line > 1
@@ -95,7 +93,7 @@ function! s:update_context(allow_resize)
                 if !has_key(context, indent)
                     let context[indent] = []
                 endif
-                call insert(context[indent], prefix . line, 0)
+                call insert(context[indent], line, 0)
                 let current_indent = indent
                 break
             endif
@@ -135,6 +133,11 @@ endfunction
 " https://vi.stackexchange.com/questions/19056/how-to-create-preview-window-to-display-a-string
 function! s:show_in_preview(lines)
     pclose
+    if exists('s:last_bufnr')
+        execute 'bwipeout' s:last_bufnr
+        unlet s:last_bufnr
+    endif
+
     if s:min_height < len(a:lines)
         let s:min_height = len(a:lines)
     endif
@@ -153,12 +156,23 @@ function! s:show_in_preview(lines)
         endif
     endwhile
 
-    execute 'silent! pedit +setlocal\ modifiable\ ' .
-                  \ 'buftype=nofile\ nobuflisted\ ' .
-                  \ 'noswapfile\ nonumber\ nowrap\ ' .
-                  \ 'filetype=' . &filetype . " " . s:buffer_name
+    let padding = wincol() - virtcol('.')
+    let buffer_name = s:buffer_name . ' ' . reltimestr(reltime())
+    let settings = '+setlocal'   .
+                \ ' buftype='    . 'nofile'      .
+                \ ' filetype='   . &filetype     .
+                \ ' foldcolumn=' . padding       .
+                \ ' statusline=' . s:buffer_name .
+                \ ' modifiable'  .
+                \ ' nobuflisted' .
+                \ ' nonumber'    .
+                \ ' noswapfile'  .
+                \ ' nowrap'      .
+                \ ''
+    execute 'silent! pedit' escape(settings, ' ') buffer_name
 
-    call setbufline(s:buffer_name, 1, a:lines)
+    let s:last_bufnr = bufnr(buffer_name)
+    call setbufline(s:last_bufnr, 1, a:lines)
 endfunction
 
 augroup context.vim
@@ -171,6 +185,6 @@ augroup END
 
 function! s:echof(...)
     if exists('s:logfile')
-        silent execute "!echo '" . join(a:000) . "' >> " . s:logfile
+        execute "silent! !echo '" . join(a:000) . "' >> " . s:logfile
     endif
 endfunction
