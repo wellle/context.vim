@@ -29,6 +29,11 @@ function! s:show_context(force_resize, from_autocmd) abort
         return
     endif
 
+    if mode() != 'n'
+        call s:echof('abort mode')
+        return
+    endif
+
     if a:from_autocmd && s:ignore_autocmd
         " ignore nested calls from auto commands
         call s:echof('abort from autocmd')
