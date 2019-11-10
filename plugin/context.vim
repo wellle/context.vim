@@ -23,17 +23,22 @@ let s:top_line=-10
 let s:ignore_autocmd=0
 
 function! s:show_context(force_resize, from_autocmd)
-    if a:from_autocmd && s:ignore_autocmd
-        " ignore nested calls from auto commands
-        " (using the preview window triggers autocmds)
+    if &previewwindow
+        " no context of preview windows (which we use to display context)
+        call s:echof('abort preview')
         return
     endif
 
-    if a:force_resize || s:always_resize
-        let s:top_line=-10
+    if a:from_autocmd && s:ignore_autocmd
+        " ignore nested calls from auto commands
+        call s:echof('abort from autocmd')
+        return
     endif
 
     call s:echof('==========', a:force_resize, a:from_autocmd)
+    if a:force_resize || s:always_resize
+        let s:top_line=-10
+    endif
 
     let s:ignore_autocmd=1
     call s:update_context(1)
@@ -129,12 +134,48 @@ function! s:update_context(allow_resize)
     call s:update_context(0)
 endfunction
 
-" https://vi.stackexchange.com/questions/19056/how-to-create-preview-window-to-display-a-string
 function! s:show_in_preview(lines)
     if s:min_height < len(a:lines)
         let s:min_height = len(a:lines)
     endif
 
+    " based on https://stackoverflow.com/questions/13707052/quickfix-preview-window-resizing
+    silent! wincmd P " jump to preview, but don't show error
+    if &previewwindow
+        if bufname() == s:buffer_name
+            " reuse existing preview window
+            call s:echof('reuse')
+            silent %delete _
+        elseif s:min_height == 0
+            " nothing to do
+            call s:echof('not ours')
+            wincmd p " jump back
+            return
+        else
+            call s:echof('take over')
+            call s:open_preview()
+        endif
+
+    elseif s:min_height == 0
+        " nothing to do
+        call s:echof('none')
+        return
+    else
+        call s:echof('open new')
+        call s:open_preview()
+        wincmd P " jump to new preview window
+    endif
+
+    silent 0put =a:lines " paste lines
+    1             " and jump to first line
+
+    " resize window
+    execute 'resize' s:min_height
+    wincmd p " jump back
+endfunction
+
+" https://vi.stackexchange.com/questions/19056/how-to-create-preview-window-to-display-a-string
+function! s:open_preview()
     let padding = wincol() - virtcol('.')
     let settings = '+setlocal'   .
                 \ ' buftype='    . 'nofile'      .
@@ -148,17 +189,6 @@ function! s:show_in_preview(lines)
                 \ ' nowrap'      .
                 \ ''
     execute 'silent! pedit' escape(settings, ' ') s:buffer_name
-
-    let bufnr = bufnr(s:buffer_name)
-    call setbufline(bufnr, 1, a:lines)
-
-    " resize preview window
-    " https://stackoverflow.com/questions/13707052/quickfix-preview-window-resizing
-    silent! wincmd P " jump to preview, but don't show error
-    if &previewwindow
-        execute 'resize' s:min_height
-        wincmd p " jump back
-    endif
 endfunction
 
 augroup context.vim
