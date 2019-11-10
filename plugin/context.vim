@@ -10,13 +10,12 @@ nnoremap <silent> zb zbzb:call <SID>show_context(0,0)<CR>
 
 " settings
 let s:always_resize=0
-let s:blanks_above=0
 let s:max_height=21
 let s:max_height_per_indent=5
 let s:ellipsis_char='·'
 
 " consts
-let s:buffer_name="<context.vim>"
+let s:buffer_name='<context.vim>'
 
 " state
 let s:min_height=0
@@ -43,7 +42,7 @@ endfunction
 
 function! s:update_context(allow_resize)
     let current_line = line('w0')
-    call s:echof("in", s:top_line, current_line)
+    call s:echof('in', s:top_line, current_line)
     if s:top_line == current_line
         return
     endif
@@ -132,24 +131,9 @@ endfunction
 
 " https://vi.stackexchange.com/questions/19056/how-to-create-preview-window-to-display-a-string
 function! s:show_in_preview(lines)
-    pclose
     if s:min_height < len(a:lines)
         let s:min_height = len(a:lines)
     endif
-
-    if s:min_height == 0
-        return
-    endif
-
-    let &previewheight=s:min_height
-
-    while len(a:lines) < s:min_height
-        if s:blanks_above
-            call insert(a:lines, "", 0)
-        else
-            call add(a:lines, "")
-        endif
-    endwhile
 
     let padding = wincol() - virtcol('.')
     let settings = '+setlocal'   .
@@ -167,6 +151,14 @@ function! s:show_in_preview(lines)
 
     let bufnr = bufnr(s:buffer_name)
     call setbufline(bufnr, 1, a:lines)
+
+    " resize preview window
+    " https://stackoverflow.com/questions/13707052/quickfix-preview-window-resizing
+    silent! wincmd P " jump to preview, but don't show error
+    if &previewwindow
+        execute 'resize' s:min_height
+        wincmd p " jump back
+    endif
 endfunction
 
 augroup context.vim
@@ -175,7 +167,7 @@ augroup context.vim
 augroup END
 
 " uncomment to activate
-" let s:logfile = "~/temp/vimlog"
+" let s:logfile = '~/temp/vimlog'
 
 function! s:echof(...)
     if exists('s:logfile')
