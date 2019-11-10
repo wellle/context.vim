@@ -22,7 +22,7 @@ let s:min_height=0
 let s:top_line=-10
 let s:ignore_autocmd=0
 
-function! s:show_context(force_resize, from_autocmd)
+function! s:show_context(force_resize, from_autocmd) abort
     if &previewwindow
         " no context of preview windows (which we use to display context)
         call s:echof('abort preview')
@@ -45,7 +45,7 @@ function! s:show_context(force_resize, from_autocmd)
     let s:ignore_autocmd=0
 endfunction
 
-function! s:update_context(allow_resize)
+function! s:update_context(allow_resize) abort
     let current_line = line('w0')
     call s:echof('in', s:top_line, current_line)
     if s:top_line == current_line
@@ -134,7 +134,7 @@ function! s:update_context(allow_resize)
     call s:update_context(0)
 endfunction
 
-function! s:show_in_preview(lines)
+function! s:show_in_preview(lines) abort
     if s:min_height < len(a:lines)
         let s:min_height = len(a:lines)
     endif
@@ -175,7 +175,7 @@ function! s:show_in_preview(lines)
 endfunction
 
 " https://vi.stackexchange.com/questions/19056/how-to-create-preview-window-to-display-a-string
-function! s:open_preview()
+function! s:open_preview() abort
     let padding = wincol() - virtcol('.')
     let settings = '+setlocal'   .
                 \ ' buftype='    . 'nofile'      .
@@ -199,7 +199,7 @@ augroup END
 " uncomment to activate
 " let s:logfile = '~/temp/vimlog'
 
-function! s:echof(...)
+function! s:echof(...) abort
     if exists('s:logfile')
         execute "silent! !echo '" . join(a:000) . "' >> " . s:logfile
     endif
