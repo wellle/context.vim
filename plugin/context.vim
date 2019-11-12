@@ -71,7 +71,7 @@ function! s:update_context(allow_resize) abort
     " find line which isn't empty
     while current_line <= max_line
         let line = getline(current_line)
-        if !empty(matchstr(line, '[^\s]'))
+        if !s:skip_line(line)
             let current_indent = indent(current_line)
             break
         endif
@@ -86,7 +86,7 @@ function! s:update_context(allow_resize) abort
 
         " if line starts with closing brace: jump to matching opening one and add it to context
         " also for other prefixes to show the if which belongs to an else etc.
-        if line =~ '^\s*\([]})]\|end\|else\|case\>\|default\>\)'
+        if line =~ '^\s*\([]{})]\|end\|else\|case\>\|default\>\)'
             let allow_same = 1
         endif
 
@@ -94,7 +94,7 @@ function! s:update_context(allow_resize) abort
         while current_line > 1
             let current_line -= 1
             let line = getline(current_line)
-            if empty(matchstr(line, '[^\s]'))
+            if s:skip_line(line)
                 continue " ignore empty lines
             endif
 
@@ -152,6 +152,10 @@ function! s:update_context(allow_resize) abort
     call s:update_context(0)
 endfunction
 
+function! s:skip_line(line) abort
+    return a:line =~ '^\s*\($\|//\)'
+endfunction
+
 function! s:show_in_preview(lines) abort
     if s:min_height < len(a:lines)
         let s:min_height = len(a:lines)
@@ -186,8 +190,10 @@ function! s:show_in_preview(lines) abort
         wincmd P " jump to new preview window
     endif
 
-    silent 0put =a:lines " paste lines
-    1             " and jump to first line
+    if len(a:lines) > 0
+        silent 0put =a:lines " paste lines
+        1                    " and jump to first line
+    endif
 
     " resize window
     execute 'resize' s:min_height
