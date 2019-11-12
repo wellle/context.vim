@@ -144,6 +144,8 @@ function! s:show_in_preview(lines) abort
         let s:min_height = len(a:lines)
     endif
 
+    let filetype = &filetype
+
     " based on https://stackoverflow.com/questions/13707052/quickfix-preview-window-resizing
     silent! wincmd P " jump to preview, but don't show error
     if &previewwindow
@@ -158,7 +160,7 @@ function! s:show_in_preview(lines) abort
             return
         else
             call s:echof('take over')
-            call s:open_preview()
+            call s:open_preview(filetype)
         endif
 
     elseif s:min_height == 0
@@ -167,7 +169,7 @@ function! s:show_in_preview(lines) abort
         return
     else
         call s:echof('open new')
-        call s:open_preview()
+        call s:open_preview(filetype)
         wincmd P " jump to new preview window
     endif
 
@@ -180,11 +182,11 @@ function! s:show_in_preview(lines) abort
 endfunction
 
 " https://vi.stackexchange.com/questions/19056/how-to-create-preview-window-to-display-a-string
-function! s:open_preview() abort
+function! s:open_preview(filetype) abort
     let padding = wincol() - virtcol('.')
     let settings = '+setlocal'   .
                 \ ' buftype='    . 'nofile'      .
-                \ ' filetype='   . &filetype     .
+                \ ' filetype='   . a:filetype    .
                 \ ' foldcolumn=' . padding       .
                 \ ' statusline=' . s:buffer_name .
                 \ ' modifiable'  .
