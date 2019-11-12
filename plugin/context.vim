@@ -9,18 +9,18 @@ nnoremap <silent> zt ztzt:call <SID>show_context(0,0)<CR>
 nnoremap <silent> zb zbzb:call <SID>show_context(0,0)<CR>
 
 " settings
-let s:always_resize=0
-let s:max_height=21
-let s:max_height_per_indent=5
-let s:ellipsis_char='·'
+let s:always_resize = 0
+let s:max_height = 21
+let s:max_height_per_indent = 5
+let s:ellipsis_char = '·'
 
 " consts
-let s:buffer_name='<context.vim>'
+let s:buffer_name = '<context.vim>'
 
 " state
-let s:min_height=0
-let s:top_line=-10
-let s:ignore_autocmd=0
+let s:min_height = 0
+let s:top_line = -10
+let s:ignore_autocmd = 0
 
 function! s:show_context(force_resize, from_autocmd) abort
     if &previewwindow
@@ -42,12 +42,12 @@ function! s:show_context(force_resize, from_autocmd) abort
 
     call s:echof('==========', a:force_resize, a:from_autocmd)
     if a:force_resize || s:always_resize
-        let s:top_line=-10
+        let s:top_line = -10
     endif
 
-    let s:ignore_autocmd=1
+    let s:ignore_autocmd = 1
     call s:update_context(1)
-    let s:ignore_autocmd=0
+    let s:ignore_autocmd = 0
 endfunction
 
 function! s:update_context(allow_resize) abort
@@ -61,7 +61,7 @@ function! s:update_context(allow_resize) abort
         " avoid resizing if we only moved a single line
         " (so scrolling is still somewhat smooth)
         if abs(s:top_line - current_line) > 1
-            let s:min_height=0
+            let s:min_height = 0
         endif
     endif
 
@@ -208,6 +208,6 @@ augroup END
 
 function! s:echof(...) abort
     if exists('s:logfile')
-        execute "silent! !echo '" . join(a:000) . "' >> " . s:logfile
+        execute "silent! !echo '" . join(a:000) . "' >>" s:logfile
     endif
 endfunction
