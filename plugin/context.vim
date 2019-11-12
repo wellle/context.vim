@@ -79,6 +79,7 @@ function! s:update_context(allow_resize) abort
     endwhile
 
     let context = {}
+    let line_count = 0
     let current_line = s:top_line
     while current_line > 1
         let allow_same = 0
@@ -103,21 +104,33 @@ function! s:update_context(allow_resize) abort
                     let context[indent] = []
                 endif
                 call insert(context[indent], line, 0)
+                let line_count += 1
                 let current_indent = indent
                 break
             endif
         endwhile
     endwhile
 
+    let diff_want = line_count - s:min_height
     let max = s:max_height_per_indent
     let lines = []
     let indents = []
     " no more than five lines per indent
     for indent in sort(keys(context), 'N')
-        if len(context[indent]) > max
-            let ellipsis_line = repeat(' ', indent) . repeat(s:ellipsis_char, 3)
-            call remove(context[indent], max/2, -(max+1)/2)
-            call insert(context[indent], ellipsis_line, max/2)
+        if diff_want > 0
+            let diff = len(context[indent]) - max
+            if diff > 0
+                let diff2 = diff - diff_want
+                if diff2 > 0
+                    let max += diff2
+                    let diff -= diff2
+                endif
+
+                let ellipsis_line = repeat(' ', indent) . repeat(s:ellipsis_char, 3)
+                call remove(context[indent], max/2, -(max+1)/2)
+                call insert(context[indent], ellipsis_line, max/2)
+                let diff_want -= diff
+            endif
         endif
         call extend(lines, context[indent])
         call extend(indents, repeat([indent], len(context[indent])))
