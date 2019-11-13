@@ -9,6 +9,8 @@ nnoremap <silent> zt ztzt:call <SID>show_context(0,0)<CR>
 nnoremap <silent> zb zbzb:call <SID>show_context(0,0)<CR>
 
 " settings
+let g:context_enabled = get(g:, 'context_enabled', 1)
+
 let s:always_resize = 0
 let s:max_height = 21
 let s:max_height_per_indent = 5
@@ -23,6 +25,10 @@ let s:top_line = -10
 let s:ignore_autocmd = 0
 
 function! s:show_context(force_resize, from_autocmd) abort
+    if !g:context_enabled
+        return
+    endif
+
     if &previewwindow
         " no context of preview windows (which we use to display context)
         call s:echof('abort preview')
@@ -216,6 +222,37 @@ function! s:open_preview(filetype) abort
                 \ ''
     execute 'silent! pedit' escape(settings, ' ') s:buffer_name
 endfunction
+
+function! s:enable() abort
+    let g:context_enabled = 1
+    call s:show_context(1, 0)
+endfunction
+
+function! s:disable() abort
+    let g:context_enabled = 0
+
+    silent! wincmd P " jump to new preview window
+    if &previewwindow
+        let bufname = bufname()
+        wincmd p " jump back
+        if bufname == s:buffer_name
+            " if current preview window is context, close it
+            pclose
+        endif
+    endif
+endfunction
+
+function! s:toggle() abort
+    if g:context_enabled
+        call s:disable()
+    else
+        call s:enable()
+    endif
+endfunction
+
+command! -bar ContextEnable  call s:enable()
+command! -bar ContextDisable call s:disable()
+command! -bar ContextToggle  call s:toggle()
 
 augroup context.vim
     autocmd!
