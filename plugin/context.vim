@@ -24,7 +24,7 @@ let s:min_height = 0
 let s:top_line = -10
 let s:ignore_autocmd = 0
 
-function! s:show_context(force_resize, from_autocmd) abort
+function! s:show_context(force_resize, autocmd) abort
     if !g:context_enabled
         return
     endif
@@ -40,13 +40,14 @@ function! s:show_context(force_resize, from_autocmd) abort
         return
     endif
 
-    if a:from_autocmd && s:ignore_autocmd
+    call s:echof('> show_context', a:force_resize, a:autocmd)
+    if a:autocmd && s:ignore_autocmd
         " ignore nested calls from auto commands
         call s:echof('abort from autocmd')
         return
     endif
 
-    call s:echof('==========', a:force_resize, a:from_autocmd)
+    call s:echof('==========', a:force_resize, a:autocmd)
     if a:force_resize || s:always_resize
         let s:top_line = -10
     endif
@@ -58,7 +59,7 @@ endfunction
 
 function! s:update_context(allow_resize) abort
     let current_line = line('w0')
-    call s:echof('in', s:top_line, current_line)
+    call s:echof('top line', s:top_line, current_line)
     if s:top_line == current_line
         return
     endif
@@ -168,6 +169,7 @@ function! s:show_in_preview(lines) abort
     endif
 
     let filetype = &filetype
+    let padding = wincol() - virtcol('.')
 
     " based on https://stackoverflow.com/questions/13707052/quickfix-preview-window-resizing
     silent! wincmd P " jump to preview, but don't show error
@@ -183,7 +185,7 @@ function! s:show_in_preview(lines) abort
             return
         else
             call s:echof('take over')
-            call s:open_preview(filetype)
+            call s:open_preview(filetype, padding)
         endif
 
     elseif s:min_height == 0
@@ -192,27 +194,32 @@ function! s:show_in_preview(lines) abort
         return
     else
         call s:echof('open new')
-        call s:open_preview(filetype)
+        call s:open_preview(filetype, padding)
         wincmd P " jump to new preview window
     endif
 
-    if len(a:lines) > 0
-        silent 0put =a:lines " paste lines
-        1                    " and jump to first line
-    endif
+    while len(a:lines) < s:min_height
+        call add(a:lines, "")
+    endwhile
+
+    silent 0put =a:lines " paste lines
+    1                    " and jump to first line
+
+    " update padding
+    execute 'setlocal foldcolumn=' . padding
+    let s:padding = padding
 
     " resize window
     execute 'resize' s:min_height
+
     wincmd p " jump back
 endfunction
 
 " https://vi.stackexchange.com/questions/19056/how-to-create-preview-window-to-display-a-string
-function! s:open_preview(filetype) abort
-    let padding = wincol() - virtcol('.')
+function! s:open_preview(filetype, padding) abort
     let settings = '+setlocal'   .
                 \ ' buftype='    . 'nofile'      .
                 \ ' filetype='   . a:filetype    .
-                \ ' foldcolumn=' . padding       .
                 \ ' statusline=' . s:buffer_name .
                 \ ' modifiable'  .
                 \ ' nobuflisted' .
@@ -250,13 +257,57 @@ function! s:toggle() abort
     endif
 endfunction
 
+function! s:update_padding(autocmd) abort
+    if !g:context_enabled
+        return
+    endif
+
+    if &previewwindow
+        " no context of preview windows (which we use to display context)
+        call s:echof('abort preview')
+        return
+    endif
+
+    if mode() != 'n'
+        call s:echof('abort mode')
+        return
+    endif
+
+    call s:echof('> update_padding', a:autocmd)
+    let padding = wincol() - virtcol('.')
+
+    if exists('s:padding') && s:padding == padding
+        call s:echof('abort same padding', s:padding, padding)
+        return
+    endif
+
+    silent! wincmd P
+    if !&previewwindow
+        call s:echof('abort no preview')
+        return
+    endif
+
+    if bufname() != s:buffer_name
+        call s:echof('abort different preview')
+        wincmd p
+        return
+    endif
+
+    call s:echof('update padding', padding, a:autocmd)
+    execute 'setlocal foldcolumn=' . padding
+    let s:padding = padding
+    wincmd p
+endfunction
+
 command! -bar ContextEnable  call s:enable()
 command! -bar ContextDisable call s:disable()
 command! -bar ContextToggle  call s:toggle()
 
 augroup context.vim
     autocmd!
-    au BufEnter,CursorMoved * call <SID>show_context(0,1)
+    autocmd BufEnter *     call <SID>show_context(0, 'BufEnter')
+    autocmd CursorMoved *  call <SID>show_context(0, 'CursorMoved')
+    autocmd User GitGutter call <SID>update_padding('GitGutter')
 augroup END
 
 " uncomment to activate
