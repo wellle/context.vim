@@ -20,62 +20,70 @@ let s:ellipsis_char = '·'
 let s:buffer_name = '<context.vim>'
 
 " state
+let s:last_winnr = -1
+let s:last_bufnr = -1
+let s:last_top_line = -10
 let s:min_height = 0
-let s:top_line = -10
 let s:ignore_autocmd = 0
 
 function! s:show_context(force_resize, autocmd) abort
     if !g:context_enabled
+        " call s:echof(' disabled')
         return
     endif
 
     if &previewwindow
         " no context of preview windows (which we use to display context)
-        call s:echof('abort preview')
+        " call s:echof(' abort preview')
         return
     endif
 
     if mode() != 'n'
-        call s:echof('abort mode')
+        " call s:echof(' abort mode')
+        return
+    endif
+
+    if type(a:autocmd) == type('') && s:ignore_autocmd
+        " ignore nested calls from auto commands
+        " call s:echof(' abort from autocmd')
         return
     endif
 
     call s:echof('> show_context', a:force_resize, a:autocmd)
-    if a:autocmd && s:ignore_autocmd
-        " ignore nested calls from auto commands
-        call s:echof('abort from autocmd')
-        return
-    endif
-
-    call s:echof('==========', a:force_resize, a:autocmd)
-    if a:force_resize || s:always_resize
-        let s:top_line = -10
-    endif
 
     let s:ignore_autocmd = 1
-    call s:update_context(1)
+    let s:log_indent += 1
+    call s:update_context(1, a:force_resize)
+    let s:log_indent -= 1
     let s:ignore_autocmd = 0
 endfunction
 
-function! s:update_context(allow_resize) abort
+function! s:update_context(allow_resize, force_resize) abort
+    call s:echof('> update_context', a:allow_resize, a:force_resize)
+
+    let winnr = winnr()
+    let bufnr = bufnr('%')
     let current_line = line('w0')
-    call s:echof('top line', s:top_line, current_line)
-    if s:top_line == current_line
+
+    if a:force_resize || s:always_resize || (a:allow_resize &&
+                \ s:last_winnr == winnr &&
+                \ abs(s:last_top_line - current_line) > 1)
+        " avoid resizing when jumping between windows
+        " might not be needed when using pclose
+        let s:min_height = 0
+    endif
+
+    if !a:force_resize && s:last_bufnr == bufnr && s:last_top_line == current_line
+        call s:echof(' abort same buf and top line', bufnr, current_line)
         return
     endif
 
-    if a:allow_resize
-        " avoid resizing if we only moved a single line
-        " (so scrolling is still somewhat smooth)
-        if abs(s:top_line - current_line) > 1
-            let s:min_height = 0
-        endif
-    endif
-
-    let s:top_line = current_line
-    let max_line = line('$')
+    let s:last_winnr = winnr
+    let s:last_bufnr = bufnr
+    let s:last_top_line = current_line
 
     " find line which isn't empty
+    let max_line = line('$')
     while current_line <= max_line
         let line = getline(current_line)
         if !s:skip_line(line)
@@ -87,7 +95,7 @@ function! s:update_context(allow_resize) abort
 
     let context = {}
     let line_count = 0
-    let current_line = s:top_line
+    let current_line = s:last_top_line
     while current_line > 1
         let allow_same = 0
 
@@ -153,10 +161,14 @@ function! s:update_context(allow_resize) abort
         call insert(lines, ellipsis_line, max/2)
     endif
 
+    let s:log_indent += 1
     call s:show_in_preview(lines)
+    let s:log_indent -= 1
     " call again until it stabilizes
     " disallow resizing to make sure it will eventually
-    call s:update_context(0)
+    let s:log_indent += 1
+    call s:update_context(0, 0)
+    let s:log_indent -= 1
 endfunction
 
 function! s:skip_line(line) abort
@@ -164,6 +176,8 @@ function! s:skip_line(line) abort
 endfunction
 
 function! s:show_in_preview(lines) abort
+    call s:echof('> show_in_preview', len(a:lines))
+
     if s:min_height < len(a:lines)
         let s:min_height = len(a:lines)
     endif
@@ -174,27 +188,31 @@ function! s:show_in_preview(lines) abort
     " based on https://stackoverflow.com/questions/13707052/quickfix-preview-window-resizing
     silent! wincmd P " jump to preview, but don't show error
     if &previewwindow
-        if bufname() == s:buffer_name
+        if bufname('%') == s:buffer_name
             " reuse existing preview window
-            call s:echof('reuse')
+            call s:echof(' reuse')
             silent %delete _
         elseif s:min_height == 0
             " nothing to do
-            call s:echof('not ours')
+            call s:echof(' not ours')
             wincmd p " jump back
             return
         else
-            call s:echof('take over')
+            call s:echof(' take over')
+            let s:log_indent += 1
             call s:open_preview()
+            let s:log_indent -= 1
         endif
 
     elseif s:min_height == 0
         " nothing to do
-        call s:echof('none')
+        call s:echof(' none')
         return
     else
-        call s:echof('open new')
+        call s:echof(' open new')
+        let s:log_indent += 1
         call s:open_preview()
+        let s:log_indent -= 1
         wincmd P " jump to new preview window
     endif
 
@@ -216,6 +234,7 @@ endfunction
 
 " https://vi.stackexchange.com/questions/19056/how-to-create-preview-window-to-display-a-string
 function! s:open_preview() abort
+    call s:echof('> open_preview')
     let settings = '+setlocal'   .
                 \ ' buftype='    . 'nofile'      .
                 \ ' statusline=' . s:buffer_name .
@@ -238,7 +257,7 @@ function! s:disable() abort
 
     silent! wincmd P " jump to new preview window
     if &previewwindow
-        let bufname = bufname()
+        let bufname = bufname('%')
         wincmd p " jump back
         if bufname == s:buffer_name
             " if current preview window is context, close it
@@ -256,42 +275,42 @@ function! s:toggle() abort
 endfunction
 
 function! s:update_padding(autocmd) abort
+    " call s:echof('> update_padding', a:autocmd)
     if !g:context_enabled
         return
     endif
 
     if &previewwindow
         " no context of preview windows (which we use to display context)
-        call s:echof('abort preview')
+        " call s:echof(' abort preview')
         return
     endif
 
     if mode() != 'n'
-        call s:echof('abort mode')
+        " call s:echof(' abort mode')
         return
     endif
 
-    call s:echof('> update_padding', a:autocmd)
     let padding = wincol() - virtcol('.')
 
     if exists('s:padding') && s:padding == padding
-        call s:echof('abort same padding', s:padding, padding)
+        " call s:echof(' abort same padding', s:padding, padding)
         return
     endif
 
     silent! wincmd P
     if !&previewwindow
-        call s:echof('abort no preview')
+        " call s:echof(' abort no preview')
         return
     endif
 
-    if bufname() != s:buffer_name
-        call s:echof('abort different preview')
+    if bufname('%') != s:buffer_name
+        " call s:echof(' abort different preview')
         wincmd p
         return
     endif
 
-    call s:echof('update padding', padding, a:autocmd)
+    " call s:echof(' update padding', padding, a:autocmd)
     call s:set_padding(padding)
     wincmd p
 endfunction
@@ -312,6 +331,7 @@ command! -bar ContextToggle  call s:toggle()
 
 augroup context.vim
     autocmd!
+    autocmd BufAdd *       call <SID>show_context(1, 'BufAdd')
     autocmd BufEnter *     call <SID>show_context(0, 'BufEnter')
     autocmd CursorMoved *  call <SID>show_context(0, 'CursorMoved')
     autocmd User GitGutter call <SID>update_padding('GitGutter')
@@ -319,9 +339,10 @@ augroup END
 
 " uncomment to activate
 " let s:logfile = '~/temp/vimlog'
+let s:log_indent = 0
 
 function! s:echof(...) abort
     if exists('s:logfile')
-        execute "silent! !echo '" . join(a:000) . "' >>" s:logfile
+        execute "silent! !echo '" . repeat(' ', s:log_indent) . join(a:000) . "' >>" s:logfile
     endif
 endfunction
