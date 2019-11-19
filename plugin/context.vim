@@ -185,7 +185,7 @@ function! s:show_in_preview(lines) abort
             return
         else
             call s:echof('take over')
-            call s:open_preview(filetype, padding)
+            call s:open_preview()
         endif
 
     elseif s:min_height == 0
@@ -194,7 +194,7 @@ function! s:show_in_preview(lines) abort
         return
     else
         call s:echof('open new')
-        call s:open_preview(filetype, padding)
+        call s:open_preview()
         wincmd P " jump to new preview window
     endif
 
@@ -205,9 +205,8 @@ function! s:show_in_preview(lines) abort
     silent 0put =a:lines " paste lines
     1                    " and jump to first line
 
-    " update padding
-    execute 'setlocal foldcolumn=' . padding
-    let s:padding = padding
+    execute 'setlocal filetype='   . filetype
+    call s:set_padding(padding)
 
     " resize window
     execute 'resize' s:min_height
@@ -216,10 +215,9 @@ function! s:show_in_preview(lines) abort
 endfunction
 
 " https://vi.stackexchange.com/questions/19056/how-to-create-preview-window-to-display-a-string
-function! s:open_preview(filetype, padding) abort
+function! s:open_preview() abort
     let settings = '+setlocal'   .
                 \ ' buftype='    . 'nofile'      .
-                \ ' filetype='   . a:filetype    .
                 \ ' statusline=' . s:buffer_name .
                 \ ' modifiable'  .
                 \ ' nobuflisted' .
@@ -294,9 +292,18 @@ function! s:update_padding(autocmd) abort
     endif
 
     call s:echof('update padding', padding, a:autocmd)
-    execute 'setlocal foldcolumn=' . padding
-    let s:padding = padding
+    call s:set_padding(padding)
     wincmd p
+endfunction
+
+function! s:set_padding(padding) abort
+    " can happen if cursor was on the wrapped part of a wrapped line
+    if a:padding < 0
+        return
+    endif
+
+    execute 'setlocal foldcolumn=' . a:padding
+    let s:padding = a:padding
 endfunction
 
 command! -bar ContextEnable  call s:enable()
