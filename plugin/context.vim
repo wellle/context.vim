@@ -20,6 +20,7 @@ let s:ellipsis_char = '·'
 let s:buffer_name = '<context.vim>'
 
 " state
+let s:enabled = 0
 let s:last_winnr = -1
 let s:last_bufnr = -1
 let s:last_top_line = -10
@@ -27,7 +28,7 @@ let s:min_height = 0
 let s:ignore_autocmd = 0
 
 function! s:show_context(force_resize, autocmd) abort
-    if !g:context_enabled
+    if !g:context_enabled || !s:enabled
         " call s:echof(' disabled')
         return
     endif
@@ -325,12 +326,21 @@ function! s:set_padding(padding) abort
     let s:padding = a:padding
 endfunction
 
+function! s:vim_enter() abort
+    " for some reason there seems to be a race when we try to show context of
+    " one buffer before another one gets opened in startup
+    " to avoid that we wait for startup to be finished
+    let s:enabled = 1
+    call s:show_context(0, 'VimEnter')
+endfunction
+
 command! -bar ContextEnable  call s:enable()
 command! -bar ContextDisable call s:disable()
 command! -bar ContextToggle  call s:toggle()
 
 augroup context.vim
     autocmd!
+    autocmd VimEnter *     call <SID>vim_enter()
     autocmd BufAdd *       call <SID>show_context(1, 'BufAdd')
     autocmd BufEnter *     call <SID>show_context(0, 'BufEnter')
     autocmd CursorMoved *  call <SID>show_context(0, 'CursorMoved')
