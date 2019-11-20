@@ -19,12 +19,16 @@ let s:ellipsis_char = '·'
 " consts
 let s:buffer_name = '<context.vim>'
 
+" cached
+let s:ellipsis = repeat(s:ellipsis_char, 3)
+
 " state
 let s:enabled = 0
 let s:last_winnr = -1
 let s:last_bufnr = -1
 let s:last_top_line = -10
 let s:min_height = 0
+let s:padding = 0
 let s:ignore_autocmd = 0
 
 function! s:show_context(force_resize, autocmd) abort
@@ -83,9 +87,22 @@ function! s:update_context(allow_resize, force_resize) abort
     let s:last_bufnr = bufnr
     let s:last_top_line = current_line
 
-    " find line which isn't empty
+    " find first line above (hidden) which isn't empty
+    let s:hidden_indent = 0 " in case there is none
+    let current_line = s:last_top_line - 1 " first hidden line
+    while current_line > 0
+        let line = getline(current_line)
+        if !s:skip_line(line)
+            let s:hidden_indent = indent(current_line)
+            break
+        endif
+        let current_line -= 1
+    endwhile
+
+    " find line downwards which isn't empty
     let max_line = line('$')
     let current_indent = 0 " in case there are no nonempty lines below
+    let current_line = s:last_top_line
     while current_line <= max_line
         let line = getline(current_line)
         if !s:skip_line(line)
@@ -94,6 +111,10 @@ function! s:update_context(allow_resize, force_resize) abort
         endif
         let current_line += 1
     endwhile
+
+    if s:hidden_indent < current_indent
+        let s:hidden_indent = 0
+    endif
 
     let context = {}
     let line_count = 0
@@ -143,7 +164,7 @@ function! s:update_context(allow_resize, force_resize) abort
                     let diff -= diff2
                 endif
 
-                let ellipsis_line = repeat(' ', indent) . repeat(s:ellipsis_char, 3)
+                let ellipsis_line = repeat(' ', indent) . s:ellipsis
                 call remove(context[indent], max/2, -(max+1)/2)
                 call insert(context[indent], ellipsis_line, max/2)
                 let diff_want -= diff
@@ -237,14 +258,13 @@ endfunction
 " https://vi.stackexchange.com/questions/19056/how-to-create-preview-window-to-display-a-string
 function! s:open_preview() abort
     call s:echof('> open_preview')
-    let settings = '+setlocal'   .
-                \ ' buftype='    . 'nofile'      .
-                \ ' statusline=' . s:buffer_name .
-                \ ' modifiable'  .
-                \ ' nobuflisted' .
-                \ ' nonumber'    .
-                \ ' noswapfile'  .
-                \ ' nowrap'      .
+    let settings = '+setlocal'      .
+                \ ' buftype=nofile' .
+                \ ' modifiable'     .
+                \ ' nobuflisted'    .
+                \ ' nonumber'       .
+                \ ' noswapfile'     .
+                \ ' nowrap'         .
                 \ ''
     execute 'silent! pedit' escape(settings, ' ') s:buffer_name
 endfunction
@@ -295,7 +315,7 @@ function! s:update_padding(autocmd) abort
 
     let padding = wincol() - virtcol('.')
 
-    if exists('s:padding') && s:padding == padding
+    if s:padding == padding
         " call s:echof(' abort same padding', s:padding, padding)
         return
     endif
@@ -317,14 +337,24 @@ function! s:update_padding(autocmd) abort
     wincmd p
 endfunction
 
+" NOTE: this function updates the statusline too, as it depends on the padding
 function! s:set_padding(padding) abort
-    " can happen if cursor was on the wrapped part of a wrapped line
-    if a:padding < 0
-        return
+    let padding = a:padding
+    if padding >= 0
+        execute 'setlocal foldcolumn=' . padding
+        let s:padding = padding
+    else
+        " padding can be negative if cursor was on the wrapped part of a wrapped line
+        " in that case don't try to apply it, but still update the statusline
+        " using the last known padding value
+        let padding = s:padding
     endif
 
-    execute 'setlocal foldcolumn=' . a:padding
-    let s:padding = a:padding
+    let statusline = '%=' . s:buffer_name
+    if s:hidden_indent > 0
+        let statusline = repeat(' ', padding + s:hidden_indent) . s:ellipsis . statusline
+    endif
+    execute 'setlocal statusline=' . escape(statusline, ' ')
 endfunction
 
 function! s:vim_enter() abort
