@@ -85,6 +85,7 @@ function! s:update_context(allow_resize, force_resize) abort
 
     " find line which isn't empty
     let max_line = line('$')
+    let current_indent = 0 " in case there are no nonempty lines below
     while current_line <= max_line
         let line = getline(current_line)
         if !s:skip_line(line)
