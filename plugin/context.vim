@@ -1,12 +1,12 @@
-nnoremap <silent> <C-L> <C-L>:call <SID>show_context(1,0)<CR>
-nnoremap <silent> <C-E> <C-E>:call <SID>show_context(0,0)<CR>
-nnoremap <silent> <C-Y> <C-Y>:call <SID>show_context(0,0)<CR>
+nnoremap <silent> <C-L> <C-L>:call <SID>show_context(1, 0)<CR>
+nnoremap <silent> <C-E> <C-E>:call <SID>show_context(0, 0)<CR>
+nnoremap <silent> <C-Y> <C-Y>:call <SID>show_context(0, 0)<CR>
 " NOTE: this is pretty hacky, we call zz/zt/zb twice here
 " if we only do it once it seems to break something
 " to reproduce: search for something, then alternate: n zt n zt n zt ...
-nnoremap <silent> zz zzzz:call <SID>show_context(0,0)<CR>
-nnoremap <silent> zt ztzt:call <SID>show_context(0,0)<CR>
-nnoremap <silent> zb zbzb:call <SID>show_context(0,0)<CR>
+nnoremap <silent> zz zzzz:call <SID>show_context(0, 0)<CR>
+nnoremap <silent> zt ztzt:call <SID>show_context(0, 0)<CR>
+nnoremap <silent> zb zbzb:call <SID>show_context(0, 0)<CR>
 
 " settings
 let g:context_enabled = get(g:, 'context_enabled', 1)
@@ -14,6 +14,7 @@ let g:context_enabled = get(g:, 'context_enabled', 1)
 let s:always_resize = 0
 let s:max_height = 21
 let s:max_height_per_indent = 5
+let s:max_join_parts = 5
 let s:ellipsis_char = '·'
 
 " consts
@@ -116,6 +117,7 @@ function! s:update_context(allow_resize, force_resize) abort
         let s:hidden_indent = 0
     endif
 
+    " collect all context lines
     let context = {}
     let line_count = 0
     let current_line = s:last_top_line
@@ -149,6 +151,7 @@ function! s:update_context(allow_resize, force_resize) abort
         endwhile
     endwhile
 
+    " limit context per intend
     let diff_want = line_count - s:min_height
     let max = s:max_height_per_indent
     let lines = []
@@ -156,6 +159,7 @@ function! s:update_context(allow_resize, force_resize) abort
     " no more than five lines per indent
     for indent in sort(keys(context), 'N')
         if diff_want > 0
+            let context[indent] = s:join(context[indent])
             let diff = len(context[indent]) - max
             if diff > 0
                 let diff2 = diff - diff_want
@@ -174,6 +178,7 @@ function! s:update_context(allow_resize, force_resize) abort
         call extend(indents, repeat([indent], len(context[indent])))
     endfor
 
+    " limit total context
     let max = s:max_height
     if len(lines) > max
         let indent1 = indents[max/2]
@@ -196,6 +201,60 @@ endfunction
 
 function! s:skip_line(line) abort
     return a:line =~ '^\s*\($\|//\)'
+endfunction
+
+function! s:join(lines) abort
+    " only works with at least 3 parts, so disable otherwise
+    if s:max_join_parts < 3
+        return a:lines
+    endif
+
+    " call s:echof('> join')
+    let pending = [] " lines which might be joined with previous
+    let joined = a:lines[:0] " start with first line
+    for line in a:lines[1:]
+        if line =~ '^\W*$'
+            " add lines without word characters to pending list
+            call add(pending, line)
+            continue
+        endif
+
+        " don't join lines with word characters
+        " but first join pending lines to previous output line
+        let joined[-1] .= s:join_pending(pending)
+        let pending = []
+        call add(joined, line)
+    endfor
+
+    " join remaining pending lines to last
+    let joined[-1] .= s:join_pending(pending)
+    return joined
+endfunction
+
+function! s:join_pending(pending) abort
+    " call s:echof('> join_pending', len(a:pending))
+    if len(a:pending) == 0
+        return ''
+    endif
+
+    let max = s:max_join_parts
+    if len(a:pending) > max-1
+        call remove(a:pending, (max-1)/2-1, -max/2-1)
+        call insert(a:pending, '', (max-1)/2-1)
+    endif
+
+    let suffix = ''
+    let space = ' '
+    for line in a:pending
+        if line == ''
+            let suffix .= ' ' . s:ellipsis
+            let space = '' " avoid space between this double ellipsis
+        else
+            let suffix .= space . s:ellipsis . ' ' . trim(line)
+            let space = ' '
+        endif
+    endfor
+    return suffix
 endfunction
 
 function! s:show_in_preview(lines) abort
