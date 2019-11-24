@@ -128,6 +128,8 @@ function! s:update_context(allow_resize, force_resize) abort
         " also for other prefixes to show the if which belongs to an else etc.
         if line =~ '^\s*\([]{})]\|end\|else\|case\>\|default\>\)'
             let allow_same = 1
+        elseif current_indent == 0
+            break
         endif
 
         " search for line with same indent (or less)
