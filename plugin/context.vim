@@ -161,7 +161,8 @@ function! s:update_context(allow_resize, force_resize) abort
     " no more than five lines per indent
     for indent in sort(keys(context), 'N')
         if diff_want > 0
-            let context[indent] = s:join(context[indent])
+            let [context[indent], diff_want] = s:join(context[indent], diff_want)
+
             let diff = len(context[indent]) - max
             if diff > 0
                 let diff2 = diff - diff_want
@@ -205,19 +206,22 @@ function! s:skip_line(line) abort
     return a:line =~ '^\s*\($\|//\)'
 endfunction
 
-function! s:join(lines) abort
+function! s:join(lines, diff_want) abort
+    let diff_want = a:diff_want
+
     " only works with at least 3 parts, so disable otherwise
-    if s:max_join_parts < 3
-        return a:lines
+    if diff_want == 0 || s:max_join_parts < 3
+        return [a:lines, 0]
     endif
 
-    " call s:echof('> join')
+    " call s:echof('> join', len(a:lines), diff_want)
     let pending = [] " lines which might be joined with previous
     let joined = a:lines[:0] " start with first line
     for line in a:lines[1:]
-        if line =~ '^\W*$'
+        if diff_want > 0 && line =~ '^\W*$'
             " add lines without word characters to pending list
             call add(pending, line)
+            let diff_want -= 1
             continue
         endif
 
@@ -230,7 +234,7 @@ function! s:join(lines) abort
 
     " join remaining pending lines to last
     let joined[-1] .= s:join_pending(pending)
-    return joined
+    return [joined, diff_want]
 endfunction
 
 function! s:join_pending(pending) abort
