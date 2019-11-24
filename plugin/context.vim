@@ -265,6 +265,7 @@ function! s:show_in_preview(lines) abort
     endif
 
     let filetype = &filetype
+    let tabstop  = &tabstop
     let padding = wincol() - virtcol('.')
 
     " based on https://stackoverflow.com/questions/13707052/quickfix-preview-window-resizing
@@ -305,7 +306,8 @@ function! s:show_in_preview(lines) abort
     silent 0put =a:lines " paste lines
     1                    " and jump to first line
 
-    execute 'setlocal filetype='   . filetype
+    execute 'setlocal filetype=' . filetype
+    execute 'setlocal tabstop='  . tabstop
     call s:set_padding(padding)
 
     " resize window
