@@ -155,28 +155,12 @@ function! s:update_context(allow_resize, force_resize) abort
 
     " limit context per intend
     let diff_want = line_count - s:min_height
-    let max = s:max_height_per_indent
     let lines = []
     let indents = []
     " no more than five lines per indent
     for indent in sort(keys(context), 'N')
-        if diff_want > 0
-            let [context[indent], diff_want] = s:join(context[indent], diff_want)
-
-            let diff = len(context[indent]) - max
-            if diff > 0
-                let diff2 = diff - diff_want
-                if diff2 > 0
-                    let max += diff2
-                    let diff -= diff2
-                endif
-
-                let ellipsis_line = repeat(' ', indent) . s:ellipsis
-                call remove(context[indent], max/2, -(max+1)/2)
-                call insert(context[indent], ellipsis_line, max/2)
-                let diff_want -= diff
-            endif
-        endif
+        let [context[indent], diff_want] = s:join(context[indent], diff_want)
+        let [context[indent], diff_want] = s:limit(context[indent], diff_want, indent)
         call extend(lines, context[indent])
         call extend(indents, repeat([indent], len(context[indent])))
     endfor
@@ -261,6 +245,23 @@ function! s:join_pending(pending) abort
         endif
     endfor
     return suffix
+endfunction
+
+function! s:limit(lines, diff_want, indent) abort
+    if a:diff_want <= 0
+        return [a:lines, a:diff_want]
+    endif
+
+    let max = s:max_height_per_indent
+    if max >= len(a:lines)
+        return [a:lines, a:diff_want]
+    endif
+
+    let limited = a:lines[: max/2-1]
+    call add(limited, repeat(' ', a:indent) . s:ellipsis)
+    call extend(limited, a:lines[-(max-1)/2 :])
+    return [limited, a:diff_want - len(a:lines) + max]
+endif
 endfunction
 
 function! s:show_in_preview(lines) abort
