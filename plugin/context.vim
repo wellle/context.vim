@@ -11,7 +11,8 @@ nnoremap <silent> zb zbzb:call <SID>show_context(0, 0)<CR>
 " settings
 let g:context_enabled = get(g:, 'context_enabled', 1)
 
-let s:always_resize = 0
+let s:resize_linewise = 0.25 " how much to decrease window height when scrolling linewise (^E/^Y)
+let s:resize_scroll   = 1.0  " how much to decrease window height when scrolling half-screen wise (^U/^D)
 let s:max_height = 21
 let s:max_height_per_indent = 5
 let s:max_join_parts = 5
@@ -24,6 +25,7 @@ let s:buffer_name = '<context.vim>'
 let s:ellipsis = repeat(s:ellipsis_char, 3)
 
 " state
+let s:resize_level = 0 " for decreasing window height based on scrolling
 let s:enabled = 0
 let s:last_winnr = -1
 let s:last_bufnr = -1
@@ -71,12 +73,21 @@ function! s:update_context(allow_resize, force_resize) abort
     let bufnr = bufnr('%')
     let current_line = line('w0')
 
-    if a:force_resize || s:always_resize || (a:allow_resize &&
-                \ s:last_winnr == winnr &&
-                \ abs(s:last_top_line - current_line) > 1)
-        " avoid resizing when jumping between windows
-        " might not be needed when using pclose
+    " adjust min window height based on scroll amount
+    if a:force_resize
         let s:min_height = 0
+    elseif a:allow_resize && s:last_winnr == winnr && s:last_top_line != current_line
+        let diff = abs(s:last_top_line - current_line)
+        if diff == 1
+            " slowly decrease min height if moving line by line
+            let s:resize_level += s:resize_linewise
+        else
+            " quicker if moving multiple lines (^U/^D: decrease by one line)
+            let s:resize_level += s:resize_scroll / &scroll * diff
+        endif
+        let t = float2nr(s:resize_level)
+        let s:resize_level -= t
+        let s:min_height -= t
     endif
 
     if !a:force_resize && s:last_bufnr == bufnr && s:last_top_line == current_line
