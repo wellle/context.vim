@@ -100,12 +100,12 @@ function! s:update_context(allow_resize, force_resize) abort
     let s:last_top_line = current_line
 
     " find first line above (hidden) which isn't empty
-    let s:hidden_indent = 0 " in case there is none
+    let s:hidden = s:make_line(0, 0, "") " in case there is none
     let current_line = s:last_top_line - 1 " first hidden line
     while current_line > 0
         let line = getline(current_line)
         if !s:skip_line(line)
-            let s:hidden_indent = indent(current_line)
+            let s:hidden = s:make_line(current_line, indent(current_line), line)
             break
         endif
         let current_line -= 1
@@ -123,10 +123,6 @@ function! s:update_context(allow_resize, force_resize) abort
         endif
         let current_line += 1
     endwhile
-
-    if s:hidden_indent < current_indent
-        let s:hidden_indent = 0
-    endif
 
     " collect all context lines
     let context = {}
@@ -156,9 +152,15 @@ function! s:update_context(allow_resize, force_resize) abort
                 if !has_key(context, indent)
                     let context[indent] = []
                 endif
+
                 call insert(context[indent], s:make_line(current_line, indent, line), 0)
                 let line_count += 1
                 let current_indent = indent
+
+                if s:hidden.number == current_line
+                    " don't show ellipsis if hidden line is part of context
+                    let s:hidden = s:make_line(0, 0, "")
+                endif
                 break
             endif
         endwhile
@@ -447,8 +449,8 @@ function! s:set_padding(padding) abort
     endif
 
     let statusline = '%=' . s:buffer_name
-    if s:hidden_indent > 0
-        let statusline = repeat(' ', padding + s:hidden_indent) . s:ellipsis . statusline
+    if s:hidden.number > 0
+        let statusline = repeat(' ', padding + s:hidden.indent) . s:ellipsis . statusline
     endif
     execute 'setlocal statusline=' . escape(statusline, ' ')
 endfunction
