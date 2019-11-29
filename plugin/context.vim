@@ -9,20 +9,19 @@ nnoremap <silent> zt ztzt:call <SID>show_context(0, 0)<CR>
 nnoremap <silent> zb zbzb:call <SID>show_context(0, 0)<CR>
 
 " settings
-let g:context_enabled = get(g:, 'context_enabled', 1)
-
-let s:resize_linewise = 0.25 " how much to decrease window height when scrolling linewise (^E/^Y)
-let s:resize_scroll   = 1.0  " how much to decrease window height when scrolling half-screen wise (^U/^D)
-let s:max_height = 21
-let s:max_height_per_indent = 5
-let s:max_join_parts = 5
-let s:ellipsis_char = '·'
+let g:context_enabled         = get(g:, 'context_enabled', 1)
+let g:context_max_height      = get(g:, 'context_max_height', 21)
+let g:context_max_per_indent  = get(g:, 'context_max_per_indent', 5)
+let g:context_max_join_parts  = get(g:, 'context_max_join_parts', 5)
+let g:context_ellipsis_char   = get(g:, 'context_ellipsis_char', '·')
+let g:context_resize_linewise = get(g:, 'context_resize_linewise', 0.25) " how much to decrease window height when scrolling linewise (^E/^Y)
+let g:context_resize_scroll   = get(g:, 'context_resize_scroll',   1.0)  " how much to decrease window height when scrolling half-screen wise (^U/^D)
 
 " consts
 let s:buffer_name = '<context.vim>'
 
 " cached
-let s:ellipsis = repeat(s:ellipsis_char, 3)
+let s:ellipsis = repeat(g:context_ellipsis_char, 3)
 
 " state
 let s:resize_level = 0 " for decreasing window height based on scrolling
@@ -80,10 +79,10 @@ function! s:update_context(allow_resize, force_resize) abort
         let diff = abs(s:last_top_line - current_line)
         if diff == 1
             " slowly decrease min height if moving line by line
-            let s:resize_level += s:resize_linewise
+            let s:resize_level += g:context_resize_linewise
         else
             " quicker if moving multiple lines (^U/^D: decrease by one line)
-            let s:resize_level += s:resize_scroll / &scroll * diff
+            let s:resize_level += g:context_resize_scroll / &scroll * diff
         endif
         let t = float2nr(s:resize_level)
         let s:resize_level -= t
@@ -177,11 +176,11 @@ function! s:update_context(allow_resize, force_resize) abort
     endfor
 
     " limit total context
-    let max = s:max_height
+    let max = g:context_max_height
     if len(lines) > max
         let indent1 = lines[max/2].indent
         let indent2 = lines[-(max-1)/2].indent
-        let ellipsis = repeat(s:ellipsis_char, max([indent2 - indent1, 3]))
+        let ellipsis = repeat(g:context_ellipsis_char, max([indent2 - indent1, 3]))
         let ellipsis_line = s:make_line(0, indent1, repeat(' ', indent1) . ellipsis)
         call remove(lines, max/2, -(max+1)/2)
         call insert(lines, ellipsis_line, max/2)
@@ -205,7 +204,7 @@ function! s:join(lines, diff_want) abort
     let diff_want = a:diff_want
 
     " only works with at least 3 parts, so disable otherwise
-    if diff_want == 0 || s:max_join_parts < 3
+    if diff_want == 0 || g:context_max_join_parts < 3
         return [a:lines, 0]
     endif
 
@@ -238,7 +237,7 @@ function! s:join_pending(base, pending) abort
         return a:base
     endif
 
-    let max = s:max_join_parts
+    let max = g:context_max_join_parts
     if len(a:pending) > max-1
         call remove(a:pending, (max-1)/2-1, -max/2-1)
         call insert(a:pending, s:make_line(0, 0, ''), (max-1)/2-1)
@@ -264,7 +263,7 @@ function! s:limit(lines, diff_want, indent) abort
         return [a:lines, a:diff_want]
     endif
 
-    let max = s:max_height_per_indent
+    let max = g:context_max_per_indent
     if max >= len(a:lines)
         return [a:lines, a:diff_want]
     endif
