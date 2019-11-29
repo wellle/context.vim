@@ -156,7 +156,7 @@ function! s:update_context(allow_resize, force_resize) abort
                 if !has_key(context, indent)
                     let context[indent] = []
                 endif
-                call insert(context[indent], line, 0)
+                call insert(context[indent], s:make_line(current_line, indent, line), 0)
                 let line_count += 1
                 let current_indent = indent
                 break
@@ -167,22 +167,20 @@ function! s:update_context(allow_resize, force_resize) abort
     " limit context per intend
     let diff_want = line_count - s:min_height
     let lines = []
-    let indents = []
     " no more than five lines per indent
     for indent in sort(keys(context), 'N')
         let [context[indent], diff_want] = s:join(context[indent], diff_want)
         let [context[indent], diff_want] = s:limit(context[indent], diff_want, indent)
         call extend(lines, context[indent])
-        call extend(indents, repeat([indent], len(context[indent])))
     endfor
 
     " limit total context
     let max = s:max_height
     if len(lines) > max
-        let indent1 = indents[max/2]
-        let indent2 = indents[-(max-1)/2]
+        let indent1 = lines[max/2].indent
+        let indent2 = lines[-(max-1)/2].indent
         let ellipsis = repeat(s:ellipsis_char, max([indent2 - indent1, 3]))
-        let ellipsis_line = repeat(' ', indent1) . ellipsis
+        let ellipsis_line = s:make_line(0, indent1, repeat(' ', indent1) . ellipsis)
         call remove(lines, max/2, -(max+1)/2)
         call insert(lines, ellipsis_line, max/2)
     endif
@@ -213,7 +211,7 @@ function! s:join(lines, diff_want) abort
     let pending = [] " lines which might be joined with previous
     let joined = a:lines[:0] " start with first line
     for line in a:lines[1:]
-        if diff_want > 0 && line =~ '^\W*$'
+        if diff_want > 0 && line.text =~ '^\W*$'
             " add lines without word characters to pending list
             call add(pending, line)
             let diff_want -= 1
@@ -222,40 +220,41 @@ function! s:join(lines, diff_want) abort
 
         " don't join lines with word characters
         " but first join pending lines to previous output line
-        let joined[-1] .= s:join_pending(pending)
+        let joined[-1] = s:join_pending(joined[-1], pending)
         let pending = []
         call add(joined, line)
     endfor
 
     " join remaining pending lines to last
-    let joined[-1] .= s:join_pending(pending)
+    let joined[-1] = s:join_pending(joined[-1], pending)
     return [joined, diff_want]
 endfunction
 
-function! s:join_pending(pending) abort
+function! s:join_pending(base, pending) abort
     " call s:echof('> join_pending', len(a:pending))
     if len(a:pending) == 0
-        return ''
+        return a:base
     endif
 
     let max = s:max_join_parts
     if len(a:pending) > max-1
         call remove(a:pending, (max-1)/2-1, -max/2-1)
-        call insert(a:pending, '', (max-1)/2-1)
+        call insert(a:pending, s:make_line(0, 0, ''), (max-1)/2-1)
     endif
 
-    let suffix = ''
+    let text = a:base.text
     let space = ' '
     for line in a:pending
-        if line == ''
-            let suffix .= ' ' . s:ellipsis
+        if line.text == ''
+            let text .= ' ' . s:ellipsis
             let space = '' " avoid space between this double ellipsis
         else
-            let suffix .= space . s:ellipsis . ' ' . trim(line)
+            let text .= space . s:ellipsis . ' ' . trim(line.text)
             let space = ' '
         endif
     endfor
-    return suffix
+
+    return s:make_line(a:pending[-1].number, a:base.indent, text)
 endfunction
 
 function! s:limit(lines, diff_want, indent) abort
@@ -269,7 +268,7 @@ function! s:limit(lines, diff_want, indent) abort
     endif
 
     let limited = a:lines[: max/2-1]
-    call add(limited, repeat(' ', a:indent) . s:ellipsis)
+    call add(limited, s:make_line(0, a:indent, repeat(' ', a:indent) . s:ellipsis))
     call extend(limited, a:lines[-(max-1)/2 :])
     return [limited, a:diff_want - len(a:lines) + max]
 endif
@@ -318,9 +317,11 @@ function! s:show_in_preview(lines) abort
     endif
 
     while len(a:lines) < s:min_height
-        call add(a:lines, "")
+        call add(a:lines, s:make_line(0, 0, ""))
     endwhile
 
+    " NOTE: this overwrites a:lines, but we don't need it anymore
+    call map(a:lines, function('s:display_line'))
     silent 0put =a:lines " paste lines
     1                    " and jump to first line
 
@@ -332,6 +333,22 @@ function! s:show_in_preview(lines) abort
     execute 'resize' s:min_height
 
     wincmd p " jump back
+endfunction
+
+function! s:make_line(number, indent, text) abort
+    return {
+                \ 'number': a:number,
+                \ 'indent': a:indent,
+                \ 'text':   a:text,
+                \ }
+endfunction
+
+function! s:display_line(index, line) abort
+    return a:line.text
+
+    " NOTE: comment out the line above to include this debug info
+    let n = &columns - 20 - strchars(trim(a:line.text)) - a:line.indent
+    return printf("%s%s // i:%-2d n:%-4d", a:line.text, repeat(' ', n), a:line.indent, a:line.number)
 endfunction
 
 " https://vi.stackexchange.com/questions/19056/how-to-create-preview-window-to-display-a-string
