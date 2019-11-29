@@ -198,7 +198,7 @@ function! s:update_context(allow_resize, force_resize) abort
 endfunction
 
 function! s:skip_line(line) abort
-    return a:line =~ '^\s*\($\|//\)'
+    return a:line =~ '^\s*\($\|//\|/\*\|#\)'
 endfunction
 
 function! s:join(lines, diff_want) abort
