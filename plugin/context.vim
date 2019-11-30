@@ -284,19 +284,25 @@ function! s:join_pending(base, pending) abort
 endfunction
 
 function! s:limit(lines, diff_want, indent) abort
+    " call s:echof('> limit', a:indent, len(a:lines), a:diff_want)
     if a:diff_want <= 0
         return [a:lines, a:diff_want]
     endif
 
     let max = g:context_max_per_indent
-    if max >= len(a:lines)
+    if len(a:lines) <= max
         return [a:lines, a:diff_want]
+    endif
+
+    let diff = len(a:lines) - max
+    if diff > a:diff_want
+        let max += diff
     endif
 
     let limited = a:lines[: max/2-1]
     call add(limited, s:make_line(0, a:indent, repeat(' ', a:indent) . s:ellipsis))
     call extend(limited, a:lines[-(max-1)/2 :])
-    return [limited, a:diff_want - len(a:lines) + max]
+    return [limited, a:diff_want - (len(a:lines) - max)]
 endif
 endfunction
 
