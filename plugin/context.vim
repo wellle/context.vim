@@ -196,6 +196,11 @@ function! s:update_context(allow_resize, force_resize) abort
         call extend(lines, context[indent])
     endfor
 
+    if len(lines) == 0
+        " don't show ellipsis if context is empty
+        let s:hidden = s:make_line(0, 0, "")
+    endif
+
     " limit total context
     let max = g:context_max_height
     if len(lines) > max
