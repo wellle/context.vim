@@ -1,49 +1,40 @@
-nnoremap <silent> <C-L> <C-L>:call <SID>show_context(1, 0)<CR>
-nnoremap <silent> <C-E> <C-E>:call <SID>show_context(0, 0)<CR>
-nnoremap <silent> <C-Y> <C-Y>:call <SID>show_context(0, 0)<CR>
-" NOTE: this is pretty hacky, we call zz/zt/zb twice here
-" if we only do it once it seems to break something
-" to reproduce: search for something, then alternate: n zt n zt n zt ...
-nnoremap <silent> zz zzzz:call <SID>show_context(0, 0)<CR>
-nnoremap <silent> zt ztzt:call <SID>show_context(0, 0)<CR>
-nnoremap <silent> zb zbzb:call <SID>show_context(0, 0)<CR>
-
 " settings
 
 " set this to 0 to disable this plugin on launch (use :ContextEnable to
 " enoble it later
-let g:context_enabled         = get(g:, 'context_enabled', 1)
+let g:context_enabled = get(g:, 'context_enabled', 1)
 
 " how many lines to use at most for the context
-let g:context_max_height      = get(g:, 'context_max_height', 21)
+let g:context_max_height = get(g:, 'context_max_height', 21)
 
 " how many lines are allowed per indent
-let g:context_max_per_indent  = get(g:, 'context_max_per_indent', 5)
+let g:context_max_per_indent = get(g:, 'context_max_per_indent', 5)
 
 " how many lines can be joined in one line (if they match
 " g:context_join_regex) before the ones in the middle get hidden
-let g:context_max_join_parts  = get(g:, 'context_max_join_parts', 5)
+let g:context_max_join_parts = get(g:, 'context_max_join_parts', 5)
 
 " which character to use for the ellipsis "..."
-let g:context_ellipsis_char   = get(g:, 'context_ellipsis_char', '·')
+let g:context_ellipsis_char = get(g:, 'context_ellipsis_char', '·')
 
 " how much to decrease window height when scrolling linewise (^E/^Y)
 let g:context_resize_linewise = get(g:, 'context_resize_linewise', 0.25)
 
 " how much to decrease window height when scrolling half-screen wise (^U/^D)
-let g:context_resize_scroll   = get(g:, 'context_resize_scroll',   1.0)
+let g:context_resize_scroll = get(g:, 'context_resize_scroll', 1.0)
 
 " lines matching this regex will be ignored for the context
 " match whitespace only lines to show the full context
 " also by default excludes comment lines etc.
-let g:context_skip_regex   = get(g:, 'context_skip_regex',   '^\s*\($\|//\|/\*\|#\)')
+let g:context_skip_regex = get(g:, 'context_skip_regex', '^\s*\($\|//\|/\*\|#\)')
 " if a line matches this regex we will extend the context by looking upwards
 " for another line with the same indent
 " (to show the if which belongs to an else etc.)
 let g:context_extend_regex = get(g:, 'context_extend_regex', '^\s*\([]{})]\|end\|else\|case\>\|default\>\)')
 " if a line matches this regex we consider joining it into the one above
 " for example a `{` might be lifted to the preceeding `if` line
-let g:context_join_regex   = get(g:, 'context_join_regex',   '^\W*$')
+let g:context_join_regex = get(g:, 'context_join_regex', '^\W*$')
+
 
 " consts
 let s:buffer_name = '<context.vim>'
@@ -60,6 +51,7 @@ let s:last_top_line = -10
 let s:min_height = 0
 let s:padding = 0
 let s:ignore_autocmd = 0
+let s:log_indent = 0
 
 function! s:show_context(force_resize, autocmd) abort
     if !g:context_enabled || !s:enabled
@@ -498,10 +490,23 @@ function! s:vim_enter() abort
     call s:show_context(0, 'VimEnter')
 endfunction
 
+" mappings
+nnoremap <silent> <C-L> <C-L>:call <SID>show_context(1, 0)<CR>
+nnoremap <silent> <C-E> <C-E>:call <SID>show_context(0, 0)<CR>
+nnoremap <silent> <C-Y> <C-Y>:call <SID>show_context(0, 0)<CR>
+" NOTE: this is pretty hacky, we call zz/zt/zb twice here
+" if we only do it once it seems to break something
+" to reproduce: search for something, then alternate: n zt n zt n zt ...
+nnoremap <silent> zz zzzz:call <SID>show_context(0, 0)<CR>
+nnoremap <silent> zt ztzt:call <SID>show_context(0, 0)<CR>
+nnoremap <silent> zb zbzb:call <SID>show_context(0, 0)<CR>
+
+" commands
 command! -bar ContextEnable  call s:enable()
 command! -bar ContextDisable call s:disable()
 command! -bar ContextToggle  call s:toggle()
 
+" autocommands
 augroup context.vim
     autocmd!
     autocmd VimEnter *     call <SID>vim_enter()
@@ -511,12 +516,9 @@ augroup context.vim
     autocmd User GitGutter call <SID>update_padding('GitGutter')
 augroup END
 
-" uncomment to activate
-" let s:logfile = '~/temp/vimlog'
-let s:log_indent = 0
-
+" debug logging, set g:context_logfile to activate
 function! s:echof(...) abort
-    if exists('s:logfile')
-        execute "silent! !echo '" . repeat(' ', s:log_indent) . join(a:000) . "' >>" s:logfile
+    if exists('g:context_logfile')
+        execute "silent! !echo '" . repeat(' ', s:log_indent) . join(a:000) . "' >>" g:context_logfile
     endif
 endfunction
