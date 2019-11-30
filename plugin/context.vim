@@ -26,7 +26,7 @@ let g:context_resize_scroll = get(g:, 'context_resize_scroll', 1.0)
 " lines matching this regex will be ignored for the context
 " match whitespace only lines to show the full context
 " also by default excludes comment lines etc.
-let g:context_skip_regex = get(g:, 'context_skip_regex', '^\s*\($\|//\|/\*\|#\)')
+let g:context_skip_regex = get(g:, 'context_skip_regex', '^\s*\($\|#\|//\|/\*\|\*\($\|/s\|\/\|\)\)')
 " if a line matches this regex we will extend the context by looking upwards
 " for another line with the same indent
 " (to show the if which belongs to an else etc.)
@@ -221,15 +221,15 @@ function! s:join(lines, diff_want) abort
     let diff_want = a:diff_want
 
     " only works with at least 3 parts, so disable otherwise
-    if diff_want == 0 || g:context_max_join_parts < 3
-        return [a:lines, 0]
+    if g:context_max_join_parts < 3
+        return [a:lines, a:diff_want]
     endif
 
     " call s:echof('> join', len(a:lines), diff_want)
     let pending = [] " lines which might be joined with previous
     let joined = a:lines[:0] " start with first line
     for line in a:lines[1:]
-        if diff_want > 0 && s:join_line(line.text)
+        if s:join_line(line.text)
             " add lines without word characters to pending list
             call add(pending, line)
             let diff_want -= 1
@@ -368,8 +368,8 @@ function! s:display_line(index, line) abort
     return a:line.text
 
     " NOTE: comment out the line above to include this debug info
-    let n = &columns - 20 - strchars(trim(a:line.text)) - a:line.indent
-    return printf("%s%s // i:%-2d n:%-4d", a:line.text, repeat(' ', n), a:line.indent, a:line.number)
+    let n = &columns - 25 - strchars(trim(a:line.text)) - a:line.indent
+    return printf("%s%s // %2d n:%5d i:%2d", a:line.text, repeat(' ', n), a:index+1, a:line.number, a:line.indent)
 endfunction
 
 " https://vi.stackexchange.com/questions/19056/how-to-create-preview-window-to-display-a-string
