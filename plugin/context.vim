@@ -40,7 +40,8 @@ let g:context_join_regex = get(g:, 'context_join_regex', '^\W*$')
 let s:buffer_name = '<context.vim>'
 
 " cached
-let s:ellipsis = repeat(g:context_ellipsis_char, 3)
+let s:ellipsis  = repeat(g:context_ellipsis_char, 3)
+let s:ellipsis5 = repeat(g:context_ellipsis_char, 5)
 
 " state
 let s:resize_level = 0 " for decreasing window height based on scrolling
@@ -256,22 +257,25 @@ function! s:join_pending(base, pending) abort
     let max = g:context_max_join_parts
     if len(a:pending) > max-1
         call remove(a:pending, (max-1)/2-1, -max/2-1)
-        call insert(a:pending, s:make_line(0, 0, ''), (max-1)/2-1)
+        call insert(a:pending, s:make_line(0, 0, ''), (max-1)/2-1) " middle marker
     endif
 
-    let text = a:base.text
-    let space = ' '
+    let joined = a:base
     for line in a:pending
-        if line.text == ''
-            let text .= ' ' . s:ellipsis
-            let space = '' " avoid space between this double ellipsis
-        else
-            let text .= space . s:ellipsis . ' ' . trim(line.text)
-            let space = ' '
+        let joined.text .= ' '
+        if line.number == 0
+            " this is the middle marker, use long ellipsis
+            let joined.text .= s:ellipsis5
+        elseif joined.number != 0 && line.number != joined.number + 1
+            " not after middle marker and there are lines in between: show ellipsis
+            let joined.text .= s:ellipsis . ' '
         endif
+
+        let joined.text .= trim(line.text)
+        let joined.number = line.number
     endfor
 
-    return s:make_line(a:pending[-1].number, a:base.indent, text)
+    return joined
 endfunction
 
 function! s:limit(lines, diff_want, indent) abort
