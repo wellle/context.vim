@@ -54,7 +54,7 @@ let s:padding = 0
 let s:ignore_autocmd = 0
 let s:log_indent = 0
 
-function! s:show_context(force_resize, autocmd) abort
+function! s:update_context(force_resize, autocmd) abort
     if !g:context_enabled || !s:enabled
         " call s:echof(' disabled')
         return
@@ -77,17 +77,18 @@ function! s:show_context(force_resize, autocmd) abort
         return
     endif
 
-    call s:echof('> show_context', a:force_resize, a:autocmd)
+    call s:echof('> update_context', a:force_resize, a:autocmd)
 
     let s:ignore_autocmd = 1
     let s:log_indent += 1
-    call s:update_context(1, a:force_resize)
+    call s:update_context_internal(1, a:force_resize)
     let s:log_indent -= 1
     let s:ignore_autocmd = 0
 endfunction
 
-function! s:update_context(allow_resize, force_resize) abort
-    call s:echof('> update_context', a:allow_resize, a:force_resize)
+" this function actually updates the context and calls itself until it stabilizes
+function! s:update_context_internal(allow_resize, force_resize) abort
+    call s:echof('> update_context_internal', a:allow_resize, a:force_resize)
 
     let winnr = winnr()
     let bufnr = bufnr('%')
@@ -218,7 +219,7 @@ function! s:update_context(allow_resize, force_resize) abort
     " call again until it stabilizes
     " disallow resizing to make sure it will eventually
     let s:log_indent += 1
-    call s:update_context(0, 0)
+    call s:update_context_internal(0, 0)
     let s:log_indent -= 1
 endfunction
 
@@ -411,7 +412,7 @@ endfunction
 
 function! s:enable() abort
     let g:context_enabled = 1
-    call s:show_context(1, 0)
+    call s:update_context(1, 0)
 endfunction
 
 function! s:disable() abort
@@ -502,19 +503,20 @@ function! s:vim_enter() abort
     " one buffer before another one gets opened in startup
     " to avoid that we wait for startup to be finished
     let s:enabled = 1
-    call s:show_context(0, 'VimEnter')
+    call s:update_context(0, 'VimEnter')
 endfunction
 
 " mappings
-nnoremap <silent> <C-L> <C-L>:call <SID>show_context(1, 0)<CR>
-nnoremap <silent> <C-E> <C-E>:call <SID>show_context(0, 0)<CR>
-nnoremap <silent> <C-Y> <C-Y>:call <SID>show_context(0, 0)<CR>
-" NOTE: this is pretty hacky, we call zz/zt/zb twice here
-" if we only do it once it seems to break something
-" to reproduce: search for something, then alternate: n zt n zt n zt ...
-nnoremap <silent> zz zzzz:call <SID>show_context(0, 0)<CR>
-nnoremap <silent> zt ztzt:call <SID>show_context(0, 0)<CR>
-nnoremap <silent> zb zbzb:call <SID>show_context(0, 0)<CR>
+" NOTE: in the zz/zt/zb mappings we invoke zz/zt/zb twice before calling
+" update_context(). unfortunately this is needed because it seems like Vim
+" sometimes gets confused if the window height changes shortly after zz/zt/zb
+" have been executed.
+nnoremap <silent> <C-L> <C-L>:call <SID>update_context(1, 0)<CR>
+nnoremap <silent> <C-E> <C-E>:call <SID>update_context(0, 0)<CR>
+nnoremap <silent> <C-Y> <C-Y>:call <SID>update_context(0, 0)<CR>
+nnoremap <silent> zz     zzzz:call <SID>update_context(0, 0)<CR>
+nnoremap <silent> zt     ztzt:call <SID>update_context(0, 0)<CR>
+nnoremap <silent> zb     zbzb:call <SID>update_context(0, 0)<CR>
 
 " commands
 command! -bar ContextEnable  call s:enable()
@@ -525,9 +527,9 @@ command! -bar ContextToggle  call s:toggle()
 augroup context.vim
     autocmd!
     autocmd VimEnter *     call <SID>vim_enter()
-    autocmd BufAdd *       call <SID>show_context(1, 'BufAdd')
-    autocmd BufEnter *     call <SID>show_context(0, 'BufEnter')
-    autocmd CursorMoved *  call <SID>show_context(0, 'CursorMoved')
+    autocmd BufAdd *       call <SID>update_context(1, 'BufAdd')
+    autocmd BufEnter *     call <SID>update_context(0, 'BufEnter')
+    autocmd CursorMoved *  call <SID>update_context(0, 'CursorMoved')
     autocmd User GitGutter call <SID>update_padding('GitGutter')
 augroup END
 
