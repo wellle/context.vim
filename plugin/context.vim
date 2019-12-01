@@ -39,9 +39,11 @@ let g:context_join_regex = get(g:, 'context_join_regex', '^\W*$')
 
 
 " commands
-command! -bar ContextEnable  call context#enable()
-command! -bar ContextDisable call context#disable()
-command! -bar ContextToggle  call context#toggle()
+command! -bar ContextActivate call context#activate()
+command! -bar ContextEnable   call context#enable()
+command! -bar ContextDisable  call context#disable()
+command! -bar ContextToggle   call context#toggle()
+command! -bar ContextUpdate   call context#update(0, 0)
 
 
 " mappings
