@@ -4,6 +4,10 @@
 " (use :ContextEnable to enable it later)
 let g:context_enabled = get(g:, 'context_enabled', 1)
 
+" set to 0 to disable default mappings and/or auto commands
+let g:context_add_mappings = get(g:, 'context_add_mappings', 1)
+let g:context_add_autocmds = get(g:, 'context_add_autocmds', 1)
+
 " how many lines to use at most for the context
 let g:context_max_height = get(g:, 'context_max_height', 21)
 
@@ -47,25 +51,28 @@ command! -bar ContextUpdate   call context#update(0, 0)
 
 
 " mappings
-
-" NOTE: in the zz/zt/zb mappings we invoke zz/zt/zb twice before calling
-" update_context(). unfortunately this is needed because it seems like Vim
-" sometimes gets confused if the window height changes shortly after zz/zt/zb
-" have been executed.
-nnoremap <silent> <C-L> <C-L>:call context#update(1, 0)<CR>
-nnoremap <silent> <C-E> <C-E>:call context#update(0, 0)<CR>
-nnoremap <silent> <C-Y> <C-Y>:call context#update(0, 0)<CR>
-nnoremap <silent> zz     zzzz:call context#update(0, 0)<CR>
-nnoremap <silent> zt     ztzt:call context#update(0, 0)<CR>
-nnoremap <silent> zb     zbzb:call context#update(0, 0)<CR>
+if g:context_add_mappings
+    " NOTE: in the zz/zt/zb mappings we invoke zz/zt/zb twice before calling
+    " update_context(). unfortunately this is needed because it seems like Vim
+    " sometimes gets confused if the window height changes shortly after zz/zt/zb
+    " have been executed.
+    nnoremap <silent> <C-L> <C-L>:call context#update(1, 0)<CR>
+    nnoremap <silent> <C-E> <C-E>:call context#update(0, 0)<CR>
+    nnoremap <silent> <C-Y> <C-Y>:call context#update(0, 0)<CR>
+    nnoremap <silent> zz     zzzz:call context#update(0, 0)<CR>
+    nnoremap <silent> zt     ztzt:call context#update(0, 0)<CR>
+    nnoremap <silent> zb     zbzb:call context#update(0, 0)<CR>
+endif
 
 
 " autocommands
-augroup context.vim
-    autocmd!
-    autocmd VimEnter     * call context#activate()
-    autocmd BufAdd       * call context#update(1, 'BufAdd')
-    autocmd BufEnter     * call context#update(0, 'BufEnter')
-    autocmd CursorMoved  * call context#update(0, 'CursorMoved')
-    autocmd User GitGutter call context#update_padding('GitGutter')
-augroup END
+if g:context_add_autocmds
+    augroup context.vim
+        autocmd!
+        autocmd VimEnter     * ContextActivate
+        autocmd BufAdd       * call context#update(1, 'BufAdd')
+        autocmd BufEnter     * call context#update(0, 'BufEnter')
+        autocmd CursorMoved  * call context#update(0, 'CursorMoved')
+        autocmd User GitGutter call context#update_padding('GitGutter')
+    augroup END
+endif
