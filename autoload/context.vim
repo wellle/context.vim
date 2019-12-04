@@ -167,11 +167,13 @@ function! s:update_context(allow_resize, force_resize) abort
     let current_line = s:last_top_line - 1 " first hidden line
     while current_line > 0
         let line = getline(current_line)
-        if !s:skip_line(line)
-            let s:hidden = s:make_line(current_line, indent(current_line), line)
-            break
+        if s:skip_line(line)
+            let current_line -= 1
+            continue
         endif
-        let current_line -= 1
+
+        let s:hidden = s:make_line(current_line, indent(current_line), line)
+        break
     endwhile
 
     " find line downwards which isn't empty
@@ -180,11 +182,13 @@ function! s:update_context(allow_resize, force_resize) abort
     let current_line = s:last_top_line
     while current_line <= max_line
         let line = getline(current_line)
-        if !s:skip_line(line)
-            let current_indent = indent(current_line)
-            break
+        if s:skip_line(line)
+            let current_line += 1
+            continue
         endif
-        let current_line += 1
+
+        let current_indent = indent(current_line)
+        break
     endwhile
 
     " collect all context lines
@@ -475,7 +479,12 @@ endfunction
 
 " debug logging, set g:context_logfile to activate
 function! s:echof(...) abort
+    let args = join(a:000)
+    let args = substitute(args, "'", '"', "g")
+    let message = repeat(' ', s:log_indent) . args
+
+    " echom message
     if exists('g:context_logfile')
-        execute "silent! !echo '" . repeat(' ', s:log_indent) . join(a:000) . "' >>" g:context_logfile
+        execute "silent! !echo '" . message . "' >>" g:context_logfile
     endif
 endfunction
