@@ -357,7 +357,7 @@ function! s:set_padding(padding) abort
         let padding = s:padding
     endif
 
-    let statusline = '%=' . s:buffer_name
+    let statusline = '%=' . s:buffer_name . ' ' " trailing space for padding
     if s:hidden.number > 0
         let statusline = repeat(' ', padding + s:hidden.indent) . s:ellipsis . statusline
     endif
