@@ -30,7 +30,7 @@ let g:context_resize_scroll = get(g:, 'context_resize_scroll', 1.0)
 " lines matching this regex will be ignored for the context
 " match whitespace only lines to show the full context
 " also by default excludes comment lines etc.
-let g:context_skip_regex = get(g:, 'context_skip_regex', '^\s*\($\|#\|//\|/\*\|\*\($\|\s\|/\)\)')
+let g:context_skip_regex = get(g:, 'context_skip_regex', '^\([<=>]\{7\}\|\s*\($\|#\|//\|/\*\|\*\($\|\s\|/\)\)\)')
 
 " if a line matches this regex we will extend the context by looking upwards
 " for another line with the same indent
