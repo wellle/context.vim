@@ -35,7 +35,7 @@ let g:context_skip_regex = get(g:, 'context_skip_regex', '^\([<=>]\{7\}\|\s*\($\
 " if a line matches this regex we will extend the context by looking upwards
 " for another line with the same indent
 " (to show the if which belongs to an else etc.)
-let g:context_extend_regex = get(g:, 'context_extend_regex', '^\s*\([]{})]\|end\|else\|case\>\|default\>\)')
+let g:context_extend_regex = get(g:, 'context_extend_regex', '^\s*\([]{})]\|end\|else\|\(case\|default\|done\|elif\|fi\)\>\)')
 
 " if a line matches this regex we consider joining it into the one above
 " for example a `{` might be lifted to the preceeding `if` line
