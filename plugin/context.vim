@@ -1,3 +1,9 @@
+" context.vim
+" Shows the context of the currently visible buffer contents
+" Author:  Christian Wellenbrock <christian.wellenbrock@gmail.com>
+" License: MIT license
+
+
 " settings
 
 " set this to 0 to disable this plugin on launch
