@@ -280,7 +280,7 @@ function! s:open_preview() abort
                 \ ' noswapfile'     .
                 \ ' nowrap'         .
                 \ ''
-    execute 'silent! pedit' escape(settings, ' ') s:buffer_name
+    execute 'silent! aboveleft pedit' escape(settings, ' ') s:buffer_name
 endfunction
 
 function! s:show_in_preview(lines) abort
