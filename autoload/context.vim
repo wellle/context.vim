@@ -419,7 +419,7 @@ function! s:join_pending(base, pending) abort
             let joined.text .= s:ellipsis . ' '
         endif
 
-        let joined.text .= trim(line.text)
+        let joined.text .= s:trim(line.text)
         let joined.number = line.number
     endfor
 
@@ -461,7 +461,7 @@ function! s:display_line(index, line) abort
     return a:line.text
 
     " NOTE: comment out the line above to include this debug info
-    let n = &columns - 25 - strchars(trim(a:line.text)) - a:line.indent
+    let n = &columns - 25 - strchars(s:trim(a:line.text)) - a:line.indent
     return printf("%s%s // %2d n:%5d i:%2d", a:line.text, repeat(' ', n), a:index+1, a:line.number, a:line.indent)
 endfunction
 
@@ -475,6 +475,10 @@ endfunction
 
 function! s:join_line(line) abort
     return a:line =~ g:context_join_regex
+endfunction
+
+function s:trim(string) abort
+    return substitute(a:string, '^\s*', '', '')
 endfunction
 
 " debug logging, set g:context_logfile to activate

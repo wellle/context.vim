@@ -59,7 +59,7 @@ command! -bar ContextUpdate   call context#update(0, 0)
 " mappings
 if g:context_add_mappings
     " NOTE: in the zz/zt/zb mappings we invoke zz/zt/zb twice before calling
-    " update_context(). unfortunately this is needed because it seems like Vim
+    " context#update(). unfortunately this is needed because it seems like Vim
     " sometimes gets confused if the window height changes shortly after zz/zt/zb
     " have been executed.
     nnoremap <silent> <C-L> <C-L>:call context#update(1, 0)<CR>
