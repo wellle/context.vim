@@ -322,7 +322,15 @@ function! s:show_in_preview(lines) abort
         let s:log_indent += 1
         call s:open_preview()
         let s:log_indent -= 1
-        wincmd P " jump to new preview window
+
+        " try to jump to new preview window
+        silent! wincmd P
+        if !&previewwindow
+            " NOTE: apparently this can fail with E242, see #6
+            " in that case just silently abort
+            call s:echof(' no preview window')
+            return
+        endif
     endif
 
     while len(a:lines) < s:min_height
