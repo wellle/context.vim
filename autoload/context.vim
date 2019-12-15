@@ -342,7 +342,7 @@ function! s:show_in_preview(lines) abort
     silent 0put =a:lines " paste lines
     1                    " and jump to first line
 
-    execute 'setlocal filetype=' . filetype
+    execute 'setlocal filetype=' . filetype . '.noplugin'
     execute 'setlocal tabstop='  . tabstop
     call s:set_padding(padding)
 
