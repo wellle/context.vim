@@ -245,15 +245,6 @@ function! s:get_context(line) abort
     let context_len = 0
 
     while 1
-        " if line starts with closing brace or similar: jump to matching
-        " opening one and add it to context. also for other prefixes to show
-        " the if which belongs to an else etc.
-        if s:extend_line(base_line.text)
-            " NOTE: in order to extend the context on this indentation we
-            " increment the base indent so the same indent is allowed again
-            let base_line.indent += 1
-        endif
-
         let context_line = s:get_context_line(base_line)
         if context_line.number == 0
             return [context, context_len]
@@ -278,7 +269,16 @@ function! s:get_context(line) abort
 endfunction
 
 function! s:get_context_line(line) abort
-    if a:line.indent == 0
+    " if line starts with closing brace or similar: jump to matching
+    " opening one and add it to context. also for other prefixes to show
+    " the if which belongs to an else etc.
+    if s:extend_line(a:line.text)
+        let max_indent = a:line.indent " allow same indent
+    else
+        let max_indent = a:line.indent - 1 " must be strictly less
+    endif
+
+    if max_indent < 0
         return s:nil_line
     endif
 
@@ -289,7 +289,7 @@ function! s:get_context_line(line) abort
         let current_line -= 1
 
         let indent = indent(current_line)
-        if indent >= a:line.indent
+        if indent > max_indent
             continue
         endif
 
