@@ -272,14 +272,16 @@ endfunction
 " https://vi.stackexchange.com/questions/19056/how-to-create-preview-window-to-display-a-string
 function! s:open_preview() abort
     call s:echof('> open_preview')
-    let settings = '+setlocal'      .
-                \ ' buftype=nofile' .
-                \ ' modifiable'     .
-                \ ' nobuflisted'    .
-                \ ' nocursorline'   .
-                \ ' nonumber'       .
-                \ ' noswapfile'     .
-                \ ' nowrap'         .
+    let settings = '+setlocal'        .
+                \ ' buftype=nofile'   .
+                \ ' modifiable'       .
+                \ ' nobuflisted'      .
+                \ ' nocursorline'     .
+                \ ' nonumber'         .
+                \ ' norelativenumber' .
+                \ ' noswapfile'       .
+                \ ' nowrap'           .
+                \ ' signcolumn=no'    .
                 \ ''
     execute 'silent! aboveleft pedit' escape(settings, ' ') s:buffer_name
 endfunction
