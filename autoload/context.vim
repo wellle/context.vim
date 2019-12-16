@@ -276,6 +276,7 @@ function! s:open_preview() abort
                 \ ' buftype=nofile' .
                 \ ' modifiable'     .
                 \ ' nobuflisted'    .
+                \ ' nocursorline'   .
                 \ ' nonumber'       .
                 \ ' noswapfile'     .
                 \ ' nowrap'         .
