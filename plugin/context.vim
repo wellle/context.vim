@@ -81,4 +81,10 @@ if g:context_add_autocmds
         autocmd CursorMoved  * call context#update(0, 'CursorMoved')
         autocmd User GitGutter call context#update_padding('GitGutter')
     augroup END
+
+    " lazy loading was used
+    if v:vim_did_enter
+        let g:context_enabled = 0 " plugin was effectively disabled before load
+        ContextActivate
+    endif
 endif
