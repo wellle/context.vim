@@ -88,6 +88,22 @@ function! context#update(force_resize, autocmd) abort
     let s:ignore_autocmd = 0
 endfunction
 
+function! context#clear_cache() abort
+    " this dictionary maps a line to its next context line
+    " so it allows us to skip large portions of the buffer instead of always
+    " having to scan through all of it
+    let b:context_skips = {}
+    let b:context_cost  = 0
+    let b:context_saved = 0
+endfunction
+
+function! context#cache_stats() abort
+    let skips = len(b:context_skips)
+    let cost  = b:context_cost
+    let total = b:context_cost + b:context_saved
+    echom printf('cache: %d skips, %d / %d (%.1f%%)', skips, cost, total, 100.0 * cost / total)
+endfunction
+
 function! context#update_padding(autocmd) abort
     " call s:echof('> update_padding', a:autocmd)
     if !g:context_enabled
@@ -243,8 +259,14 @@ function! s:get_context(line) abort
     let context = {}
     let context_len = 0
 
+    if !exists('b:context_skips')
+        let b:context_skips = {}
+    endif
+
     while 1
         let context_line = s:get_context_line(base_line)
+        let b:context_skips[base_line.number] = context_line.number " cache this lookup
+
         if context_line.number == 0
             return [context, context_len]
         endif
@@ -268,6 +290,22 @@ function! s:get_context(line) abort
 endfunction
 
 function! s:get_context_line(line) abort
+    " this is a very primitive way of counting how many lines we scan in total
+    " highly unscientific, but can the effect of our caching and where it
+    " should be improved
+    if !exists('b:context_cost')
+        let b:context_cost  = 0
+        let b:context_saved = 0
+    endif
+
+    " check if we have a skip available from the base line
+    let skipped = get(b:context_skips, a:line.number, -1)
+    if skipped != -1
+        let b:context_saved += a:line.number-1 - skipped
+        " call s:echof('  skipped', a:line.number, '->', skipped)
+        return s:make_line(skipped, indent(skipped), getline(skipped))
+    endif
+
     " if line starts with closing brace or similar: jump to matching
     " opening one and add it to context. also for other prefixes to show
     " the if which belongs to an else etc.
@@ -281,26 +319,33 @@ function! s:get_context_line(line) abort
         return s:nil_line
     endif
 
-    let current_line = a:line.number
+    " search for line with matching indent
+    let current_line = a:line.number - 1
+    while 1
+        if current_line <= 0
+            " nothing found
+            return s:nil_line
+        endif
 
-    " search for line with less indent
-    while current_line > 1
-        let current_line -= 1
+        let b:context_cost += 1
 
         let indent = indent(current_line)
         if indent > max_indent
+            " use skip if we have, next line otherwise
+            let skipped = get(b:context_skips, current_line, current_line-1)
+            let b:context_saved += current_line-1 - skipped
+            let current_line = skipped
             continue
         endif
 
         let line = getline(current_line)
         if s:skip_line(line)
-            continue " ignore empty lines
+            let current_line -= 1
+            continue
         endif
 
         return s:make_line(current_line, indent, line)
     endwhile
-
-    return s:nil_line
 endfunction
 
 " https://vi.stackexchange.com/questions/19056/how-to-create-preview-window-to-display-a-string
