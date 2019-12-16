@@ -57,33 +57,34 @@ endfunction
 
 function! context#update(force_resize, autocmd) abort
     if !g:context_enabled || !s:activated
-        " call s:echof(' disabled')
+        " call s:echof('  disabled')
         return
     endif
 
     if &previewwindow
         " no context of preview windows (which we use to display context)
-        " call s:echof(' abort preview')
+        " call s:echof('  abort preview')
         return
     endif
 
     if mode() != 'n'
-        " call s:echof(' abort mode')
+        " call s:echof('  abort mode')
         return
     endif
 
     if type(a:autocmd) == type('') && s:ignore_autocmd
         " ignore nested calls from auto commands
-        " call s:echof(' abort from autocmd')
+        " call s:echof('  abort from autocmd')
         return
     endif
 
+    call s:echof()
     call s:echof('> update', a:force_resize, a:autocmd)
 
     let s:ignore_autocmd = 1
-    let s:log_indent += 1
+    let s:log_indent += 2
     call s:update_context(1, a:force_resize)
-    let s:log_indent -= 1
+    let s:log_indent -= 2
     let s:ignore_autocmd = 0
 endfunction
 
@@ -95,35 +96,35 @@ function! context#update_padding(autocmd) abort
 
     if &previewwindow
         " no context of preview windows (which we use to display context)
-        " call s:echof(' abort preview')
+        " call s:echof('  abort preview')
         return
     endif
 
     if mode() != 'n'
-        " call s:echof(' abort mode')
+        " call s:echof('  abort mode')
         return
     endif
 
     let padding = wincol() - virtcol('.')
 
     if s:padding == padding
-        " call s:echof(' abort same padding', s:padding, padding)
+        " call s:echof('  abort same padding', s:padding, padding)
         return
     endif
 
     silent! wincmd P
     if !&previewwindow
-        " call s:echof(' abort no preview')
+        " call s:echof('  abort no preview')
         return
     endif
 
     if bufname('%') != s:buffer_name
-        " call s:echof(' abort different preview')
+        " call s:echof('  abort different preview')
         wincmd p
         return
     endif
 
-    " call s:echof(' update padding', padding, a:autocmd)
+    " call s:echof('  update padding', padding, a:autocmd)
     call s:set_padding(padding)
     wincmd p
 endfunction
@@ -155,7 +156,7 @@ function! s:update_context(allow_resize, force_resize) abort
     endif
 
     if !a:force_resize && s:last_bufnr == bufnr && s:last_top_line == current_line
-        call s:echof(' abort same buf and top line', bufnr, current_line)
+        call s:echof('  abort same buf and top line', bufnr, current_line)
         return
     endif
 
@@ -206,14 +207,12 @@ function! s:update_context(allow_resize, force_resize) abort
         call insert(lines, ellipsis_line, max/2)
     endif
 
-    let s:log_indent += 1
+    let s:log_indent += 2
     call s:show_in_preview(lines)
-    let s:log_indent -= 1
     " call again until it stabilizes
     " disallow resizing to make sure it will eventually
-    let s:log_indent += 1
     call s:update_context(0, 0)
-    let s:log_indent -= 1
+    let s:log_indent -= 2
 endfunction
 
 " find line downwards (from top line) which isn't empty
@@ -337,36 +336,36 @@ function! s:show_in_preview(lines) abort
     if &previewwindow
         if bufname('%') == s:buffer_name
             " reuse existing preview window
-            call s:echof(' reuse')
+            call s:echof('  reuse')
             silent %delete _
         elseif s:min_height == 0
             " nothing to do
-            call s:echof(' not ours')
+            call s:echof('  not ours')
             wincmd p " jump back
             return
         else
-            call s:echof(' take over')
-            let s:log_indent += 1
+            call s:echof('  take over')
+            let s:log_indent += 2
             call s:open_preview()
-            let s:log_indent -= 1
+            let s:log_indent -= 2
         endif
 
     elseif s:min_height == 0
         " nothing to do
-        call s:echof(' none')
+        call s:echof('  none')
         return
     else
-        call s:echof(' open new')
-        let s:log_indent += 1
+        call s:echof('  open new')
+        let s:log_indent += 2
         call s:open_preview()
-        let s:log_indent -= 1
+        let s:log_indent -= 2
 
         " try to jump to new preview window
         silent! wincmd P
         if !&previewwindow
             " NOTE: apparently this can fail with E242, see #6
             " in that case just silently abort
-            call s:echof(' no preview window')
+            call s:echof('  no preview window')
             return
         endif
     endif
