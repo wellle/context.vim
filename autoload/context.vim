@@ -378,6 +378,8 @@ function! s:show_in_preview(lines) abort
     let tabstop  = &tabstop
     let padding  = wincol() - virtcol('.')
 
+    call s:close_without_equalize()
+
     " based on https://stackoverflow.com/questions/13707052/quickfix-preview-window-resizing
     silent! wincmd P " jump to preview, but don't show error
     if &previewwindow
@@ -434,6 +436,20 @@ function! s:show_in_preview(lines) abort
     execute 'resize' s:min_height
 
     wincmd p " jump back
+endfunction
+
+" https://www.reddit.com/r/vim/comments/e7l4m1/welllecontextvim_vim_plugin_that_shows_the/fa4tz1g/
+function! s:close_without_equalize() abort
+    let pwin = index(map(range(1, winnr('$')), "getwinvar(v:val, '&pvw')"), 1) + 1
+    if pwin == 0
+        return
+    endif
+
+    let wfh_save = map(range(1,winnr('$')), "getwinvar(v:val, '&wfh')")
+    call map(range(1, winnr('$')), "setwinvar(v:val, '&wfh', 1)")
+    pclose
+    call remove(wfh_save, pwin-1)
+    call map(range(1, winnr('$')), "setwinvar(v:val, '&wfh', wfh_save[v:val-1])")
 endfunction
 
 " NOTE: this function updates the statusline too, as it depends on the padding
