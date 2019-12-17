@@ -4,6 +4,7 @@ let s:buffer_name = '<context.vim>'
 " cached
 let s:ellipsis  = repeat(g:context_ellipsis_char, 3)
 let s:ellipsis5 = repeat(g:context_ellipsis_char, 5)
+let s:nil_line = {'number': 0, 'indent': 0, 'text': ''}
 
 " state
 let s:resize_level = 0 " for decreasing window height based on scrolling
@@ -56,34 +57,51 @@ endfunction
 
 function! context#update(force_resize, autocmd) abort
     if !g:context_enabled || !s:activated
-        " call s:echof(' disabled')
+        " call s:echof('  disabled')
         return
     endif
 
     if &previewwindow
         " no context of preview windows (which we use to display context)
-        " call s:echof(' abort preview')
+        " call s:echof('  abort preview')
         return
     endif
 
     if mode() != 'n'
-        " call s:echof(' abort mode')
+        " call s:echof('  abort mode')
         return
     endif
 
     if type(a:autocmd) == type('') && s:ignore_autocmd
         " ignore nested calls from auto commands
-        " call s:echof(' abort from autocmd')
+        " call s:echof('  abort from autocmd')
         return
     endif
 
+    call s:echof()
     call s:echof('> update', a:force_resize, a:autocmd)
 
     let s:ignore_autocmd = 1
-    let s:log_indent += 1
+    let s:log_indent += 2
     call s:update_context(1, a:force_resize)
-    let s:log_indent -= 1
+    let s:log_indent -= 2
     let s:ignore_autocmd = 0
+endfunction
+
+function! context#clear_cache() abort
+    " this dictionary maps a line to its next context line
+    " so it allows us to skip large portions of the buffer instead of always
+    " having to scan through all of it
+    let b:context_skips = {}
+    let b:context_cost  = 0
+    let b:context_saved = 0
+endfunction
+
+function! context#cache_stats() abort
+    let skips = len(b:context_skips)
+    let cost  = b:context_cost
+    let total = b:context_cost + b:context_saved
+    echom printf('cache: %d skips, %d / %d (%.1f%%)', skips, cost, total, 100.0 * cost / total)
 endfunction
 
 function! context#update_padding(autocmd) abort
@@ -94,35 +112,35 @@ function! context#update_padding(autocmd) abort
 
     if &previewwindow
         " no context of preview windows (which we use to display context)
-        " call s:echof(' abort preview')
+        " call s:echof('  abort preview')
         return
     endif
 
     if mode() != 'n'
-        " call s:echof(' abort mode')
+        " call s:echof('  abort mode')
         return
     endif
 
     let padding = wincol() - virtcol('.')
 
     if s:padding == padding
-        " call s:echof(' abort same padding', s:padding, padding)
+        " call s:echof('  abort same padding', s:padding, padding)
         return
     endif
 
     silent! wincmd P
     if !&previewwindow
-        " call s:echof(' abort no preview')
+        " call s:echof('  abort no preview')
         return
     endif
 
     if bufname('%') != s:buffer_name
-        " call s:echof(' abort different preview')
+        " call s:echof('  abort different preview')
         wincmd p
         return
     endif
 
-    " call s:echof(' update padding', padding, a:autocmd)
+    " call s:echof('  update padding', padding, a:autocmd)
     call s:set_padding(padding)
     wincmd p
 endfunction
@@ -154,7 +172,7 @@ function! s:update_context(allow_resize, force_resize) abort
     endif
 
     if !a:force_resize && s:last_bufnr == bufnr && s:last_top_line == current_line
-        call s:echof(' abort same buf and top line', bufnr, current_line)
+        call s:echof('  abort same buf and top line', bufnr, current_line)
         return
     endif
 
@@ -163,7 +181,7 @@ function! s:update_context(allow_resize, force_resize) abort
     let s:last_top_line = current_line
 
     " find first line above (hidden) which isn't empty
-    let s:hidden = s:make_line(0, 0, "") " in case there is none
+    let s:hidden = s:nil_line " in case there is none
     let current_line = s:last_top_line - 1 " first hidden line
     while current_line > 0
         let line = getline(current_line)
@@ -176,65 +194,11 @@ function! s:update_context(allow_resize, force_resize) abort
         break
     endwhile
 
-    " find line downwards which isn't empty
-    let max_line = line('$')
-    let current_indent = 0 " in case there are no nonempty lines below
-    let current_line = s:last_top_line
-    while current_line <= max_line
-        let line = getline(current_line)
-        if s:skip_line(line)
-            let current_line += 1
-            continue
-        endif
+    let base_line = s:get_base_line()
+    let [context, context_len] = s:get_context(base_line)
 
-        let current_indent = indent(current_line)
-        break
-    endwhile
-
-    " collect all context lines
-    let context = {}
-    let line_count = 0
-    let current_line = s:last_top_line
-    while current_line > 1
-        let allow_same = 0
-
-        " if line starts with closing brace: jump to matching opening one and add it to context
-        " also for other prefixes to show the if which belongs to an else etc.
-        if s:extend_line(line)
-            let allow_same = 1
-        elseif current_indent == 0
-            break
-        endif
-
-        " search for line with same indent (or less)
-        while current_line > 1
-            let current_line -= 1
-            let line = getline(current_line)
-            if s:skip_line(line)
-                continue " ignore empty lines
-            endif
-
-            let indent = indent(current_line)
-            if indent < current_indent || allow_same && indent == current_indent
-                if !has_key(context, indent)
-                    let context[indent] = []
-                endif
-
-                call insert(context[indent], s:make_line(current_line, indent, line), 0)
-                let line_count += 1
-                let current_indent = indent
-
-                if s:hidden.number == current_line
-                    " don't show ellipsis if hidden line is part of context
-                    let s:hidden = s:make_line(0, 0, "")
-                endif
-                break
-            endif
-        endwhile
-    endwhile
-
-    " limit context per intend
-    let diff_want = line_count - s:min_height
+    " limit context per indent
+    let diff_want = context_len - s:min_height
     let lines = []
     " no more than five lines per indent
     for indent in sort(keys(context), 'N')
@@ -245,7 +209,7 @@ function! s:update_context(allow_resize, force_resize) abort
 
     if len(lines) == 0
         " don't show ellipsis if context is empty
-        let s:hidden = s:make_line(0, 0, "")
+        let s:hidden = s:nil_line
     endif
 
     " limit total context
@@ -259,14 +223,129 @@ function! s:update_context(allow_resize, force_resize) abort
         call insert(lines, ellipsis_line, max/2)
     endif
 
-    let s:log_indent += 1
+    let s:log_indent += 2
     call s:show_in_preview(lines)
-    let s:log_indent -= 1
     " call again until it stabilizes
     " disallow resizing to make sure it will eventually
-    let s:log_indent += 1
     call s:update_context(0, 0)
-    let s:log_indent -= 1
+    let s:log_indent -= 2
+endfunction
+
+" find line downwards (from top line) which isn't empty
+function! s:get_base_line() abort
+    let current_line = s:last_top_line
+    let max_line = line('$')
+    while current_line <= max_line
+        let line = getline(current_line)
+        if s:skip_line(line)
+            let current_line += 1
+            continue
+        endif
+
+        return s:make_line(current_line, indent(current_line), line)
+    endwhile
+
+    " nothing found
+    return s:nil_line
+endfunction
+
+" collect all context lines
+function! s:get_context(line) abort
+    let base_line = a:line
+    if base_line.number == 0
+        return [{}, 0]
+    endif
+
+    let context = {}
+    let context_len = 0
+
+    if !exists('b:context_skips')
+        let b:context_skips = {}
+    endif
+
+    while 1
+        let context_line = s:get_context_line(base_line)
+        let b:context_skips[base_line.number] = context_line.number " cache this lookup
+
+        if context_line.number == 0
+            return [context, context_len]
+        endif
+
+        let indent = context_line.indent
+        if !has_key(context, indent)
+            let context[indent] = []
+        endif
+
+        call insert(context[indent], context_line, 0)
+        let context_len += 1
+
+        if s:hidden.number == context_line.number
+            " don't show ellipsis if hidden line is part of context
+            let s:hidden = s:nil_line
+        endif
+
+        " for next iteration
+        let base_line = context_line
+    endwhile
+endfunction
+
+function! s:get_context_line(line) abort
+    " this is a very primitive way of counting how many lines we scan in total
+    " highly unscientific, but can the effect of our caching and where it
+    " should be improved
+    if !exists('b:context_cost')
+        let b:context_cost  = 0
+        let b:context_saved = 0
+    endif
+
+    " check if we have a skip available from the base line
+    let skipped = get(b:context_skips, a:line.number, -1)
+    if skipped != -1
+        let b:context_saved += a:line.number-1 - skipped
+        " call s:echof('  skipped', a:line.number, '->', skipped)
+        return s:make_line(skipped, indent(skipped), getline(skipped))
+    endif
+
+    " if line starts with closing brace or similar: jump to matching
+    " opening one and add it to context. also for other prefixes to show
+    " the if which belongs to an else etc.
+    if s:extend_line(a:line.text)
+        let max_indent = a:line.indent " allow same indent
+    else
+        let max_indent = a:line.indent - 1 " must be strictly less
+    endif
+
+    if max_indent < 0
+        return s:nil_line
+    endif
+
+    " search for line with matching indent
+    let current_line = a:line.number - 1
+    while 1
+        if current_line <= 0
+            " nothing found
+            return s:nil_line
+        endif
+
+        let b:context_cost += 1
+
+        let indent = indent(current_line)
+        if indent > max_indent
+            " use skip if we have, next line otherwise
+            let skipped = get(b:context_skips, current_line, current_line-1)
+            let b:context_saved += current_line-1 - skipped
+            let current_line = skipped
+            continue
+        endif
+
+        let line = getline(current_line)
+        if s:skip_line(line)
+            let current_line -= 1
+            continue
+        endif
+
+        return s:make_line(current_line, indent, line)
+    endwhile
 endfunction
 
 " https://vi.stackexchange.com/questions/19056/how-to-create-preview-window-to-display-a-string
@@ -302,42 +381,42 @@ function! s:show_in_preview(lines) abort
     if &previewwindow
         if bufname('%') == s:buffer_name
             " reuse existing preview window
-            call s:echof(' reuse')
+            call s:echof('  reuse')
             silent %delete _
         elseif s:min_height == 0
             " nothing to do
-            call s:echof(' not ours')
+            call s:echof('  not ours')
             wincmd p " jump back
             return
         else
-            call s:echof(' take over')
-            let s:log_indent += 1
+            call s:echof('  take over')
+            let s:log_indent += 2
             call s:open_preview()
-            let s:log_indent -= 1
+            let s:log_indent -= 2
         endif
 
     elseif s:min_height == 0
         " nothing to do
-        call s:echof(' none')
+        call s:echof('  none')
         return
     else
-        call s:echof(' open new')
-        let s:log_indent += 1
+        call s:echof('  open new')
+        let s:log_indent += 2
         call s:open_preview()
-        let s:log_indent -= 1
+        let s:log_indent -= 2
 
         " try to jump to new preview window
         silent! wincmd P
         if !&previewwindow
             " NOTE: apparently this can fail with E242, see #6
             " in that case just silently abort
-            call s:echof(' no preview window')
+            call s:echof('  no preview window')
             return
         endif
     endif
 
     while len(a:lines) < s:min_height
-        call add(a:lines, s:make_line(0, 0, ""))
+        call add(a:lines, s:nil_line)
     endwhile
 
     " NOTE: this overwrites a:lines, but we don't need it anymore
@@ -416,7 +495,7 @@ function! s:join_pending(base, pending) abort
     let max = g:context_max_join_parts
     if len(a:pending) > max-1
         call remove(a:pending, (max-1)/2-1, -max/2-1)
-        call insert(a:pending, s:make_line(0, 0, ''), (max-1)/2-1) " middle marker
+        call insert(a:pending, s:nil_line, (max-1)/2-1) " middle marker
     endif
 
     let joined = a:base
@@ -473,7 +552,7 @@ function! s:display_line(index, line) abort
 
     " NOTE: comment out the line above to include this debug info
     let n = &columns - 25 - strchars(s:trim(a:line.text)) - a:line.indent
-    return printf("%s%s // %2d n:%5d i:%2d", a:line.text, repeat(' ', n), a:index+1, a:line.number, a:line.indent)
+    return printf('%s%s // %2d n:%5d i:%2d', a:line.text, repeat(' ', n), a:index+1, a:line.number, a:line.indent)
 endfunction
 
 function! s:extend_line(line) abort
@@ -495,7 +574,8 @@ endfunction
 " debug logging, set g:context_logfile to activate
 function! s:echof(...) abort
     let args = join(a:000)
-    let args = substitute(args, "'", '"', "g")
+    let args = substitute(args, "'", '"', 'g')
+    let args = substitute(args, '!', '^', 'g')
     let message = repeat(' ', s:log_indent) . args
 
     " echom message

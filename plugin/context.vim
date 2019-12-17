@@ -79,6 +79,8 @@ if g:context_add_autocmds
         autocmd BufAdd       * call context#update(1, 'BufAdd')
         autocmd BufEnter     * call context#update(0, 'BufEnter')
         autocmd CursorMoved  * call context#update(0, 'CursorMoved')
+        autocmd TextChanged  * call context#clear_cache()
+        autocmd TextChangedI * call context#clear_cache()
         autocmd User GitGutter call context#update_padding('GitGutter')
     augroup END
 
