@@ -353,7 +353,7 @@ function! s:open_preview() abort
     call s:echof('> open_preview')
     let settings = '+setlocal'        .
                 \ ' buftype=nofile'   .
-                \ ' modifiable'       .
+                \ ' nomodifiable'     .
                 \ ' nobuflisted'      .
                 \ ' nocursorline'     .
                 \ ' nonumber'         .
@@ -382,7 +382,6 @@ function! s:show_in_preview(lines) abort
         if bufname('%') == s:buffer_name
             " reuse existing preview window
             call s:echof('  reuse')
-            silent %delete _
         elseif s:min_height == 0
             " nothing to do
             call s:echof('  not ours')
@@ -415,6 +414,10 @@ function! s:show_in_preview(lines) abort
         endif
     endif
 
+    setlocal modifiable
+
+    silent %delete _
+
     while len(a:lines) < s:min_height
         call add(a:lines, s:nil_line)
     endwhile
@@ -431,6 +434,7 @@ function! s:show_in_preview(lines) abort
     " resize window
     execute 'resize' s:min_height
 
+    setlocal nomodifiable
     wincmd p " jump back
 endfunction
 
