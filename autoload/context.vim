@@ -372,7 +372,7 @@ function! s:show_in_preview(lines) abort
         let s:min_height = len(a:lines)
     endif
 
-    let filetype = &filetype
+    let syntax   = &syntax
     let tabstop  = &tabstop
     let padding  = wincol() - virtcol('.')
 
@@ -424,7 +424,7 @@ function! s:show_in_preview(lines) abort
     silent 0put =a:lines " paste lines
     1                    " and jump to first line
 
-    execute 'setlocal filetype=' . filetype . '.noplugin'
+    execute 'setlocal syntax='   . syntax
     execute 'setlocal tabstop='  . tabstop
     call s:set_padding(padding)
 
