@@ -12,6 +12,7 @@ let s:activated      = 0
 let s:last_winid     = 0
 let s:ignore_autocmd = 0
 let s:log_indent     = 0
+let s:floats         = {}
 
 
 " call this on VimEnter to activate the plugin
@@ -211,6 +212,19 @@ function! s:update_context(allow_resize, force_resize) abort
         call remove(lines, max/2, -(max+1)/2)
         call insert(lines, ellipsis_line, max/2)
     endif
+
+    if len(lines) > 0
+        let win = nvim_get_current_win()
+        let float = get(s:floats, win, 0)
+        call map(lines, function('s:display_line'))
+        " echom string(lines)
+        call s:open_nvim_float(lines, winwidth(0), win)
+        if float > 0
+            " TODO: don't close (flickers), but reuse existing!
+            call nvim_win_close(float, v:true)
+        endif
+    endif
+    return
 
     let s:log_indent += 2
     call s:show_in_preview(lines)
@@ -593,4 +607,29 @@ function! s:echof(...) abort
     if exists('g:context_logfile')
         execute "silent! !echo '" . message . "' >>" g:context_logfile
     endif
+endfunction
+
+function! context#openwin() abort
+    call s:open_nvim_float(["test", "text", "return"], 20, 0)
+endfunction
+
+function! s:open_nvim_float(lines, width, win) abort
+    let buf = nvim_create_buf(v:false, v:true)
+    call nvim_buf_set_lines(buf, 0, -1, v:true, a:lines)
+    call nvim_buf_set_option(buf, 'syntax', 'go')
+    let opts = {
+                \ 'relative':  'win',
+                \ 'width':     a:width,
+                \ 'height':    len(a:lines),
+                \ 'col':       -1,
+                \ 'row':       -len(a:lines),
+                \ 'anchor':    'NW',
+                \ 'style':     'minimal',
+                \ }
+    let win = nvim_open_win(buf, 0, opts)
+    let s:floats[a:win] = win
+    " optional: change highlight, otherwise Pmenu is used
+    " call nvim_win_set_option(win, 'winhl', 'Normal:MyHighlight')
+    " TODO: set syntax. and more?
+    " TODO: close float when relative window gets closed. how?
 endfunction
