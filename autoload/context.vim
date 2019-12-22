@@ -361,6 +361,8 @@ function! s:open_preview() abort
                 \ ' noswapfile'       .
                 \ ' nowrap'           .
                 \ ' signcolumn=no'    .
+                \ ' \|'                                 .
+                \ ' let b:airline_disable_statusline=1' .
                 \ ''
     execute 'silent! aboveleft pedit' escape(settings, ' ') s:buffer_name
 endfunction
