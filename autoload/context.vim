@@ -9,6 +9,8 @@ let s:nil_line  = {'number': 0, 'indent': 0, 'text': ''}
 " state
 " NOTE: there's more state in window local w: variables
 let s:activated      = 0
+let s:last_winnr     = -1
+let s:last_bufnr     = -1
 let s:last_winid     = 0
 let s:ignore_autocmd = 0
 let s:log_indent     = 0
@@ -30,6 +32,7 @@ function! context#enable() abort
 endfunction
 
 function! context#disable() abort
+    " TODO: close all floats
     let g:context_enabled = 0
 
     silent! wincmd P " jump to new preview window
@@ -146,13 +149,13 @@ endfunction
 " this function actually updates the context and calls itself until it stabilizes
 function! s:update_context(allow_resize, force_resize) abort
     let winid = win_getid()
+    let bufnr = bufnr('%')
     let current_line = line('w0')
 
-    call s:echof('> update_context', a:allow_resize, a:force_resize, winid, current_line)
-
-    if !a:force_resize && s:last_winid == winid && w:last_top_line == current_line
-        call s:echof('  abort same win and top line')
-        return
+    let win = nvim_get_current_win()
+    let float = get(s:floats, win, 0)
+    if float > 0 && nvim_win_is_valid(float)
+        let current_line += nvim_win_get_height(float)
     endif
 
     if !exists('w:last_top_line')
@@ -161,8 +164,9 @@ function! s:update_context(allow_resize, force_resize) abort
 
     " adjust min window height based on scroll amount
     if a:force_resize || !exists('w:min_height')
+        " TODO: this should be per window/buffer, right???
         let w:min_height = 0
-    elseif a:allow_resize && w:last_top_line != current_line
+    elseif a:allow_resize && s:last_winid == winid && w:last_top_line != current_line
         if !exists('w:resize_level')
             let w:resize_level = 0 " for decreasing window height based on scrolling
         endif
@@ -180,7 +184,13 @@ function! s:update_context(allow_resize, force_resize) abort
         let w:min_height -= t
     endif
 
+    if !a:force_resize && s:last_bufnr == bufnr && w:last_top_line == current_line
+        call s:echof('  abort same buf and top line', bufnr, current_line)
+        return
+    endif
+
     let s:last_winid = winid
+    let s:last_bufnr = bufnr
     let w:last_top_line = current_line
 
     let s:hidden_line = s:get_hidden_line(current_line)
@@ -213,21 +223,19 @@ function! s:update_context(allow_resize, force_resize) abort
         call insert(lines, ellipsis_line, max/2)
     endif
 
-    if len(lines) > 0
-        let win = nvim_get_current_win()
-        let float = get(s:floats, win, 0)
-        call map(lines, function('s:display_line'))
-        " echom string(lines)
-        call s:open_nvim_float(lines, winwidth(0), win)
-        if float > 0
-            " TODO: don't close (flickers), but reuse existing!
-            call nvim_win_close(float, v:true)
-        endif
+    call map(lines, function('s:display_line'))
+
+    while len(lines) < w:min_height
+        call add(lines, "")
+    endwhile
+
+    if w:min_height < len(lines)
+        let w:min_height = len(lines)
     endif
-    return
 
     let s:log_indent += 2
-    call s:show_in_preview(lines)
+    call s:show_in_nvim_float(lines)
+    " call s:show_in_preview(lines)
     " call again until it stabilizes
     " disallow resizing to make sure it will eventually
     call s:update_context(0, 0)
@@ -390,21 +398,35 @@ endfunction
 function! s:show_in_preview(lines) abort
     call s:echof('> show_in_preview', len(a:lines))
 
-    call s:close_preview()
+    let syntax   = &syntax
+    let tabstop  = &tabstop
+    let padding  = wincol() - virtcol('.')
 
-    if w:min_height < len(a:lines)
-        let w:min_height = len(a:lines)
-    endif
+    " TODO: instead of w:min_height, can we use len(a:lines) instead?
+    " based on https://stackoverflow.com/questions/13707052/quickfix-preview-window-resizing
+    silent! wincmd P " jump to preview, but don't show error
+    if &previewwindow
+        if bufname('%') == s:buffer_name
+            " reuse existing preview window
+            call s:echof('  reuse')
+            silent %delete _
+        elseif w:min_height == 0
+            " nothing to do
+            call s:echof('  not ours')
+            wincmd p " jump back
+            return
+        else
+            call s:echof('  take over')
+            let s:log_indent += 2
+            call s:open_preview()
+            let s:log_indent -= 2
+        endif
 
     if w:min_height == 0
         " nothing to do
         call s:echof('  none')
         return
     endif
-
-    while len(a:lines) < w:min_height
-        call add(a:lines, s:nil_line)
-    endwhile
 
     let syntax  = &syntax
     let tabstop = &tabstop
@@ -423,8 +445,6 @@ function! s:show_in_preview(lines) abort
         return
     endif
 
-    " NOTE: this overwrites a:lines, but we don't need it anymore
-    call map(a:lines, function('s:display_line'))
     silent 0put =a:lines " paste lines
     1                    " and jump to first line
 
@@ -609,11 +629,43 @@ function! s:echof(...) abort
     endif
 endfunction
 
-function! context#openwin() abort
-    call s:open_nvim_float(["test", "text", "return"], 20, 0)
+function! s:show_in_nvim_float(lines) abort
+    call s:echof('> show_in_nvim_float', len(a:lines))
+    let win = nvim_get_current_win()
+    let float = get(s:floats, win, 0)
+
+    if float > 0 && !nvim_win_is_valid(float)
+        let float = 0
+    endif
+
+    if float == 0
+        let s:log_indent += 2
+        call s:open_nvim_float(a:lines, winwidth(0), win)
+        let s:log_indent -= 2
+        return
+    endif
+
+    if len(a:lines) == 0
+        call nvim_win_close(float, v:true)
+        " TODO: do all s:floats stuff in one place
+        call remove(s:floats, win)
+        return
+    endif
+
+    call s:echof('  update')
+    " TODO: cache this too? maybe not needed
+    let buf = nvim_win_get_buf(float)
+    call nvim_win_set_config(float, {'height': len(a:lines)})
+    call nvim_buf_set_lines(buf, 0, -1, v:true, a:lines)
 endfunction
 
+" TODO: not inject width?
 function! s:open_nvim_float(lines, width, win) abort
+    call s:echof('> open_nvim_float', len(a:lines))
+    if len(a:lines) == 0
+        return
+    endif
+
     let buf = nvim_create_buf(v:false, v:true)
     call nvim_buf_set_lines(buf, 0, -1, v:true, a:lines)
     call nvim_buf_set_option(buf, 'syntax', 'go')
@@ -621,8 +673,9 @@ function! s:open_nvim_float(lines, width, win) abort
                 \ 'relative':  'win',
                 \ 'width':     a:width,
                 \ 'height':    len(a:lines),
-                \ 'col':       -1,
-                \ 'row':       -len(a:lines),
+                \ 'col':       0,
+                \ 'row':       0,
+                \ 'focusable': v:false,
                 \ 'anchor':    'NW',
                 \ 'style':     'minimal',
                 \ }
