@@ -1,3 +1,9 @@
+" TODO: fix padding
+" TODO: on bufenter or something check all popups and close if their reference
+" window is no longer valid
+" TODO(dup?): close popup when relative window gets closed. how?
+" TODO: also potentially resize them all
+
 " consts
 let s:buffer_name = '<context.vim>'
 
@@ -15,6 +21,15 @@ let s:last_winid     = 0
 let s:ignore_autocmd = 0
 let s:log_indent     = 0
 let s:popups         = {}
+
+" popup strategy: use popups/floating windows if vim/nvim support it
+if has('nvim-0.4.0')
+    let s:popup = 'nvim'
+elseif v:version >= 802 || (v:version == 801 && has('patch1364'))
+    let s:popup = 'vim'
+else
+    let s:popup = ''
+endif
 
 
 " call this on VimEnter to activate the plugin
@@ -148,9 +163,16 @@ endfunction
 
 " this function actually updates the context and calls itself until it stabilizes
 function! s:update_context(allow_resize, force_resize) abort
-    let winid = win_getid()
-    let bufnr = bufnr('%')
     let current_line = line('w0')
+    let winnr = winnr() " TODO: remove, use winid always
+    let bufnr = bufnr('%')
+    let winid = win_getid()
+    let popup = get(s:popups, winid, 0)
+    if s:popup_valid(popup)
+        let current_line += winheight(popup)
+    endif
+
+    call s:echof('> update_context', a:allow_resize, a:force_resize, current_line)
 
     let winid = win_getid()
     let popup = get(s:popups, winid, 0)
@@ -164,7 +186,6 @@ function! s:update_context(allow_resize, force_resize) abort
 
     " adjust min window height based on scroll amount
     if a:force_resize || !exists('w:min_height')
-        " TODO: this should be per window/buffer, right???
         let w:min_height = 0
     elseif a:allow_resize && s:last_winid == winid && w:last_top_line != current_line
         if !exists('w:resize_level')
@@ -234,8 +255,11 @@ function! s:update_context(allow_resize, force_resize) abort
     endif
 
     let s:log_indent += 2
-    call s:show_in_popup(lines)
-    " call s:show_in_preview(lines)
+    if s:popup != ''
+        call s:show_in_popup(lines)
+    else
+        call s:show_in_preview(lines)
+    endif
     " call again until it stabilizes
     " disallow resizing to make sure it will eventually
     call s:update_context(0, 0)
@@ -499,6 +523,140 @@ function! s:set_padding(padding) abort
 endfunction
 
 
+" popup related
+" TODO: move to separate file
+function! s:show_in_popup(lines) abort
+    call s:echof('> show_in_popup', len(a:lines))
+    let winid = win_getid()
+    let popup = get(s:popups, winid, 0)
+
+    if popup > 0 && !s:popup_valid(popup)
+        let popup = 0
+        call remove(s:popups, winid)
+    endif
+
+    if len(a:lines) == 0
+        call s:echof('  no lines')
+        if popup > 0
+            call s:popup_close(popup)
+            call remove(s:popups, winid)
+        endif
+        return
+    endif
+
+    if popup == 0
+        let popup = s:popup_open(a:lines, winwidth(0))
+        let s:popups[winid] = popup
+        return
+    endif
+
+    call s:popup_update(popup, a:lines)
+endfunction
+
+function! s:popup_open(lines, width) abort
+    call s:echof('> popup_open', len(a:lines))
+    if s:popup == 'nvim'
+        let winid = s:nvim_open_popup(a:lines, a:width)
+    elseif s:popup == 'vim'
+        let winid = s:vim_open_popup(a:lines, a:width)
+    endif
+
+    let buf = winbufnr(winid)
+    call setbufvar(buf, '&wrap',    0)
+    call setbufvar(buf, '&tabstop', &tabstop)
+    call setbufvar(buf, '&syntax',  &syntax)
+
+    return winid
+endfunction
+
+function! s:popup_update(popup, lines) abort
+    call s:echof('> popup_update', len(a:lines))
+    if s:popup == 'nvim'
+        call s:nvim_update_popup(a:popup, a:lines)
+    elseif s:popup == 'vim'
+        call s:vim_update_popup(a:popup, a:lines)
+    endif
+endfunction
+
+function! s:popup_close(popup) abort
+    call s:echof('> popup_close')
+    if s:popup == 'nvim'
+        call nvim_win_close(a:popup, v:true)
+    elseif s:popup == 'vim'
+        call popup_close(a:popup)
+    endif
+endfunction
+
+function! s:popup_valid(popup) abort
+    if a:popup == 0
+        return 0
+    endif
+
+    if s:popup == 'nvim'
+        return nvim_win_is_valid(a:popup)
+    elseif s:popup == 'vim'
+        return len(popup_getoptions(a:popup)) > 0
+    endif
+endfunction
+
+function! s:nvim_open_popup(lines, width) abort
+    call s:echof('  > nvim_open_popup', len(a:lines))
+    if len(a:lines) == 0
+        return
+    endif
+
+    let buf = nvim_create_buf(v:false, v:true)
+    call nvim_buf_set_lines(buf, 0, -1, v:true, a:lines)
+    let opts = {
+                \ 'relative':  'win',
+                \ 'width':     a:width,
+                \ 'height':    len(a:lines),
+                \ 'col':       0,
+                \ 'row':       0,
+                \ 'focusable': v:false,
+                \ 'anchor':    'NW',
+                \ 'style':     'minimal',
+                \ }
+    let winid = nvim_open_win(buf, 0, opts)
+    " TODO: make it possible to customize the highlighting
+    " TODO: and find good default consistent between vim and nvim
+    " TODO: and/or: add divider line again? might be tricky with syntax highlighting?
+    " optional: change highlight, otherwise Pmenu is used
+    " call nvim_win_set_option(winid, 'winhl', 'Normal:MyHighlight')
+    return winid
+endfunction
+
+function! s:nvim_update_popup(popup, lines) abort
+    call s:echof('  > nvim_update_popup', len(a:lines))
+    let buf = nvim_win_get_buf(a:popup)
+    call nvim_win_set_config(a:popup, {'height': len(a:lines)})
+    call nvim_buf_set_lines(buf, 0, -1, v:true, a:lines)
+endfunction
+
+function! s:vim_open_popup(lines, width) abort
+    call s:echof('  > vim_open_popup', len(a:lines))
+    " NOTE: popups don't move automatically when windows get resized
+    " same for width
+    let [line, col] = win_screenpos(0)
+    let winid = popup_create(a:lines, {
+                \ 'line': line,
+                \ 'col': col,
+                \ 'minwidth': a:width,
+                \ 'maxwidth': a:width,
+                \ 'wrap': v:false,
+                \ })
+    return winid
+endfunction
+
+function! s:vim_update_popup(popup, lines) abort
+    call s:echof('  > vim_update_popup', len(a:lines))
+    call popup_settext(a:popup, a:lines)
+endfunction
+
+
+
+" utility functions
+
 function! s:join(lines, diff_want) abort
     let diff_want = a:diff_want
 
@@ -627,101 +785,4 @@ function! s:echof(...) abort
     if exists('g:context_logfile')
         execute "silent! !echo '" . message . "' >>" g:context_logfile
     endif
-endfunction
-
-function! s:show_in_popup(lines) abort
-    call s:echof('> show_in_popup', len(a:lines))
-    let winid = win_getid()
-    let popup = get(s:popups, winid, 0)
-    " echom 'got' winid popup
-
-    " TODO: getwininfo() doesn't seem to work for vim popups
-    " can use popup_getoptions instead
-    " for nvim use nvim_win_is_valid()
-    if popup > 0 && len(popup_getoptions(popup)) == 0
-        let popup = 0
-    endif
-
-    if popup == 0
-        " let popup = s:nvim_open_popup(a:lines, winwidth(0))
-        let popup = s:vim_open_popup(a:lines, winwidth(0))
-        let s:popups[winid] = popup
-        return
-    endif
-
-    if len(a:lines) == 0
-        " call nvim_win_close(popup, v:true)
-        " TODO: only close if exists, probably want to extract function
-        popup_close(popup)
-        " TODO: do all s:popups stuff in one place
-        call remove(s:popups, winid)
-        return
-    endif
-
-    " call s:nvim_update_popup(popup, a:lines)
-    call s:vim_update_popup(popup, a:lines)
-endfunction
-
-" TODO: not inject width?
-function! s:nvim_open_popup(lines, width) abort
-    " TODO: nowrap
-    call s:echof('  > nvim_open_popup', len(a:lines))
-    if len(a:lines) == 0
-        return
-    endif
-
-    let buf = nvim_create_buf(v:false, v:true)
-    call nvim_buf_set_lines(buf, 0, -1, v:true, a:lines)
-    " TODO: inject proper syntax
-    call nvim_buf_set_option(buf, 'syntax', 'go')
-    let opts = {
-                \ 'relative':  'win',
-                \ 'width':     a:width,
-                \ 'height':    len(a:lines),
-                \ 'col':       0,
-                \ 'row':       0,
-                \ 'focusable': v:false,
-                \ 'anchor':    'NW',
-                \ 'style':     'minimal',
-                \ }
-    let winid = nvim_open_win(buf, 0, opts)
-    return winid
-    " optional: change highlight, otherwise Pmenu is used
-    " call nvim_win_set_option(winid, 'winhl', 'Normal:MyHighlight')
-    " TODO: set syntax. and more?
-    " TODO: close popup when relative window gets closed. how?
-endfunction
-
-function! s:nvim_update_popup(popup, lines) abort
-    call s:echof('  > nvim_update_popup', len(a:lines))
-    " TODO: cache this too? maybe not needed
-    let buf = nvim_win_get_buf(a:popup)
-    call nvim_win_set_config(a:popup, {'height': len(a:lines)})
-    call nvim_buf_set_lines(buf, 0, -1, v:true, a:lines)
-endfunction
-
-function! s:vim_open_popup(lines, width) abort
-    call s:echof('  > vim_open_popup', len(a:lines))
-    " TODO: fix indentation (tabs are displayed too long)
-    " NOTE: popups don't move automatically when windows get resized
-    " same for width
-    " TODO: need to set maxwidth? test on narrow windows
-    let [line, col] = win_screenpos(0)
-    let winid = popup_create(a:lines, {
-                \ 'line': line,
-                \ 'col': col,
-                \ 'minwidth': a:width,
-                \ 'maxwidth': a:width,
-                \ 'wrap': v:false,
-                \ })
-    call win_execute(winid, 'syntax enable')
-    " echom 'opened' winid
-    return winid
-endfunction
-
-function! s:vim_update_popup(popup, lines) abort
-    call s:echof('  > vim_update_popup', len(a:lines))
-    " echom 'update' a:popup
-    call popup_settext(a:popup, a:lines)
-    " TODO: continue here
 endfunction
