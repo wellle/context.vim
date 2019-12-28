@@ -549,8 +549,9 @@ function! s:limit(lines, diff_want, indent) abort
     endif
 
     let diff = len(a:lines) - max
-    if diff > a:diff_want
-        let max += diff
+    let diff2 = diff - a:diff_want
+    if diff2 > 0
+        let max += diff2
     endif
 
     let limited = a:lines[: max/2-1]
