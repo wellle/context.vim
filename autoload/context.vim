@@ -4,18 +4,14 @@ let s:buffer_name = '<context.vim>'
 " cached
 let s:ellipsis  = repeat(g:context_ellipsis_char, 3)
 let s:ellipsis5 = repeat(g:context_ellipsis_char, 5)
-let s:nil_line = {'number': 0, 'indent': 0, 'text': ''}
+let s:nil_line  = {'number': 0, 'indent': 0, 'text': ''}
 
 " state
-let s:resize_level = 0 " for decreasing window height based on scrolling
-let s:activated = 0
-let s:last_winnr = -1
-let s:last_bufnr = -1
-let s:last_top_line = -10
-let s:min_height = 0
-let s:padding = 0
+" NOTE: there's more state in window local w: variables
+let s:activated      = 0
+let s:last_winid     = 0
 let s:ignore_autocmd = 0
-let s:log_indent = 0
+let s:log_indent     = 0
 
 
 " call this on VimEnter to activate the plugin
@@ -123,8 +119,8 @@ function! context#update_padding(autocmd) abort
 
     let padding = wincol() - virtcol('.')
 
-    if s:padding == padding
-        " call s:echof('  abort same padding', s:padding, padding)
+    if exists('w:padding') && w:padding == padding
+        " call s:echof('  abort same padding', w:padding, padding)
         return
     endif
 
@@ -148,57 +144,50 @@ endfunction
 
 " this function actually updates the context and calls itself until it stabilizes
 function! s:update_context(allow_resize, force_resize) abort
-    call s:echof('> update_context', a:allow_resize, a:force_resize)
-
-    let winnr = winnr()
-    let bufnr = bufnr('%')
+    let winid = win_getid()
     let current_line = line('w0')
 
-    " adjust min window height based on scroll amount
-    if a:force_resize
-        let s:min_height = 0
-    elseif a:allow_resize && s:last_winnr == winnr && s:last_top_line != current_line
-        let diff = abs(s:last_top_line - current_line)
-        if diff == 1
-            " slowly decrease min height if moving line by line
-            let s:resize_level += g:context_resize_linewise
-        else
-            " quicker if moving multiple lines (^U/^D: decrease by one line)
-            let s:resize_level += g:context_resize_scroll / &scroll * diff
-        endif
-        let t = float2nr(s:resize_level)
-        let s:resize_level -= t
-        let s:min_height -= t
-    endif
+    call s:echof('> update_context', a:allow_resize, a:force_resize, winid, current_line)
 
-    if !a:force_resize && s:last_bufnr == bufnr && s:last_top_line == current_line
-        call s:echof('  abort same buf and top line', bufnr, current_line)
+    if !a:force_resize && s:last_winid == winid && w:last_top_line == current_line
+        call s:echof('  abort same win and top line')
         return
     endif
 
-    let s:last_winnr = winnr
-    let s:last_bufnr = bufnr
-    let s:last_top_line = current_line
+    if !exists('w:last_top_line')
+        let w:last_top_line = -10
+    endif
 
-    " find first line above (hidden) which isn't empty
-    let s:hidden = s:nil_line " in case there is none
-    let current_line = s:last_top_line - 1 " first hidden line
-    while current_line > 0
-        let line = getline(current_line)
-        if s:skip_line(line)
-            let current_line -= 1
-            continue
+    " adjust min window height based on scroll amount
+    if a:force_resize || !exists('w:min_height')
+        let w:min_height = 0
+    elseif a:allow_resize && w:last_top_line != current_line
+        if !exists('w:resize_level')
+            let w:resize_level = 0 " for decreasing window height based on scrolling
         endif
 
-        let s:hidden = s:make_line(current_line, indent(current_line), line)
-        break
-    endwhile
+        let diff = abs(w:last_top_line - current_line)
+        if diff == 1
+            " slowly decrease min height if moving line by line
+            let w:resize_level += g:context_resize_linewise
+        else
+            " quicker if moving multiple lines (^U/^D: decrease by one line)
+            let w:resize_level += g:context_resize_scroll / &scroll * diff
+        endif
+        let t = float2nr(w:resize_level)
+        let w:resize_level -= t
+        let w:min_height -= t
+    endif
 
-    let base_line = s:get_base_line()
+    let s:last_winid = winid
+    let w:last_top_line = current_line
+
+    let s:hidden_line = s:get_hidden_line(current_line)
+    let base_line = s:get_base_line(current_line)
     let [context, context_len] = s:get_context(base_line)
 
     " limit context per indent
-    let diff_want = context_len - s:min_height
+    let diff_want = context_len - w:min_height
     let lines = []
     " no more than five lines per indent
     for indent in sort(keys(context), 'N')
@@ -209,7 +198,7 @@ function! s:update_context(allow_resize, force_resize) abort
 
     if len(lines) == 0
         " don't show ellipsis if context is empty
-        let s:hidden = s:nil_line
+        let s:hidden_line = s:nil_line
     endif
 
     " limit total context
@@ -231,9 +220,26 @@ function! s:update_context(allow_resize, force_resize) abort
     let s:log_indent -= 2
 endfunction
 
+" find first line above (hidden) which isn't empty
+function! s:get_hidden_line(top_line) abort
+    let current_line = a:top_line - 1 " first hidden line
+    while current_line > 0
+        let line = getline(current_line)
+        if s:skip_line(line)
+            let current_line -= 1
+            continue
+        endif
+
+        return s:make_line(current_line, indent(current_line), line)
+        break
+    endwhile
+
+    return s:nil_line " nothing found
+endfunction
+
 " find line downwards (from top line) which isn't empty
-function! s:get_base_line() abort
-    let current_line = s:last_top_line
+function! s:get_base_line(top_line) abort
+    let current_line = a:top_line
     let max_line = line('$')
     while current_line <= max_line
         let line = getline(current_line)
@@ -279,9 +285,9 @@ function! s:get_context(line) abort
         call insert(context[indent], context_line, 0)
         let context_len += 1
 
-        if s:hidden.number == context_line.number
+        if s:hidden_line.number == context_line.number
             " don't show ellipsis if hidden line is part of context
-            let s:hidden = s:nil_line
+            let s:hidden_line = s:nil_line
         endif
 
         " for next iteration
@@ -370,83 +376,66 @@ endfunction
 function! s:show_in_preview(lines) abort
     call s:echof('> show_in_preview', len(a:lines))
 
-    if s:min_height < len(a:lines)
-        let s:min_height = len(a:lines)
+    call s:close_preview()
+
+    if w:min_height < len(a:lines)
+        let w:min_height = len(a:lines)
     endif
 
-    let syntax   = &syntax
-    let tabstop  = &tabstop
-    let padding  = wincol() - virtcol('.')
-
-    call s:close_without_equalize()
-
-    " based on https://stackoverflow.com/questions/13707052/quickfix-preview-window-resizing
-    silent! wincmd P " jump to preview, but don't show error
-    if &previewwindow
-        if bufname('%') == s:buffer_name
-            " reuse existing preview window
-            call s:echof('  reuse')
-            silent %delete _
-        elseif s:min_height == 0
-            " nothing to do
-            call s:echof('  not ours')
-            wincmd p " jump back
-            return
-        else
-            call s:echof('  take over')
-            let s:log_indent += 2
-            call s:open_preview()
-            let s:log_indent -= 2
-        endif
-
-    elseif s:min_height == 0
+    if w:min_height == 0
         " nothing to do
         call s:echof('  none')
         return
-    else
-        call s:echof('  open new')
-        let s:log_indent += 2
-        call s:open_preview()
-        let s:log_indent -= 2
-
-        " try to jump to new preview window
-        silent! wincmd P
-        if !&previewwindow
-            " NOTE: apparently this can fail with E242, see #6
-            " in that case just silently abort
-            call s:echof('  no preview window')
-            return
-        endif
     endif
 
-    while len(a:lines) < s:min_height
+    while len(a:lines) < w:min_height
         call add(a:lines, s:nil_line)
     endwhile
+
+    let syntax  = &syntax
+    let tabstop = &tabstop
+    let padding = wincol() - virtcol('.')
+
+    let s:log_indent += 2
+    call s:open_preview()
+    let s:log_indent -= 2
+
+    " try to jump to new preview window
+    silent! wincmd P
+    if !&previewwindow
+        " NOTE: apparently this can fail with E242, see #6
+        " in that case just silently abort
+        call s:echof('  no preview window')
+        return
+    endif
 
     " NOTE: this overwrites a:lines, but we don't need it anymore
     call map(a:lines, function('s:display_line'))
     silent 0put =a:lines " paste lines
     1                    " and jump to first line
 
-    execute 'setlocal syntax='   . syntax
-    execute 'setlocal tabstop='  . tabstop
+    execute 'setlocal syntax='  . syntax
+    execute 'setlocal tabstop=' . tabstop
     call s:set_padding(padding)
 
     " resize window
-    execute 'resize' s:min_height
+    execute 'resize' len(a:lines)
 
     wincmd p " jump back
 endfunction
 
-" https://www.reddit.com/r/vim/comments/e7l4m1/welllecontextvim_vim_plugin_that_shows_the/fa4tz1g/
-function! s:close_without_equalize() abort
-    " TODO: probably not needed like this anymore?
-    let pwin = index(map(range(1, winnr('$')), "getwinvar(v:val, '&pvw')"), 1) + 1
-    if pwin == 0
+function! s:close_preview() abort
+    silent! wincmd P " jump to preview, but don't show error
+    if !&previewwindow
         return
     endif
+    wincmd p
 
     if &equalalways
+        " NOTE: if 'equalalways' is set (which it is by default) then :pclose
+        " will change the window layout. here we try to restore the window
+        " layout based on some help from /u/bradagy, see
+        " https://www.reddit.com/r/vim/comments/e7l4m1
         set noequalalways
         pclose
         let layout = winrestcmd() | set equalalways | noautocmd execute layout
@@ -460,17 +449,17 @@ function! s:set_padding(padding) abort
     let padding = a:padding
     if padding >= 0
         execute 'setlocal foldcolumn=' . padding
-        let s:padding = padding
+        let w:padding = padding
     else
         " padding can be negative if cursor was on the wrapped part of a wrapped line
         " in that case don't try to apply it, but still update the statusline
         " using the last known padding value
-        let padding = s:padding
+        let padding = w:padding
     endif
 
     let statusline = '%=' . s:buffer_name . ' ' " trailing space for padding
-    if s:hidden.number > 0
-        let statusline = repeat(' ', padding + s:hidden.indent) . s:ellipsis . statusline
+    if s:hidden_line.number > 0
+        let statusline = repeat(' ', padding + s:hidden_line.indent) . s:ellipsis . statusline
     endif
     execute 'setlocal statusline=' . escape(statusline, ' ')
 endfunction
