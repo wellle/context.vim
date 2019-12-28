@@ -22,10 +22,11 @@ let s:ignore_autocmd = 0
 let s:log_indent     = 0
 let s:popups         = {}
 
+" TODO: rename this, so strategies would be 'preview', 'vim-popup', 'nvim-float' (maybe 'foldexpr')
 " popup strategy: use popups/floating windows if vim/nvim support it
 if has('nvim-0.4.0')
     let s:popup = 'nvim'
-elseif v:version >= 802 || (v:version == 801 && has('patch1364'))
+elseif has('patch-8.1.1364')
     let s:popup = 'vim'
 else
     let s:popup = ''
@@ -47,7 +48,7 @@ function! context#enable() abort
 endfunction
 
 function! context#disable() abort
-    " TODO: close all popups
+    call s:popup_clear()
     let g:context_enabled = 0
 
     silent! wincmd P " jump to new preview window
@@ -164,7 +165,6 @@ endfunction
 " this function actually updates the context and calls itself until it stabilizes
 function! s:update_context(allow_resize, force_resize) abort
     let current_line = line('w0')
-    let winnr = winnr() " TODO: remove, use winid always
     let bufnr = bufnr('%')
     let winid = win_getid()
     let popup = get(s:popups, winid, 0)
@@ -174,12 +174,6 @@ function! s:update_context(allow_resize, force_resize) abort
 
     call s:echof('> update_context', a:allow_resize, a:force_resize, current_line)
 
-    let winid = win_getid()
-    let popup = get(s:popups, winid, 0)
-    if popup > 0 && len(popup_getoptions(popup)) > 0
-        let current_line += winheight(popup)
-    endif
-
     if !exists('w:last_top_line')
         let w:last_top_line = -10
     endif
@@ -187,7 +181,9 @@ function! s:update_context(allow_resize, force_resize) abort
     " adjust min window height based on scroll amount
     if a:force_resize || !exists('w:min_height')
         let w:min_height = 0
-    elseif a:allow_resize && s:last_winid == winid && w:last_top_line != current_line
+    elseif a:allow_resize && s:popup != ''
+        let w:min_height = 0
+    elseif a:allow_resize && w:last_top_line != current_line
         if !exists('w:resize_level')
             let w:resize_level = 0 " for decreasing window height based on scrolling
         endif
@@ -214,12 +210,14 @@ function! s:update_context(allow_resize, force_resize) abort
     let s:last_bufnr = bufnr
     let w:last_top_line = current_line
 
+    " TODO: show ... as last line if we need to fill with empty? (because of min height)
     let s:hidden_line = s:get_hidden_line(current_line)
     let base_line = s:get_base_line(current_line)
     let [context, context_len] = s:get_context(base_line)
 
     " limit context per indent
     let diff_want = context_len - w:min_height
+    let diff_want = 100000
     let lines = []
     " no more than five lines per indent
     for indent in sort(keys(context), 'N')
@@ -244,6 +242,7 @@ function! s:update_context(allow_resize, force_resize) abort
         call insert(lines, ellipsis_line, max/2)
     endif
 
+    " NOTE: this overwrites lines, from here on out it's just a list of string
     call map(lines, function('s:display_line'))
 
     while len(lines) < w:min_height
@@ -423,7 +422,7 @@ function! s:show_in_preview(lines) abort
     call s:echof('> show_in_preview', len(a:lines))
 
     let syntax   = &syntax
-    let tabstop  = &tabstop
+    let tabstop  = &tabstop " TODO: use shiftwidth instead?
     let padding  = wincol() - virtcol('.')
 
     " TODO: instead of w:min_height, can we use len(a:lines) instead?
@@ -587,6 +586,13 @@ function! s:popup_close(popup) abort
     endif
 endfunction
 
+function! s:popup_clear() abort
+    for key in keys(s:popups)
+        call s:popup_close(s:popups[key])
+    endfor
+    let s:popups = {}
+endfunction
+
 function! s:popup_valid(popup) abort
     if a:popup == 0
         return 0
@@ -631,6 +637,13 @@ function! s:nvim_update_popup(popup, lines) abort
     let buf = nvim_win_get_buf(a:popup)
     call nvim_win_set_config(a:popup, {'height': len(a:lines)})
     call nvim_buf_set_lines(buf, 0, -1, v:true, a:lines)
+
+    " NOTE: this redraws the screen. this is needed because there's
+    " a redraw issue: https://github.com/neovim/neovim/issues/11597
+    " TODO: remove this once that issue has been resolved
+    " TODO: actually try to do this only once. mark here as pending, then
+    " :mode if pending when we see same winid and topline
+    mode
 endfunction
 
 function! s:vim_open_popup(lines, width) abort
@@ -638,13 +651,14 @@ function! s:vim_open_popup(lines, width) abort
     " NOTE: popups don't move automatically when windows get resized
     " same for width
     let [line, col] = win_screenpos(0)
-    let winid = popup_create(a:lines, {
+    let opts = {
                 \ 'line': line,
                 \ 'col': col,
                 \ 'minwidth': a:width,
                 \ 'maxwidth': a:width,
                 \ 'wrap': v:false,
-                \ })
+                \ }
+    let winid = popup_create(a:lines, opts)
     return winid
 endfunction
 
@@ -718,8 +732,10 @@ function! s:join_pending(base, pending) abort
     return joined
 endfunction
 
+" TODO: there seems to be an issue where there are ... lines but blanks at the
+" bottom of the context
 function! s:limit(lines, diff_want, indent) abort
-    " call s:echof('> limit', a:indent, len(a:lines), a:diff_want)
+    call s:echof('> limit', a:indent, len(a:lines), a:diff_want)
     if a:diff_want <= 0
         return [a:lines, a:diff_want]
     endif
@@ -731,9 +747,11 @@ function! s:limit(lines, diff_want, indent) abort
 
     let diff = len(a:lines) - max
     let diff2 = diff - a:diff_want
+    call s:echof('  diff', max, diff, a:diff_want, diff2)
     if diff2 > 0
         let max += diff2
     endif
+    call s:echof('  max', max)
 
     let limited = a:lines[: max/2-1]
     call add(limited, s:make_line(0, a:indent, repeat(' ', a:indent) . s:ellipsis))
