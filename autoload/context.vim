@@ -3,6 +3,7 @@
 " window is no longer valid
 " TODO(dup?): close popup when relative window gets closed. how?
 " TODO: also potentially resize them all
+" TODO(dup?): don't hide cursor, hide (partially) context instead
 
 " consts
 let s:buffer_name = '<context.vim>'
@@ -210,8 +211,6 @@ function! s:update_context(allow_resize, force_resize) abort
     let s:last_bufnr = bufnr
     let w:last_top_line = current_line
 
-    " TODO: show ... as last line if we need to fill with empty? (because of min height)
-    let s:hidden_line = s:get_hidden_line(current_line)
     let base_line = s:get_base_line(current_line)
     let [context, context_len] = s:get_context(base_line)
 
@@ -226,10 +225,7 @@ function! s:update_context(allow_resize, force_resize) abort
         call extend(lines, context[indent])
     endfor
 
-    if len(lines) == 0
-        " don't show ellipsis if context is empty
-        let s:hidden_line = s:nil_line
-    endif
+    let s:hidden_indent = s:get_hidden_indent(current_line, lines)
 
     " limit total context
     let max = g:context_max_height
@@ -253,6 +249,20 @@ function! s:update_context(allow_resize, force_resize) abort
         let w:min_height = len(lines)
     endif
 
+    " TODO: clean up, extract function?
+    if s:popup != '' && len(lines) > 0
+        let indent = max([s:hidden_indent, base_line.indent])
+        " TODO: make this customizable too!
+        " let char = g:context_ellipsis_char
+        " let char = '─'
+        " let char = '━'
+        let char = '▬'
+        " let char = '▭'
+        " TODO: ‐–—―‗‡‥…‰‾⁺⁻⁼₊₋₌−∘∙∞∴∵∶∷∼≃≅≈≌≡⋅⋮⋯⑉─━┄┅┈┉▬▭〜
+        let border = repeat(' ', indent) . repeat(char, winwidth(0) - indent - 15) . ' ' . s:buffer_name
+        call add(lines, border)
+    endif
+
     let s:log_indent += 2
     if s:popup != ''
         call s:show_in_popup(lines)
@@ -266,20 +276,32 @@ function! s:update_context(allow_resize, force_resize) abort
 endfunction
 
 " find first line above (hidden) which isn't empty
-function! s:get_hidden_line(top_line) abort
+" return its indent, -1 if no such line
+function! s:get_hidden_indent(top_line, lines) abort
+    if len(a:lines) == 0
+        " don't show ellipsis if context is empty
+        return -1
+    endif
+
+    let min_indent = -1
+    let max_line = a:lines[-1].number
     let current_line = a:top_line - 1 " first hidden line
-    while current_line > 0
+    while current_line > max_line
         let line = getline(current_line)
         if s:skip_line(line)
             let current_line -= 1
             continue
         endif
 
-        return s:make_line(current_line, indent(current_line), line)
-        break
+        let indent = indent(current_line)
+        if min_indent == -1 || min_indent > indent
+            let min_indent = indent
+        endif
+
+        let current_line -= 1
     endwhile
 
-    return s:nil_line " nothing found
+    return min_indent
 endfunction
 
 " find line downwards (from top line) which isn't empty
@@ -329,11 +351,6 @@ function! s:get_context(line) abort
 
         call insert(context[indent], context_line, 0)
         let context_len += 1
-
-        if s:hidden_line.number == context_line.number
-            " don't show ellipsis if hidden line is part of context
-            let s:hidden_line = s:nil_line
-        endif
 
         " for next iteration
         let base_line = context_line
@@ -425,25 +442,11 @@ function! s:show_in_preview(lines) abort
     let tabstop  = &tabstop " TODO: use shiftwidth instead?
     let padding  = wincol() - virtcol('.')
 
-    " TODO: instead of w:min_height, can we use len(a:lines) instead?
-    " based on https://stackoverflow.com/questions/13707052/quickfix-preview-window-resizing
-    silent! wincmd P " jump to preview, but don't show error
-    if &previewwindow
-        if bufname('%') == s:buffer_name
-            " reuse existing preview window
-            call s:echof('  reuse')
-            silent %delete _
-        elseif w:min_height == 0
-            " nothing to do
-            call s:echof('  not ours')
-            wincmd p " jump back
-            return
-        else
-            call s:echof('  take over')
-            let s:log_indent += 2
-            call s:open_preview()
-            let s:log_indent -= 2
-        endif
+    " TODO: also this, can we move this to calling function to avoid
+    " duplication?
+    if w:min_height < len(a:lines)
+        let w:min_height = len(a:lines)
+    endif
 
     if w:min_height == 0
         " nothing to do
@@ -471,6 +474,8 @@ function! s:show_in_preview(lines) abort
     silent 0put =a:lines " paste lines
     1                    " and jump to first line
 
+    " TODO: do (some of) this where we create the buffer?
+    " or just always refresh?
     execute 'setlocal syntax='  . syntax
     execute 'setlocal tabstop=' . tabstop
     call s:set_padding(padding)
@@ -515,8 +520,8 @@ function! s:set_padding(padding) abort
     endif
 
     let statusline = '%=' . s:buffer_name . ' ' " trailing space for padding
-    if s:hidden_line.number > 0
-        let statusline = repeat(' ', padding + s:hidden_line.indent) . s:ellipsis . statusline
+    if s:hidden_indent >= 0
+        let statusline = repeat(' ', padding + s:hidden_indent) . s:ellipsis . statusline
     endif
     execute 'setlocal statusline=' . escape(statusline, ' ')
 endfunction
@@ -629,6 +634,12 @@ function! s:nvim_open_popup(lines, width) abort
     " TODO: and/or: add divider line again? might be tricky with syntax highlighting?
     " optional: change highlight, otherwise Pmenu is used
     " call nvim_win_set_option(winid, 'winhl', 'Normal:MyHighlight')
+    " TODO: and/or: add divider line again? might be tricky with syntax highlighting?
+    " optional: change highlight, otherwise Pmenu is used
+    " TODO: always use long option names
+    " NOTE: 'winhighlight' is neovim only
+    " TODO: still avoid nvim specific functions like nvim_win_set_option()?
+    call nvim_win_set_option(winid, 'winhl', 'Normal:' . g:context_highlight)
     return winid
 endfunction
 
@@ -641,7 +652,7 @@ function! s:nvim_update_popup(popup, lines) abort
     " NOTE: this redraws the screen. this is needed because there's
     " a redraw issue: https://github.com/neovim/neovim/issues/11597
     " TODO: remove this once that issue has been resolved
-    " TODO: actually try to do this only once. mark here as pending, then
+    " TODO!: actually try to do this only once. mark here as pending, then
     " :mode if pending when we see same winid and topline
     mode
 endfunction
@@ -659,6 +670,9 @@ function! s:vim_open_popup(lines, width) abort
                 \ 'wrap': v:false,
                 \ }
     let winid = popup_create(a:lines, opts)
+    " TODO: use text properties on last line? nvim too similarly
+    " NOTE: this option is vim only
+	call setwinvar(winid, '&wincolor', g:context_highlight)
     return winid
 endfunction
 
