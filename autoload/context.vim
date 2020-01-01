@@ -1,11 +1,12 @@
-" TODO: highlight border line (and tag) differently
+" TODO!: highlight border line (and tag) differently
 " TODO: on bufenter or something check all popups and close if their reference
 " window is no longer valid
-" TODO(dup?): close popup when relative window gets closed. how? always check
+" close popup when relative window gets closed. how? always check
 " when number of windows changed?
 " also resize popups when window width changes, and update position
-" TODO: also potentially resize them all
-" TODO(dup?): don't hide cursor, hide (partially) context instead
+" also potentially resize them all
+" TODO: don't hide cursor, hide (partially) context instead, hint that it's
+" partial?
 
 " consts
 let s:buffer_name = '<context.vim>'
@@ -112,15 +113,8 @@ function! context#cache_stats() abort
 endfunction
 
 function! context#update_padding(autocmd) abort
-    " TODO: update in popups too
     " call s:echof('> update_padding', a:autocmd)
     if !g:context_enabled
-        return
-    endif
-
-    if &previewwindow
-        " no context of preview windows (which we use to display context)
-        " call s:echof('  abort preview')
         return
     endif
 
@@ -129,26 +123,54 @@ function! context#update_padding(autocmd) abort
         return
     endif
 
-    if s:update_padding()
+    if !s:update_padding()
         " call s:echof('  abort same padding')
         return
     endif
 
-    silent! wincmd P
-    if !&previewwindow
-        " call s:echof('  abort no preview')
-        return
+    if g:context_presenter == 'preview'
+    else
     endif
 
-    if bufname('%') != s:buffer_name
-        " call s:echof('  abort different preview')
+    if g:context_presenter == 'preview'
+        " TODO: extract function?
+        if &previewwindow
+            " no context of preview windows (which we use to display context)
+            " call s:echof('  abort preview')
+            return
+        endif
+
+        let padding = w:padding
+        silent! wincmd P
+        if !&previewwindow
+            " call s:echof('  abort no preview')
+            return
+        endif
+
+        if bufname('%') != s:buffer_name
+            " call s:echof('  abort different preview')
+            wincmd p
+            return
+        endif
+
+        " call s:echof('  update padding', padding, a:autocmd)
+        call s:set_padding(padding)
         wincmd p
         return
     endif
 
-    " call s:echof('  update padding', padding, a:autocmd)
-    call s:set_padding(w:padding)
-    wincmd p
+    let winid = win_getid()
+    let popup = get(s:popups, winid)
+    if popup == 0
+        return
+    endif
+
+    if g:context_presenter == 'nvim-float'
+        let buf = winbufnr(popup)
+        call setbufvar(buf, '&foldcolumn', w:padding)
+    elseif g:context_presenter == 'vim-popup'
+        call win_execute(popup, 'set foldcolumn=' . w:padding)
+    endif
 endfunction
 
 
@@ -158,7 +180,7 @@ function! s:update_context(allow_resize, force_resize) abort
     let top_line = line('w0')
     let bufnr = bufnr('%')
     let winid = win_getid()
-    let popup = get(s:popups, winid, 0)
+    let popup = get(s:popups, winid)
 
     call s:echof('> update_context', a:allow_resize, a:force_resize, winid, top_line)
 
@@ -182,6 +204,9 @@ function! s:update_context(allow_resize, force_resize) abort
 
     let base_line = s:get_base_line(top_line)
     if g:context_presenter == 'preview'
+        " TODO: call get_min_height internally?
+        " or don't bother with min_height anymore? at least not the slow
+        " resizing part
         let min_height = s:get_min_height(a:allow_resize, a:force_resize, scroll_offset)
         let lines = s:get_context_for_preview(base_line, min_height)
     else
@@ -209,11 +234,9 @@ function! s:update_context(allow_resize, force_resize) abort
         call s:show_in_popup(lines)
     endif
 
-    " call again until it stabilizes
-    " disallow resizing to make sure it will eventually
-    " TODO: don't try again from here, but in one line increments so we
-    " actually find the minimum?
     if g:context_presenter == 'preview'
+        " call again until it stabilizes
+        " disallow resizing to make sure it will eventually
         call s:update_context(0, 0)
     endif
 
@@ -223,6 +246,7 @@ endfunction
 " find first line above (hidden) which isn't empty
 " return its indent, -1 if no such line
 " TODO: this is expensive now, maybe not do it like this? or limit it somehow?
+" TODO: rename, this in preview only now, and move down/autoload
 function! s:get_hidden_indent(top_line, lines) abort
     call s:echof('> get_hidden_indent', a:top_line.number, len(a:lines))
     if len(a:lines) == 0
@@ -273,9 +297,6 @@ function! s:get_base_line(top_line) abort
 endfunction
 
 function! s:get_context_for_popup(top_line) abort
-    " TODO: there's a case where we'd like an "empty" context popup
-    " when the `}` of a closing function is on the topline. can we make that
-    " work?
     " TODO: check how quickly the context size goes down from line to line. we
     " might be able to shortcut here. for example if the topline has a context
     " of 8 lines, then the line below is likely to have 7 or 8 lines context
@@ -283,6 +304,7 @@ function! s:get_context_for_popup(top_line) abort
     " next context?
     " TODO: there's a problem if some of the hidden lines (below the
     " popup) are wrapped. then our calculations are off...
+    " probably fine for now, maybe document and look into later?
 
     " a skipped line has the same context as the next unskipped one below
     let skipped = 0
@@ -534,6 +556,7 @@ function! s:show_in_preview(lines) abort
 
     " TODO: do (some of) this where we create the buffer?
     " or just always refresh?
+    " or do all of them here instead of in open_preview?
     execute 'setlocal syntax='  . syntax
     execute 'setlocal tabstop=' . tabstop
     call s:set_padding(padding)
@@ -607,7 +630,7 @@ endfunction
 function! s:show_in_popup(lines) abort
     call s:echof('> show_in_popup', len(a:lines))
     let winid = win_getid()
-    let popup = get(s:popups, winid, 0)
+    let popup = get(s:popups, winid)
 
     if popup > 0 && !s:popup_valid(popup)
         let popup = 0
@@ -705,11 +728,10 @@ function! s:nvim_open_popup(lines, width) abort
                 \ }
     let winid = nvim_open_win(buf, 0, opts)
     " TODO: and/or: add divider line again? might be tricky with syntax highlighting?
-    " optional: change highlight, otherwise Pmenu is used
     " TODO: always use long option names
     " NOTE: 'winhighlight' is neovim only
     " TODO: still avoid nvim specific functions like nvim_win_set_option()?
-    call nvim_win_set_option(winid, 'winhl', 'Normal:' . g:context_highlight)
+    call nvim_win_set_option(winid, 'winhighlight', 'Normal:' . g:context_highlight)
 
     call setbufvar(buf, '&foldcolumn', w:padding)
 
@@ -725,10 +747,9 @@ function! s:nvim_update_popup(popup, lines) abort
 
     call setbufvar(buf, '&foldcolumn', w:padding)
 
-    " TODO: bring mode back but only call the open popup function once?
     " NOTE: this redraws the screen. this is needed because there's
     " a redraw issue: https://github.com/neovim/neovim/issues/11597
-    " for some reason sometimes it's not enough to :mode once
+    " for some reason sometimes it's not enough to :mode without :redraw
     " TODO: remove this once that issue has been resolved
     redraw
     mode
@@ -748,7 +769,6 @@ function! s:vim_open_popup(lines, width) abort
                 \ 'wrap': v:false,
                 \ }
     let winid = popup_create(a:lines, opts)
-    " TODO: use text properties on last line? nvim too similarly
     " NOTE: this option is vim only
 
 	call setwinvar(winid, '&wincolor', g:context_highlight)
