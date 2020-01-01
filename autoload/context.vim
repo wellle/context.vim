@@ -1,8 +1,9 @@
-" TODO!: fix padding
 " TODO: highlight border line (and tag) differently
 " TODO: on bufenter or something check all popups and close if their reference
 " window is no longer valid
-" TODO(dup?): close popup when relative window gets closed. how?
+" TODO(dup?): close popup when relative window gets closed. how? always check
+" when number of windows changed?
+" also resize popups when window width changes, and update position
 " TODO: also potentially resize them all
 " TODO(dup?): don't hide cursor, hide (partially) context instead
 
@@ -19,19 +20,8 @@ let s:nil_line  = {'number': 0, 'indent': 0, 'text': ''}
 let s:activated      = 0
 let s:last_winid     = 0
 let s:ignore_autocmd = 0
-let s:needs_redraw   = 0
 let s:log_indent     = 0
 let s:popups         = {}
-
-" TODO: rename this, so strategies would be 'preview', 'vim-popup', 'nvim-float' (maybe 'foldexpr')
-" popup strategy: use popups/floating windows if vim/nvim support it
-if has('nvim-0.4.0')
-    let s:popup = 'nvim'
-elseif has('patch-8.1.1364')
-    let s:popup = 'vim'
-else
-    let s:popup = ''
-endif
 
 
 " call this on VimEnter to activate the plugin
@@ -139,10 +129,8 @@ function! context#update_padding(autocmd) abort
         return
     endif
 
-    let padding = wincol() - virtcol('.')
-
-    if exists('w:padding') && w:padding == padding
-        " call s:echof('  abort same padding', w:padding, padding)
+    if s:update_padding()
+        " call s:echof('  abort same padding')
         return
     endif
 
@@ -159,7 +147,7 @@ function! context#update_padding(autocmd) abort
     endif
 
     " call s:echof('  update padding', padding, a:autocmd)
-    call s:set_padding(padding)
+    call s:set_padding(w:padding)
     wincmd p
 endfunction
 
@@ -174,66 +162,30 @@ function! s:update_context(allow_resize, force_resize) abort
 
     call s:echof('> update_context', a:allow_resize, a:force_resize, winid, top_line)
 
-    if !a:force_resize && s:last_winid == winid && w:last_top_line == top_line
+    " TODO: extract function?
+    if exists('w:last_top_line')
+        let scroll_offset = w:last_top_line - top_line
+    else
+        let scroll_offset = 1
+    endif
+    let w:last_top_line = top_line
+
+    if !a:force_resize && s:last_winid == winid && scroll_offset == 0
+        " TODO: or maybe just check state of popup windows here?
+        " might be too much though
         call s:echof('  abort same win and top line')
-        if s:needs_redraw
-            let s:needs_redraw = 0
-            " NOTE: this redraws the screen. this is needed because there's
-            " a redraw issue: https://github.com/neovim/neovim/issues/11597
-            " for some reason sometimes it's not enough to :mode once
-            " TODO: remove this once that issue has been resolved
-            mode
-            mode
-        endif
         return
     endif
 
-    if !exists('w:last_top_line')
-        let w:last_top_line = -10
-    endif
-
-    " adjust min window height based on scroll amount
-    " TODO: w:min_height is only a concern for preview, make this more clear,
-    " don't touch it at all for popup etc
-    if a:force_resize || !exists('w:min_height')
-        let w:min_height = 0
-    elseif a:allow_resize && s:popup != ''
-        let w:min_height = 0
-    elseif a:allow_resize && w:last_top_line != top_line
-        if !exists('w:resize_level')
-            let w:resize_level = 0 " for decreasing window height based on scrolling
-        endif
-
-        let diff = abs(w:last_top_line - top_line)
-        if diff == 1
-            " slowly decrease min height if moving line by line
-            let w:resize_level += g:context_resize_linewise
-        else
-            " quicker if moving multiple lines (^U/^D: decrease by one line)
-            let w:resize_level += g:context_resize_scroll / &scroll * diff
-        endif
-        let t = float2nr(w:resize_level)
-        let w:resize_level -= t
-        let w:min_height -= t
-    endif
-
     let s:last_winid = winid
-    let w:last_top_line = top_line
+    call s:update_padding()
 
     let base_line = s:get_base_line(top_line)
-    if s:popup != ''
+    if g:context_presenter == 'preview'
+        let min_height = s:get_min_height(a:allow_resize, a:force_resize, scroll_offset)
+        let lines = s:get_context_for_preview(base_line, min_height)
+    else
         let lines = s:get_context_for_popup(top_line)
-    else " preview
-        let lines = s:get_context(base_line)
-        let s:hidden_indent = s:get_hidden_indent(base_line, lines)
-
-        while len(lines) < w:min_height
-            call add(lines, s:nil_line)
-        endwhile
-
-        if w:min_height < len(lines)
-            let w:min_height = len(lines)
-        endif
     endif
 
     " limit total context
@@ -251,18 +203,20 @@ function! s:update_context(allow_resize, force_resize) abort
     call map(lines, function('s:display_line'))
 
     let s:log_indent += 2
-    if s:popup != ''
-        call s:show_in_popup(lines)
-    else
+    if g:context_presenter == 'preview'
         call s:show_in_preview(lines)
+    else
+        call s:show_in_popup(lines)
     endif
+
     " call again until it stabilizes
     " disallow resizing to make sure it will eventually
     " TODO: don't try again from here, but in one line increments so we
     " actually find the minimum?
-    if s:popup == ''
+    if g:context_presenter == 'preview'
         call s:update_context(0, 0)
     endif
+
     let s:log_indent -= 2
 endfunction
 
@@ -376,6 +330,48 @@ function! s:get_context_for_popup(top_line) abort
     endwhile
 endfunction
 
+function! s:get_context_for_preview(base_line, min_height) abort
+    let lines = s:get_context(a:base_line)
+    let s:hidden_indent = s:get_hidden_indent(a:base_line, lines)
+
+    while len(lines) < a:min_height
+        call add(lines, s:nil_line)
+    endwhile
+    let w:min_height = len(lines)
+
+    return lines
+endfunction
+
+" TODO: reorder functions and split out into autoload dirs
+" NOTE: this is preview only
+function! s:get_min_height(allow_resize, force_resize, scroll_offset) abort
+    " adjust min window height based on scroll amount
+    if !exists('w:min_height') || a:force_resize
+        return 0
+    endif
+
+    if !a:allow_resize || a:scroll_offset == 0
+        return w:min_height
+    endif
+
+    if !exists('w:resize_level')
+        let w:resize_level = 0 " for decreasing window height based on scrolling
+    endif
+
+    let diff = abs(a:scroll_offset)
+    if diff == 1
+        " slowly decrease min height if moving line by line
+        let w:resize_level += g:context_resize_linewise
+    else
+        " quicker if moving multiple lines (^U/^D: decrease by one line)
+        let w:resize_level += g:context_resize_scroll / &scroll * diff
+    endif
+
+    let t = float2nr(w:resize_level)
+    let w:resize_level -= t
+    return w:min_height - t
+endfunction
+
 " collect all context lines
 function! s:get_context(line) abort
     let base_line = a:line
@@ -477,7 +473,7 @@ endfunction
 
 function! s:get_border_line(base_line) abort
     let indent = a:base_line.indent
-    let line_len = winwidth(0) - indent - len(s:buffer_name) - 2
+    let line_len = winwidth(0) - indent - len(s:buffer_name) - 2 - w:padding
     let border = 
                 \ repeat(' ', indent) .
                 \ repeat(g:context_border_char, line_len) .
@@ -518,7 +514,7 @@ function! s:show_in_preview(lines) abort
 
     let syntax  = &syntax
     let tabstop = &tabstop
-    let padding = wincol() - virtcol('.')
+    let padding = w:padding
 
     let s:log_indent += 2
     call s:open_preview()
@@ -568,22 +564,39 @@ function! s:close_preview() abort
     endif
 endfunction
 
+" TODO: rename these functions!
+" this tries to update w:padding
+" returns whether it has changed (needs redraw)
+function! s:update_padding() abort
+    let padding = wincol() - virtcol('.')
+    if padding < 0
+        " padding can be negative if cursor was on the wrapped part of a wrapped line
+        " in that case don't take the new value
+
+        if !exists('w:padding')
+            let w:padding = 0
+        endif
+
+        return 0
+    endif
+
+    if exists('w:padding') && w:padding == padding
+        " same value
+        return 0
+    endif
+
+    " different value
+    let w:padding = padding
+    return 1
+endfunction
+
 " NOTE: this function updates the statusline too, as it depends on the padding
 function! s:set_padding(padding) abort
-    let padding = a:padding
-    if padding >= 0
-        execute 'setlocal foldcolumn=' . padding
-        let w:padding = padding
-    else
-        " padding can be negative if cursor was on the wrapped part of a wrapped line
-        " in that case don't try to apply it, but still update the statusline
-        " using the last known padding value
-        let padding = w:padding
-    endif
+    execute 'setlocal foldcolumn=' . a:padding
 
     let statusline = '%=' . s:buffer_name . ' ' " trailing space for padding
     if s:hidden_indent >= 0
-        let statusline = repeat(' ', padding + s:hidden_indent) . s:ellipsis . statusline
+        let statusline = repeat(' ', a:padding + s:hidden_indent) . s:ellipsis . statusline
     endif
     execute 'setlocal statusline=' . escape(statusline, ' ')
 endfunction
@@ -621,9 +634,9 @@ endfunction
 
 function! s:popup_open(lines, width) abort
     call s:echof('> popup_open', len(a:lines))
-    if s:popup == 'nvim'
+    if g:context_presenter == 'nvim-float'
         let winid = s:nvim_open_popup(a:lines, a:width)
-    elseif s:popup == 'vim'
+    elseif g:context_presenter == 'vim-popup'
         let winid = s:vim_open_popup(a:lines, a:width)
     endif
 
@@ -632,27 +645,23 @@ function! s:popup_open(lines, width) abort
     call setbufvar(buf, '&tabstop', &tabstop)
     call setbufvar(buf, '&syntax',  &syntax)
 
-    " TODO: dry
-    let padding = wincol() - virtcol('.')
-    call setbufvar(buf, '&foldcolumn', padding)
-
     return winid
 endfunction
 
 function! s:popup_update(popup, lines) abort
     call s:echof('> popup_update', len(a:lines))
-    if s:popup == 'nvim'
+    if g:context_presenter == 'nvim-float'
         call s:nvim_update_popup(a:popup, a:lines)
-    elseif s:popup == 'vim'
+    elseif g:context_presenter == 'vim-popup'
         call s:vim_update_popup(a:popup, a:lines)
     endif
 endfunction
 
 function! s:popup_close(popup) abort
     call s:echof('> popup_close')
-    if s:popup == 'nvim'
+    if g:context_presenter == 'nvim-float'
         call nvim_win_close(a:popup, v:true)
-    elseif s:popup == 'vim'
+    elseif g:context_presenter == 'vim-popup'
         call popup_close(a:popup)
     endif
 endfunction
@@ -669,9 +678,9 @@ function! s:popup_valid(popup) abort
         return 0
     endif
 
-    if s:popup == 'nvim'
+    if g:context_presenter == 'nvim-float'
         return nvim_win_is_valid(a:popup)
-    elseif s:popup == 'vim'
+    elseif g:context_presenter == 'vim-popup'
         return len(popup_getoptions(a:popup)) > 0
     endif
 endfunction
@@ -701,26 +710,33 @@ function! s:nvim_open_popup(lines, width) abort
     " NOTE: 'winhighlight' is neovim only
     " TODO: still avoid nvim specific functions like nvim_win_set_option()?
     call nvim_win_set_option(winid, 'winhl', 'Normal:' . g:context_highlight)
+
+    call setbufvar(buf, '&foldcolumn', w:padding)
+
     return winid
 endfunction
 
 function! s:nvim_update_popup(popup, lines) abort
     call s:echof('  > nvim_update_popup', len(a:lines))
-    let buf = nvim_win_get_buf(a:popup)
+    let buf = winbufnr(a:popup)
     " NOTE: this seems to reset the 'foldcolumn' setting
     call nvim_win_set_config(a:popup, {'height': len(a:lines)})
     call nvim_buf_set_lines(buf, 0, -1, v:true, a:lines)
-    " TODO: dry
-    let padding = wincol() - virtcol('.')
-    call setbufvar(buf, '&foldcolumn', padding)
+
+    call setbufvar(buf, '&foldcolumn', w:padding)
+
     " TODO: bring mode back but only call the open popup function once?
+    " NOTE: this redraws the screen. this is needed because there's
+    " a redraw issue: https://github.com/neovim/neovim/issues/11597
+    " for some reason sometimes it's not enough to :mode once
+    " TODO: remove this once that issue has been resolved
     redraw
     mode
-    " let s:needs_redraw = 1
 endfunction
 
 function! s:vim_open_popup(lines, width) abort
     call s:echof('  > vim_open_popup', len(a:lines))
+
     " NOTE: popups don't move automatically when windows get resized
     " same for width
     let [line, col] = win_screenpos(0)
@@ -734,13 +750,19 @@ function! s:vim_open_popup(lines, width) abort
     let winid = popup_create(a:lines, opts)
     " TODO: use text properties on last line? nvim too similarly
     " NOTE: this option is vim only
+
 	call setwinvar(winid, '&wincolor', g:context_highlight)
+
+	call win_execute(winid, 'set foldcolumn=' . w:padding)
+
     return winid
 endfunction
 
 function! s:vim_update_popup(popup, lines) abort
     call s:echof('  > vim_update_popup', len(a:lines))
     call popup_settext(a:popup, a:lines)
+
+	call win_execute(a:popup, 'set foldcolumn=' . w:padding)
 endfunction
 
 

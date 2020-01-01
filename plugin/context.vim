@@ -6,6 +6,17 @@
 
 " settings
 
+" TODO: document
+if exists('g:context_presenter')
+    " keep the value
+elseif has('nvim-0.4.0')
+    let g:context_presenter = 'nvim-float'
+elseif has('patch-8.1.1364')
+    let g:context_presenter = 'vim-popup'
+else
+    let g:context_presenter = 'preview'
+endif
+
 " set this to 0 to disable this plugin on launch
 " (use :ContextEnable to enable it later)
 let g:context_enabled = get(g:, 'context_enabled', 1)
@@ -30,6 +41,7 @@ let g:context_ellipsis_char = get(g:, 'context_ellipsis_char', '·')
 " TODO: update docs
 let g:context_border_char = get(g:, 'context_border_char', '▬')
 
+" TODO: mention that this is preview only?
 " how much to decrease window height when scrolling linewise (^E/^Y)
 let g:context_resize_linewise = get(g:, 'context_resize_linewise', 0.25)
 
