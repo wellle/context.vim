@@ -15,7 +15,7 @@ let g:context_add_mappings = get(g:, 'context_add_mappings', 1)
 let g:context_add_autocmds = get(g:, 'context_add_autocmds', 1)
 
 " how many lines to use at most for the context
-let g:context_max_height = get(g:, 'context_max_height', 21)
+let g:context_max_height = get(g:, 'context_max_height', 10000)
 
 " how many lines are allowed per indent
 let g:context_max_per_indent = get(g:, 'context_max_per_indent', 5)
@@ -26,6 +26,9 @@ let g:context_max_join_parts = get(g:, 'context_max_join_parts', 5)
 
 " which character to use for the ellipsis "..."
 let g:context_ellipsis_char = get(g:, 'context_ellipsis_char', '·')
+
+" TODO: update docs
+let g:context_border_char = get(g:, 'context_border_char', '▬')
 
 " how much to decrease window height when scrolling linewise (^E/^Y)
 let g:context_resize_linewise = get(g:, 'context_resize_linewise', 0.25)

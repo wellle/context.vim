@@ -1,4 +1,5 @@
-" TODO: fix padding
+" TODO!: fix padding
+" TODO: highlight border line (and tag) differently
 " TODO: on bufenter or something check all popups and close if their reference
 " window is no longer valid
 " TODO(dup?): close popup when relative window gets closed. how?
@@ -16,10 +17,9 @@ let s:nil_line  = {'number': 0, 'indent': 0, 'text': ''}
 " state
 " NOTE: there's more state in window local w: variables
 let s:activated      = 0
-let s:last_winnr     = -1
-let s:last_bufnr     = -1
 let s:last_winid     = 0
 let s:ignore_autocmd = 0
+let s:needs_redraw   = 0
 let s:log_indent     = 0
 let s:popups         = {}
 
@@ -122,6 +122,7 @@ function! context#cache_stats() abort
 endfunction
 
 function! context#update_padding(autocmd) abort
+    " TODO: update in popups too
     " call s:echof('> update_padding', a:autocmd)
     if !g:context_enabled
         return
@@ -165,31 +166,45 @@ endfunction
 
 " this function actually updates the context and calls itself until it stabilizes
 function! s:update_context(allow_resize, force_resize) abort
-    let current_line = line('w0')
+    let winid = win_getid()
+    let top_line = line('w0')
     let bufnr = bufnr('%')
     let winid = win_getid()
     let popup = get(s:popups, winid, 0)
-    if s:popup_valid(popup)
-        let current_line += winheight(popup)
-    endif
 
-    call s:echof('> update_context', a:allow_resize, a:force_resize, current_line)
+    call s:echof('> update_context', a:allow_resize, a:force_resize, winid, top_line)
+
+    if !a:force_resize && s:last_winid == winid && w:last_top_line == top_line
+        call s:echof('  abort same win and top line')
+        if s:needs_redraw
+            let s:needs_redraw = 0
+            " NOTE: this redraws the screen. this is needed because there's
+            " a redraw issue: https://github.com/neovim/neovim/issues/11597
+            " for some reason sometimes it's not enough to :mode once
+            " TODO: remove this once that issue has been resolved
+            mode
+            mode
+        endif
+        return
+    endif
 
     if !exists('w:last_top_line')
         let w:last_top_line = -10
     endif
 
     " adjust min window height based on scroll amount
+    " TODO: w:min_height is only a concern for preview, make this more clear,
+    " don't touch it at all for popup etc
     if a:force_resize || !exists('w:min_height')
         let w:min_height = 0
     elseif a:allow_resize && s:popup != ''
         let w:min_height = 0
-    elseif a:allow_resize && w:last_top_line != current_line
+    elseif a:allow_resize && w:last_top_line != top_line
         if !exists('w:resize_level')
             let w:resize_level = 0 " for decreasing window height based on scrolling
         endif
 
-        let diff = abs(w:last_top_line - current_line)
+        let diff = abs(w:last_top_line - top_line)
         if diff == 1
             " slowly decrease min height if moving line by line
             let w:resize_level += g:context_resize_linewise
@@ -202,30 +217,24 @@ function! s:update_context(allow_resize, force_resize) abort
         let w:min_height -= t
     endif
 
-    if !a:force_resize && s:last_bufnr == bufnr && w:last_top_line == current_line
-        call s:echof('  abort same buf and top line', bufnr, current_line)
-        return
-    endif
-
     let s:last_winid = winid
-    let s:last_bufnr = bufnr
-    let w:last_top_line = current_line
+    let w:last_top_line = top_line
 
-    let base_line = s:get_base_line(current_line)
-    let [context, context_len] = s:get_context(base_line)
+    let base_line = s:get_base_line(top_line)
+    if s:popup != ''
+        let lines = s:get_context_for_popup(top_line)
+    else " preview
+        let lines = s:get_context(base_line)
+        let s:hidden_indent = s:get_hidden_indent(base_line, lines)
 
-    " limit context per indent
-    let diff_want = context_len - w:min_height
-    let diff_want = 100000
-    let lines = []
-    " no more than five lines per indent
-    for indent in sort(keys(context), 'N')
-        let [context[indent], diff_want] = s:join(context[indent], diff_want)
-        let [context[indent], diff_want] = s:limit(context[indent], diff_want, indent)
-        call extend(lines, context[indent])
-    endfor
+        while len(lines) < w:min_height
+            call add(lines, s:nil_line)
+        endwhile
 
-    let s:hidden_indent = s:get_hidden_indent(current_line, lines)
+        if w:min_height < len(lines)
+            let w:min_height = len(lines)
+        endif
+    endif
 
     " limit total context
     let max = g:context_max_height
@@ -241,28 +250,6 @@ function! s:update_context(allow_resize, force_resize) abort
     " NOTE: this overwrites lines, from here on out it's just a list of string
     call map(lines, function('s:display_line'))
 
-    while len(lines) < w:min_height
-        call add(lines, "")
-    endwhile
-
-    if w:min_height < len(lines)
-        let w:min_height = len(lines)
-    endif
-
-    " TODO: clean up, extract function?
-    if s:popup != '' && len(lines) > 0
-        let indent = max([s:hidden_indent, base_line.indent])
-        " TODO: make this customizable too!
-        " let char = g:context_ellipsis_char
-        " let char = '─'
-        " let char = '━'
-        let char = '▬'
-        " let char = '▭'
-        " TODO: ‐–—―‗‡‥…‰‾⁺⁻⁼₊₋₌−∘∙∞∴∵∶∷∼≃≅≈≌≡⋅⋮⋯⑉─━┄┅┈┉▬▭〜
-        let border = repeat(' ', indent) . repeat(char, winwidth(0) - indent - 15) . ' ' . s:buffer_name
-        call add(lines, border)
-    endif
-
     let s:log_indent += 2
     if s:popup != ''
         call s:show_in_popup(lines)
@@ -271,13 +258,19 @@ function! s:update_context(allow_resize, force_resize) abort
     endif
     " call again until it stabilizes
     " disallow resizing to make sure it will eventually
-    call s:update_context(0, 0)
+    " TODO: don't try again from here, but in one line increments so we
+    " actually find the minimum?
+    if s:popup == ''
+        call s:update_context(0, 0)
+    endif
     let s:log_indent -= 2
 endfunction
 
 " find first line above (hidden) which isn't empty
 " return its indent, -1 if no such line
+" TODO: this is expensive now, maybe not do it like this? or limit it somehow?
 function! s:get_hidden_indent(top_line, lines) abort
+    call s:echof('> get_hidden_indent', a:top_line.number, len(a:lines))
     if len(a:lines) == 0
         " don't show ellipsis if context is empty
         return -1
@@ -285,7 +278,7 @@ function! s:get_hidden_indent(top_line, lines) abort
 
     let min_indent = -1
     let max_line = a:lines[-1].number
-    let current_line = a:top_line - 1 " first hidden line
+    let current_line = a:top_line.number - 1 " first hidden line
     while current_line > max_line
         let line = getline(current_line)
         if s:skip_line(line)
@@ -294,6 +287,7 @@ function! s:get_hidden_indent(top_line, lines) abort
         endif
 
         let indent = indent(current_line)
+        call s:echof('  got', current_line, max_line, indent, min_indent)
         if min_indent == -1 || min_indent > indent
             let min_indent = indent
         endif
@@ -301,36 +295,95 @@ function! s:get_hidden_indent(top_line, lines) abort
         let current_line -= 1
     endwhile
 
+    call s:echof('  return', min_indent)
     return min_indent
 endfunction
 
 " find line downwards (from top line) which isn't empty
 function! s:get_base_line(top_line) abort
     let current_line = a:top_line
-    let max_line = line('$')
-    while current_line <= max_line
+    while 1
+        let indent = indent(current_line)
+        if indent < 0 " invalid line
+            return s:nil_line
+        endif
+
         let line = getline(current_line)
         if s:skip_line(line)
             let current_line += 1
             continue
         endif
 
-        return s:make_line(current_line, indent(current_line), line)
+        return s:make_line(current_line, indent, line)
     endwhile
+endfunction
 
-    " nothing found
-    return s:nil_line
+function! s:get_context_for_popup(top_line) abort
+    " TODO: there's a case where we'd like an "empty" context popup
+    " when the `}` of a closing function is on the topline. can we make that
+    " work?
+    " TODO: check how quickly the context size goes down from line to line. we
+    " might be able to shortcut here. for example if the topline has a context
+    " of 8 lines, then the line below is likely to have 7 or 8 lines context
+    " too. so maybe it's save to skip like 7 lines before we calculate the
+    " next context?
+    " TODO: there's a problem if some of the hidden lines (below the
+    " popup) are wrapped. then our calculations are off...
+
+    " a skipped line has the same context as the next unskipped one below
+    let skipped = 0
+    let context_count = 0 " how many contexts did we check?
+    let line_offset = -1 " first iteration starts with zero
+
+    while 1
+        let line_offset += 1
+        let line_number = a:top_line + line_offset
+        let indent = indent(line_number) "    -1 for invalid lines
+        let line = getline(line_number)  " empty for invalid lines
+        let base_line = s:make_line(line_number, indent, line)
+
+        if base_line.indent < 0
+            let lines = []
+        elseif s:skip_line(line)
+            let skipped += 1
+            continue
+        else
+            let lines = s:get_context(base_line)
+        endif
+
+        let line_count = len(lines)
+        " call s:echof('  got', line_offset, line_offset, line_count, skipped)
+
+        if line_count == 0 && context_count == 0
+            " if we get an empty context on the first non skipped line
+            return []
+        endif
+        let context_count += 1
+
+        if line_count >= line_offset
+            " try again on next line if this context doesn't fit
+            let skipped = 0
+            continue
+        endif
+
+        " success, we found a fitting context
+        while len(lines) < line_offset - skipped - 1
+            call add(lines, s:nil_line)
+        endwhile
+
+        call add(lines, s:get_border_line(base_line))
+        return lines
+    endwhile
 endfunction
 
 " collect all context lines
 function! s:get_context(line) abort
     let base_line = a:line
     if base_line.number == 0
-        return [{}, 0]
+        return []
     endif
 
     let context = {}
-    let context_len = 0
 
     if !exists('b:context_skips')
         let b:context_skips = {}
@@ -341,7 +394,14 @@ function! s:get_context(line) abort
         let b:context_skips[base_line.number] = context_line.number " cache this lookup
 
         if context_line.number == 0
-            return [context, context_len]
+            " join, limit and get context lines
+            let lines = []
+            for indent in sort(keys(context), 'N')
+                let context[indent] = s:join(context[indent])
+                let context[indent] = s:limit(context[indent], indent)
+                call extend(lines, context[indent])
+            endfor
+            return lines
         endif
 
         let indent = context_line.indent
@@ -350,7 +410,6 @@ function! s:get_context(line) abort
         endif
 
         call insert(context[indent], context_line, 0)
-        let context_len += 1
 
         " for next iteration
         let base_line = context_line
@@ -416,6 +475,17 @@ function! s:get_context_line(line) abort
     endwhile
 endfunction
 
+function! s:get_border_line(base_line) abort
+    let indent = a:base_line.indent
+    let line_len = winwidth(0) - indent - len(s:buffer_name) - 2
+    let border = 
+                \ repeat(' ', indent) .
+                \ repeat(g:context_border_char, line_len) .
+                \ ' ' .
+                \ s:buffer_name
+    return s:make_line(0, indent, border)
+endfunction
+
 " https://vi.stackexchange.com/questions/19056/how-to-create-preview-window-to-display-a-string
 function! s:open_preview() abort
     call s:echof('> open_preview')
@@ -438,17 +508,9 @@ endfunction
 function! s:show_in_preview(lines) abort
     call s:echof('> show_in_preview', len(a:lines))
 
-    let syntax   = &syntax
-    let tabstop  = &tabstop " TODO: use shiftwidth instead?
-    let padding  = wincol() - virtcol('.')
+    call s:close_preview()
 
-    " TODO: also this, can we move this to calling function to avoid
-    " duplication?
-    if w:min_height < len(a:lines)
-        let w:min_height = len(a:lines)
-    endif
-
-    if w:min_height == 0
+    if len(a:lines) == 0
         " nothing to do
         call s:echof('  none')
         return
@@ -570,6 +632,10 @@ function! s:popup_open(lines, width) abort
     call setbufvar(buf, '&tabstop', &tabstop)
     call setbufvar(buf, '&syntax',  &syntax)
 
+    " TODO: dry
+    let padding = wincol() - virtcol('.')
+    call setbufvar(buf, '&foldcolumn', padding)
+
     return winid
 endfunction
 
@@ -629,11 +695,6 @@ function! s:nvim_open_popup(lines, width) abort
                 \ 'style':     'minimal',
                 \ }
     let winid = nvim_open_win(buf, 0, opts)
-    " TODO: make it possible to customize the highlighting
-    " TODO: and find good default consistent between vim and nvim
-    " TODO: and/or: add divider line again? might be tricky with syntax highlighting?
-    " optional: change highlight, otherwise Pmenu is used
-    " call nvim_win_set_option(winid, 'winhl', 'Normal:MyHighlight')
     " TODO: and/or: add divider line again? might be tricky with syntax highlighting?
     " optional: change highlight, otherwise Pmenu is used
     " TODO: always use long option names
@@ -646,15 +707,16 @@ endfunction
 function! s:nvim_update_popup(popup, lines) abort
     call s:echof('  > nvim_update_popup', len(a:lines))
     let buf = nvim_win_get_buf(a:popup)
+    " NOTE: this seems to reset the 'foldcolumn' setting
     call nvim_win_set_config(a:popup, {'height': len(a:lines)})
     call nvim_buf_set_lines(buf, 0, -1, v:true, a:lines)
-
-    " NOTE: this redraws the screen. this is needed because there's
-    " a redraw issue: https://github.com/neovim/neovim/issues/11597
-    " TODO: remove this once that issue has been resolved
-    " TODO!: actually try to do this only once. mark here as pending, then
-    " :mode if pending when we see same winid and topline
+    " TODO: dry
+    let padding = wincol() - virtcol('.')
+    call setbufvar(buf, '&foldcolumn', padding)
+    " TODO: bring mode back but only call the open popup function once?
+    redraw
     mode
+    " let s:needs_redraw = 1
 endfunction
 
 function! s:vim_open_popup(lines, width) abort
@@ -685,22 +747,19 @@ endfunction
 
 " utility functions
 
-function! s:join(lines, diff_want) abort
-    let diff_want = a:diff_want
-
+function! s:join(lines) abort
     " only works with at least 3 parts, so disable otherwise
     if g:context_max_join_parts < 3
-        return [a:lines, a:diff_want]
+        return a:lines
     endif
 
-    " call s:echof('> join', len(a:lines), diff_want)
+    " call s:echof('> join', len(a:lines))
     let pending = [] " lines which might be joined with previous
     let joined = a:lines[:0] " start with first line
     for line in a:lines[1:]
         if s:join_line(line.text)
             " add lines without word characters to pending list
             call add(pending, line)
-            let diff_want -= 1
             continue
         endif
 
@@ -713,7 +772,7 @@ function! s:join(lines, diff_want) abort
 
     " join remaining pending lines to last
     let joined[-1] = s:join_pending(joined[-1], pending)
-    return [joined, diff_want]
+    return joined
 endfunction
 
 function! s:join_pending(base, pending) abort
@@ -746,31 +805,20 @@ function! s:join_pending(base, pending) abort
     return joined
 endfunction
 
-" TODO: there seems to be an issue where there are ... lines but blanks at the
-" bottom of the context
-function! s:limit(lines, diff_want, indent) abort
-    call s:echof('> limit', a:indent, len(a:lines), a:diff_want)
-    if a:diff_want <= 0
-        return [a:lines, a:diff_want]
-    endif
+function! s:limit(lines, indent) abort
+    " call s:echof('> limit', a:indent, len(a:lines))
 
     let max = g:context_max_per_indent
     if len(a:lines) <= max
-        return [a:lines, a:diff_want]
+        return a:lines
     endif
 
     let diff = len(a:lines) - max
-    let diff2 = diff - a:diff_want
-    call s:echof('  diff', max, diff, a:diff_want, diff2)
-    if diff2 > 0
-        let max += diff2
-    endif
-    call s:echof('  max', max)
 
     let limited = a:lines[: max/2-1]
     call add(limited, s:make_line(0, a:indent, repeat(' ', a:indent) . s:ellipsis))
     call extend(limited, a:lines[-(max-1)/2 :])
-    return [limited, a:diff_want - (len(a:lines) - max)]
+    return limited
 endif
 endfunction
 
