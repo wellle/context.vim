@@ -1,4 +1,3 @@
-" TODO!: highlight border line (and tag) differently
 " TODO: on bufenter or something check all popups and close if their reference
 " window is no longer valid
 " close popup when relative window gets closed. how? always check
@@ -128,49 +127,8 @@ function! context#update_padding(autocmd) abort
         return
     endif
 
-    if g:context_presenter == 'preview'
-    else
-    endif
-
-    if g:context_presenter == 'preview'
-        " TODO: extract function?
-        if &previewwindow
-            " no context of preview windows (which we use to display context)
-            " call s:echof('  abort preview')
-            return
-        endif
-
-        let padding = w:padding
-        silent! wincmd P
-        if !&previewwindow
-            " call s:echof('  abort no preview')
-            return
-        endif
-
-        if bufname('%') != s:buffer_name
-            " call s:echof('  abort different preview')
-            wincmd p
-            return
-        endif
-
-        " call s:echof('  update padding', padding, a:autocmd)
-        call s:set_padding(padding)
-        wincmd p
-        return
-    endif
-
-    let winid = win_getid()
-    let popup = get(s:popups, winid)
-    if popup == 0
-        return
-    endif
-
-    if g:context_presenter == 'nvim-float'
-        let buf = winbufnr(popup)
-        call setbufvar(buf, '&foldcolumn', w:padding)
-    elseif g:context_presenter == 'vim-popup'
-        call win_execute(popup, 'set foldcolumn=' . w:padding)
-    endif
+    " just update the context (border line might need update)
+    call context#update(1, 0)
 endfunction
 
 
@@ -347,7 +305,8 @@ function! s:get_context_for_popup(top_line) abort
             call add(lines, s:nil_line)
         endwhile
 
-        call add(lines, s:get_border_line(base_line))
+        let w:indent = base_line.indent
+        call add(lines, s:get_border_line())
         return lines
     endwhile
 endfunction
@@ -493,15 +452,17 @@ function! s:get_context_line(line) abort
     endwhile
 endfunction
 
-function! s:get_border_line(base_line) abort
-    let indent = a:base_line.indent
-    let line_len = winwidth(0) - indent - len(s:buffer_name) - 2 - w:padding
+" TODO: make this return a string? and map inside the get context functions
+function! s:get_border_line() abort
+    " TODO: cache in w:width?
+    let line_len = winwidth(0) - w:indent - len(s:buffer_name) - 2 - w:padding
     let border = 
-                \ repeat(' ', indent) .
+                \ repeat(' ', w:indent) .
                 \ repeat(g:context_border_char, line_len) .
                 \ ' ' .
-                \ s:buffer_name
-    return s:make_line(0, indent, border)
+                \ s:buffer_name .
+                \ ' '
+    return s:make_line(0, w:indent, border)
 endfunction
 
 " https://vi.stackexchange.com/questions/19056/how-to-create-preview-window-to-display-a-string
@@ -663,6 +624,11 @@ function! s:popup_open(lines, width) abort
         let winid = s:vim_open_popup(a:lines, a:width)
     endif
 
+    let border = ' *' .g:context_border_char . '* ' . s:buffer_name . ' '
+    let tag = s:buffer_name
+    let m = matchadd(g:context_highlight_border, border, 10, -1, {'window': winid})
+    let m = matchadd(g:context_highlight_tag, tag, 10, -1, {'window': winid})
+
     let buf = winbufnr(winid)
     call setbufvar(buf, '&wrap',    0)
     call setbufvar(buf, '&tabstop', &tabstop)
@@ -731,7 +697,8 @@ function! s:nvim_open_popup(lines, width) abort
     " TODO: always use long option names
     " NOTE: 'winhighlight' is neovim only
     " TODO: still avoid nvim specific functions like nvim_win_set_option()?
-    call nvim_win_set_option(winid, 'winhighlight', 'Normal:' . g:context_highlight)
+    " TODO: rename, g:context_highlight_normal ?
+    call nvim_win_set_option(winid, 'winhighlight', 'Normal:' . g:context_highlight_normal)
 
     call setbufvar(buf, '&foldcolumn', w:padding)
 
@@ -771,7 +738,7 @@ function! s:vim_open_popup(lines, width) abort
     let winid = popup_create(a:lines, opts)
     " NOTE: this option is vim only
 
-	call setwinvar(winid, '&wincolor', g:context_highlight)
+	call setwinvar(winid, '&wincolor', g:context_highlight_normal)
 
 	call win_execute(winid, 'set foldcolumn=' . w:padding)
 

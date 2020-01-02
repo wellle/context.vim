@@ -63,7 +63,9 @@ let g:context_extend_regex = get(g:, 'context_extend_regex', '^\s*\([]{})]\|end\
 let g:context_join_regex = get(g:, 'context_join_regex', '^\W*$')
 
 " TODO: update docs
-let g:context_highlight = get(g:, 'context_highlight', 'Normal')
+let g:context_highlight_normal = get(g:, 'context_highlight_normal', 'Normal')
+let g:context_highlight_border = get(g:, 'context_highlight_border', 'Comment')
+let g:context_highlight_tag    = get(g:, 'context_highlight_tag',    'Special')
 
 " commands
 command! -bar ContextActivate call context#activate()
