@@ -118,24 +118,8 @@ function! context#cache_stats() abort
     echom printf('cache: %d skips, %d / %d (%.1f%%)', skips, cost, total, 100.0 * cost / total)
 endfunction
 
-" TODO: do we still need this? call #update directly instead?
+" TODO: inline
 function! context#update_padding(autocmd) abort
-    " call s:echof('> update_padding', a:autocmd)
-    if !g:context_enabled
-        return
-    endif
-
-    if mode() != 'n'
-        " call s:echof('  abort mode')
-        return
-    endif
-
-    if !s:update_padding()
-        " call s:echof('  abort same padding')
-        return
-    endif
-
-    " just update the context (border line might need update)
     call context#update(1, 0)
 endfunction
 
@@ -150,6 +134,7 @@ function! s:update_context(allow_resize, force_resize) abort
 
     " TODO: extract function?
     " TODO: use get()?
+    " TODO: can we move this into update_state functions too?
     if exists('w:top_line')
         let scroll_offset = w:top_line - top_line
     else
@@ -157,29 +142,28 @@ function! s:update_context(allow_resize, force_resize) abort
     endif
     let w:top_line = top_line
 
-    let screenpos_changed = s:update_screenpos(0)
-    let padding_changed = s:update_padding()
-    let size_changed = s:update_size(0)
-    let wincount_changed = s:update_wincount()
+    let winid = win_getid()
+
+    " TODO: make work with preview again...
+    call s:update_state()
+    call s:update_window_state(winid)
 
     " TODO: also if there's no popup window? (after :only for example)
     if 0
                 \ || a:force_resize
                 \ || scroll_offset != 0
-                \ || screenpos_changed
-                \ || padding_changed
-                \ || size_changed
-                \ || wincount_changed
-        let winid = win_getid()
+                \ || w:needs_update
         call s:update_one_context(winid, a:allow_resize, a:force_resize)
         echom 'updated' winid
+        let w:needs_update = 0
     endif
 
     " TODO: also if win_screenpos() changed, for vim
     " TODO: not on force_resize
-    if size_changed || screenpos_changed || wincount_changed || a:force_resize
+    if w:needs_layout || a:force_resize
         " update all contexts
         call s:update_layout()
+        let w:needs_layout = 0
     endif
 
     " TODO: in some cases (width changed) force updating/checking the other popups too
@@ -206,9 +190,8 @@ function! s:update_layout() abort
             continue
         endif
 
-        let screenpos_changed = s:update_screenpos(winid)
-        let size_changed = s:update_size(winid)
-        " if screenpos_changed || size_changed
+        call s:update_window_state(winid)
+        " if getwinvar(needs_layout), or actually maybe not, just do all?
             " TODO: extract function?
 
             " TODO: update border line
@@ -647,69 +630,47 @@ function! s:close_preview() abort
     endif
 endfunction
 
-" TODO: rename these functions!
-" this tries to update w:padding
-" returns whether it has changed (needs redraw)
-" NOTE: this only works in the current window, abort if called from a
-" different one
-function! s:update_padding() abort
+function! s:update_state() abort
+    let wincount = winnr('$')
+    if s:wincount != wincount
+        let s:wincount = wincount
+        let w:needs_layout = 1
+    endif
+
+    " padding can only be checked for the current window
     let padding = wincol() - virtcol('.')
     if padding < 0
-        " padding can be negative if cursor was on the wrapped part of a wrapped line
-        " in that case don't take the new value
-
+        " padding can be negative if cursor was on the wrapped part of a
+        " wrapped line in that case don't take the new value
+        " in this case we don't want to trigger an update, but still set
+        " padding to a value
         if !exists('w:padding')
             let w:padding = 0
         endif
-
-        return 0
+    elseif get(w:, 'padding', -1) != padding
+        let w:padding = padding
+        let w:needs_update = 1
     endif
-
-    " TODO: use get()
-    if exists('w:padding') && w:padding == padding
-        return 0
-    endif
-
-    let w:padding = padding
-    return 1
 endfunction
 
-" TODO: set w:needs_layout instead? hmm not sure
-function! s:update_size(winid) abort
-    let width  = winwidth(a:winid)
+function! s:update_window_state(winid) abort
+    let width = winwidth(a:winid)
+    if getwinvar(a:winid, 'width') != width
+        call setwinvar(a:winid, 'width', width)
+        call setwinvar(a:winid, 'needs_layout', 1)
+    endif
+
     let height = winheight(a:winid)
-
-    if 1
-                \ && getwinvar(a:winid, 'width')  == width
-                \ && getwinvar(a:winid, 'height') == height
-        return 0
+    if getwinvar(a:winid, 'height') != height
+        call setwinvar(a:winid, 'height', height)
+        call setwinvar(a:winid, 'needs_layout', 1)
     endif
 
-    call setwinvar(a:winid, 'width',  width)
-    call setwinvar(a:winid, 'height', height)
-    return 1
-endfunction
-
-function! s:update_screenpos(winid) abort
     let screenpos = win_screenpos(a:winid)
-
-    if getwinvar(a:winid, 'screenpos', []) == screenpos
-        return 0
+    if getwinvar(a:winid, 'screenpos', []) != screenpos
+        call setwinvar(a:winid, 'screenpos', screenpos)
+        call setwinvar(a:winid, 'needs_layout', 1)
     endif
-
-    call setwinvar(a:winid, 'screenpos', screenpos)
-    return 1
-endfunction
-
-function! s:update_wincount() abort
-    let wincount = winnr('$')
-
-    if s:wincount == wincount
-        return 0
-    endif
-
-    let s:wincount = wincount
-    return 1
 endfunction
 
 " NOTE: this function updates the statusline too, as it depends on the padding
