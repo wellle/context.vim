@@ -8,6 +8,7 @@
 " TODO: don't hide cursor, hide (partially) context instead, hint that it's
 " partial?
 " TODO: make <C-L> update all contexts
+" TODO: shouldn't we namespace w: vars? like w:context_xyz
 
 " consts
 let s:buffer_name = '<context.vim>'
@@ -154,7 +155,6 @@ function! s:update_context(allow_resize, force_resize) abort
                 \ || scroll_offset != 0
                 \ || w:needs_update
         call s:update_one_context(winid, a:allow_resize, a:force_resize)
-        echom 'updated' winid
         let w:needs_update = 0
     endif
 
@@ -177,13 +177,11 @@ function! s:update_layout() abort
 
     for winid in keys(s:popups)
         let popup = s:popups[winid]
-        let buf = winbufnr(winid)
-        let last_width = getwinvar(winid, 'width', 0)
-        let width = winwidth(winid)
+        let winbuf = winbufnr(winid)
+        let popupbuf = winbufnr(popup)
 
-        if buf == -1
-            " TODO: not needed in nvim, errors (autocloses)
-            if g:context_presenter == 'vim-popup'
+        if winbuf == -1
+            if popupbuf != -1
                 call s:popup_close(popup)
             endif
             call remove(s:popups, winid)
@@ -191,31 +189,36 @@ function! s:update_layout() abort
         endif
 
         call s:update_window_state(winid)
-        " if getwinvar(needs_layout), or actually maybe not, just do all?
-            " TODO: extract function?
+        let width = getwinvar(winid, 'width')
 
-            " TODO: update border line
-            " NOTE: the context might be wrong as the top line might have
-            " changed, but we can't really fix that (without temporarily
-            " moving the cursor which we'd like to avoid)
-            if g:context_presenter == 'nvim-float'
-                let width = getwinvar(winid, 'width')
-                call nvim_win_set_config(popup, { 'width':  width })
-            elseif g:context_presenter == 'vim-popup'
-                " TODO: dry
-                let width = getwinvar(winid, 'width')
-                let [line, col] = win_screenpos(winid)
-                let opts = {
-                            \ 'line':     line,
-                            \ 'col':      col,
-                            \ 'minwidth': width,
-                            \ 'maxwidth': width,
-                            \ }
-                call popup_move(popup, opts)
-                echom 'moved' winid popup line col width
-                continue
-            endif
-        " endif
+        let lines = getwinvar(winid, 'context_lines')
+        if len(lines) > 0
+            let lines[-1] = s:get_border_line(winid)
+        endif
+
+        " TODO: extract function?
+
+        " NOTE: the context might be wrong as the top line might have
+        " changed, but we can't really fix that (without temporarily
+        " moving the cursor which we'd like to avoid)
+        if g:context_presenter == 'nvim-float'
+            call nvim_win_set_config(popup, { 'width':  width })
+            call nvim_buf_set_lines(popupbuf, 0, -1, v:true, lines)
+            let padding = getwinvar(winid, 'padding', 0)
+            call setbufvar(popupbuf, '&foldcolumn', padding)
+        elseif g:context_presenter == 'vim-popup'
+            " TODO: dry
+            let [line, col] = win_screenpos(winid)
+            let opts = {
+                        \ 'line':     line,
+                        \ 'col':      col,
+                        \ 'minwidth': width,
+                        \ 'maxwidth': width,
+                        \ }
+            call popup_move(popup, opts)
+            call popup_settext(popup, lines)
+            continue
+        endif
     endfor
 endfunction
 
@@ -227,6 +230,7 @@ endfunction
 " update the context, only the border line and window size and position. so
 " maybe split accordingly
 " TODO: later, maybe use w: instead of getwinvar in some places?
+" TODO: don't inject winid, will always be current
 function! s:update_one_context(winid, allow_resize, force_resize) abort
     call s:echof('> update_one_context', a:winid, a:allow_resize, a:force_resize)
 
@@ -243,21 +247,8 @@ function! s:update_one_context(winid, allow_resize, force_resize) abort
         let lines = s:get_context_for_preview(base_line, min_height)
     else
         let lines = s:get_context_for_popup(a:winid, top_line)
+        let w:context_lines = lines " to update border line on padding change
     endif
-
-    " limit total context
-    let max = g:context_max_height
-    if len(lines) > max
-        let indent1 = lines[max/2].indent
-        let indent2 = lines[-(max-1)/2].indent
-        let ellipsis = repeat(g:context_ellipsis_char, max([indent2 - indent1, 3]))
-        let ellipsis_line = s:make_line(0, indent1, repeat(' ', indent1) . ellipsis)
-        call remove(lines, max/2, -(max+1)/2)
-        call insert(lines, ellipsis_line, max/2)
-    endif
-
-    " NOTE: this overwrites lines, from here on out it's just a list of string
-    call map(lines, function('s:display_line'))
 
     " TODO: remove
     if len(lines) > 0
@@ -381,7 +372,8 @@ function! s:get_context_for_popup(winid, top_line) abort
 
         " success, we found a fitting context
         while len(lines) < line_offset - skipped - 1
-            call add(lines, s:nil_line)
+            " TODO: do we still need nil_line? probably yes
+            call add(lines, '')
         endwhile
 
         let w:indent = base_line.indent
@@ -395,7 +387,7 @@ function! s:get_context_for_preview(base_line, min_height) abort
     let s:hidden_indent = s:get_hidden_indent(a:base_line, lines)
 
     while len(lines) < a:min_height
-        call add(lines, s:nil_line)
+        call add(lines, '')
     endwhile
     let w:min_height = len(lines)
 
@@ -451,14 +443,7 @@ function! s:get_context(line) abort
         let b:context_skips[base_line.number] = context_line.number " cache this lookup
 
         if context_line.number == 0
-            " join, limit and get context lines
-            let lines = []
-            for indent in sort(keys(context), 'N')
-                let context[indent] = s:join(context[indent])
-                let context[indent] = s:limit(context[indent], indent)
-                call extend(lines, context[indent])
-            endfor
-            return lines
+            break
         endif
 
         let indent = context_line.indent
@@ -471,6 +456,30 @@ function! s:get_context(line) abort
         " for next iteration
         let base_line = context_line
     endwhile
+
+    " join, limit and get context lines
+    let lines = []
+    for indent in sort(keys(context), 'N')
+        let context[indent] = s:join(context[indent])
+        let context[indent] = s:limit(context[indent], indent)
+        call extend(lines, context[indent])
+    endfor
+
+    " limit total context
+    let max = g:context_max_height
+    if len(lines) > max
+        let indent1 = lines[max/2].indent
+        let indent2 = lines[-(max-1)/2].indent
+        let ellipsis = repeat(g:context_ellipsis_char, max([indent2 - indent1, 3]))
+        let ellipsis_line = s:make_line(0, indent1, repeat(' ', indent1) . ellipsis)
+        call remove(lines, max/2, -(max+1)/2)
+        call insert(lines, ellipsis_line, max/2)
+    endif
+
+    " NOTE: this overwrites lines, from here on out it's just a list of string
+    call map(lines, function('s:display_line'))
+
+    return lines
 endfunction
 
 function! s:get_context_line(line) abort
@@ -538,13 +547,12 @@ function! s:get_border_line(winid) abort
     let indent = getwinvar(a:winid, 'indent')
     let padding = getwinvar(a:winid, 'padding', 0)
     let line_len = width - indent - len(s:buffer_name) - 2 - padding
-    let border = 
-                \ repeat(' ', indent) .
-                \ repeat(g:context_border_char, line_len) .
-                \ ' ' .
-                \ s:buffer_name .
-                \ ' '
-    return s:make_line(0, indent, border)
+    return ''
+                \ . repeat(' ', indent)
+                \ . repeat(g:context_border_char, line_len)
+                \ . ' '
+                \ . s:buffer_name
+                \ . ' '
 endfunction
 
 " https://vi.stackexchange.com/questions/19056/how-to-create-preview-window-to-display-a-string
@@ -820,6 +828,7 @@ function! s:nvim_update_popup(winid, popup, lines) abort
                 \ 'height': len(a:lines),
                 \ 'width':  width,
                 \ })
+    " TODO: do these things in consistent orders?
     call nvim_buf_set_lines(buf, 0, -1, v:true, a:lines)
 
     call setbufvar(buf, '&foldcolumn', padding)

@@ -26,7 +26,7 @@ let g:context_add_mappings = get(g:, 'context_add_mappings', 1)
 let g:context_add_autocmds = get(g:, 'context_add_autocmds', 1)
 
 " how many lines to use at most for the context
-let g:context_max_height = get(g:, 'context_max_height', 10000)
+let g:context_max_height = get(g:, 'context_max_height', 21)
 
 " how many lines are allowed per indent
 let g:context_max_per_indent = get(g:, 'context_max_per_indent', 5)
