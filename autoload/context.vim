@@ -7,6 +7,7 @@
 " maybe just on CursorHold?
 " TODO: don't hide cursor, hide (partially) context instead, hint that it's
 " partial?
+" TODO: make <C-L> update all contexts
 
 " consts
 let s:buffer_name = '<context.vim>'
@@ -22,39 +23,12 @@ let s:activated      = 0
 let s:ignore_autocmd = 0
 let s:log_indent     = 0
 let s:popups         = {}
+let s:wincount       = 0
 
 
 " TODO: rename
+" TODO: remove actually
 function! context#check() abort
-    for window in keys(s:popups)
-        let popup = s:popups[window]
-        let buf = winbufnr(window)
-        let last_width = getwinvar(window, 'width', 0)
-        let width = winwidth(window)
-        echom window last_width width buf
-
-        if buf == -1
-            call s:popup_close(popup)
-            call remove(s:popups, window)
-            continue
-        endif
-
-        if g:context_presenter == 'nvim-float'
-        elseif g:context_presenter == 'vim-popup'
-            " TODO: dry
-            " TODO: update context (to update border line too)
-            let [line, col] = win_screenpos(window)
-            let opts = {
-                        \ 'line':     line,
-                        \ 'col':      col,
-                        \ 'minwidth': width,
-                        \ 'maxwidth': width,
-                        \ 'wrap':     v:false,
-                        \ }
-            call popup_move(popup, opts)
-            continue
-        endif
-    endfor
 endfunction
 
 " call this on VimEnter to activate the plugin
@@ -175,43 +149,106 @@ function! s:update_context(allow_resize, force_resize) abort
     call s:echof('> update_context', a:allow_resize, a:force_resize, top_line)
 
     " TODO: extract function?
-    if exists('w:last_top_line')
-        let scroll_offset = w:last_top_line - top_line
+    " TODO: use get()?
+    if exists('w:top_line')
+        let scroll_offset = w:top_line - top_line
     else
         let scroll_offset = 1
     endif
-    let w:last_top_line = top_line
+    let w:top_line = top_line
 
+    let screenpos_changed = s:update_screenpos(0)
     let padding_changed = s:update_padding()
-    let width_changed = s:update_width(0)
-
-    if width_changed
-        " update all contexts
-        for winid in keys(s:popups)
-            if s:update_width(winid)
-                call s:update_one_context(winid, a:allow_resize, a:force_resize)
-            endif
-        endfor
-    endif
+    let size_changed = s:update_size(0)
+    let wincount_changed = s:update_wincount()
 
     " TODO: also if there's no popup window? (after :only for example)
-    if a:force_resize
+    if 0
+                \ || a:force_resize
                 \ || scroll_offset != 0
+                \ || screenpos_changed
                 \ || padding_changed
-                \ || width_changed
+                \ || size_changed
+                \ || wincount_changed
         let winid = win_getid()
         call s:update_one_context(winid, a:allow_resize, a:force_resize)
+        echom 'updated' winid
+    endif
+
+    " TODO: also if win_screenpos() changed, for vim
+    " TODO: not on force_resize
+    if size_changed || screenpos_changed || wincount_changed || a:force_resize
+        " update all contexts
+        call s:update_layout()
     endif
 
     " TODO: in some cases (width changed) force updating/checking the other popups too
     " if number of visible windows changed, then close popups
 endfunction
 
+function! s:update_layout() abort
+    if g:context_presenter == 'preview'
+        return
+    endif
+
+    for winid in keys(s:popups)
+        let popup = s:popups[winid]
+        let buf = winbufnr(winid)
+        let last_width = getwinvar(winid, 'width', 0)
+        let width = winwidth(winid)
+
+        if buf == -1
+            " TODO: not needed in nvim, errors (autocloses)
+            if g:context_presenter == 'vim-popup'
+                call s:popup_close(popup)
+            endif
+            call remove(s:popups, winid)
+            continue
+        endif
+
+        let screenpos_changed = s:update_screenpos(winid)
+        let size_changed = s:update_size(winid)
+        " if screenpos_changed || size_changed
+            " TODO: extract function?
+
+            " TODO: update border line
+            " NOTE: the context might be wrong as the top line might have
+            " changed, but we can't really fix that (without temporarily
+            " moving the cursor which we'd like to avoid)
+            if g:context_presenter == 'nvim-float'
+                let width = getwinvar(winid, 'width')
+                call nvim_win_set_config(popup, { 'width':  width })
+            elseif g:context_presenter == 'vim-popup'
+                " TODO: dry
+                let width = getwinvar(winid, 'width')
+                let [line, col] = win_screenpos(winid)
+                let opts = {
+                            \ 'line':     line,
+                            \ 'col':      col,
+                            \ 'minwidth': width,
+                            \ 'maxwidth': width,
+                            \ }
+                call popup_move(popup, opts)
+                echom 'moved' winid popup line col width
+                continue
+            endif
+        " endif
+    endfor
+endfunction
+
 " TODO: rename
+" TODO!: this whole approach doesn't work like this
+" we can't get the context of a different buffer, for example indent() only
+" works on the current buffer
+" but for moth of what we're trying to achieve here we don't actually need to
+" update the context, only the border line and window size and position. so
+" maybe split accordingly
+" TODO: later, maybe use w: instead of getwinvar in some places?
 function! s:update_one_context(winid, allow_resize, force_resize) abort
     call s:echof('> update_one_context', a:winid, a:allow_resize, a:force_resize)
 
-    let top_line = line('w0')
+    let top_line = getwinvar(a:winid, 'top_line')
+
     let popup = get(s:popups, a:winid)
 
     let base_line = s:get_base_line(top_line)
@@ -222,7 +259,7 @@ function! s:update_one_context(winid, allow_resize, force_resize) abort
         let min_height = s:get_min_height(a:allow_resize, a:force_resize, scroll_offset)
         let lines = s:get_context_for_preview(base_line, min_height)
     else
-        let lines = s:get_context_for_popup(top_line)
+        let lines = s:get_context_for_popup(a:winid, top_line)
     endif
 
     " limit total context
@@ -238,6 +275,11 @@ function! s:update_one_context(winid, allow_resize, force_resize) abort
 
     " NOTE: this overwrites lines, from here on out it's just a list of string
     call map(lines, function('s:display_line'))
+
+    " TODO: remove
+    if len(lines) > 0
+        let lines[0] .= ' // winid ' . a:winid
+    endif
 
     let s:log_indent += 2
     if g:context_presenter == 'preview'
@@ -308,7 +350,7 @@ function! s:get_base_line(top_line) abort
     endwhile
 endfunction
 
-function! s:get_context_for_popup(top_line) abort
+function! s:get_context_for_popup(winid, top_line) abort
     " TODO: check how quickly the context size goes down from line to line. we
     " might be able to shortcut here. for example if the topline has a context
     " of 8 lines, then the line below is likely to have 7 or 8 lines context
@@ -360,7 +402,7 @@ function! s:get_context_for_popup(top_line) abort
         endwhile
 
         let w:indent = base_line.indent
-        call add(lines, s:get_border_line())
+        call add(lines, s:get_border_line(a:winid))
         return lines
     endwhile
 endfunction
@@ -389,6 +431,7 @@ function! s:get_min_height(allow_resize, force_resize, scroll_offset) abort
         return w:min_height
     endif
 
+    " TODO: use get()?
     if !exists('w:resize_level')
         let w:resize_level = 0 " for decreasing window height based on scrolling
     endif
@@ -507,15 +550,18 @@ function! s:get_context_line(line) abort
 endfunction
 
 " TODO: make this return a string? and map inside the get context functions
-function! s:get_border_line() abort
-    let line_len = w:width - w:indent - len(s:buffer_name) - 2 - w:padding
+function! s:get_border_line(winid) abort
+    let width = getwinvar(a:winid, 'width')
+    let indent = getwinvar(a:winid, 'indent')
+    let padding = getwinvar(a:winid, 'padding', 0)
+    let line_len = width - indent - len(s:buffer_name) - 2 - padding
     let border = 
-                \ repeat(' ', w:indent) .
+                \ repeat(' ', indent) .
                 \ repeat(g:context_border_char, line_len) .
                 \ ' ' .
                 \ s:buffer_name .
                 \ ' '
-    return s:make_line(0, w:indent, border)
+    return s:make_line(0, indent, border)
 endfunction
 
 " https://vi.stackexchange.com/questions/19056/how-to-create-preview-window-to-display-a-string
@@ -573,7 +619,7 @@ function! s:show_in_preview(lines) abort
     " or do all of them here instead of in open_preview?
     execute 'setlocal syntax='  . syntax
     execute 'setlocal tabstop=' . tabstop
-    call s:set_padding(padding)
+    call s:set_padding_in_preview(padding)
 
     " resize window
     execute 'resize' len(a:lines)
@@ -619,6 +665,7 @@ function! s:update_padding() abort
         return 0
     endif
 
+    " TODO: use get()
     if exists('w:padding') && w:padding == padding
         return 0
     endif
@@ -627,19 +674,46 @@ function! s:update_padding() abort
     return 1
 endfunction
 
-function! s:update_width(winid) abort
-    let width = winwidth(a:winid)
+" TODO: set w:needs_layout instead? hmm not sure
+function! s:update_size(winid) abort
+    let width  = winwidth(a:winid)
+    let height = winheight(a:winid)
 
-    if exists('w:width') && w:width == width
+    if 1
+                \ && getwinvar(a:winid, 'width')  == width
+                \ && getwinvar(a:winid, 'height') == height
         return 0
     endif
 
-    let w:width = width
+    call setwinvar(a:winid, 'width',  width)
+    call setwinvar(a:winid, 'height', height)
+    return 1
+endfunction
+
+function! s:update_screenpos(winid) abort
+    let screenpos = win_screenpos(a:winid)
+
+    if getwinvar(a:winid, 'screenpos', []) == screenpos
+        return 0
+    endif
+
+    call setwinvar(a:winid, 'screenpos', screenpos)
+    return 1
+endfunction
+
+function! s:update_wincount() abort
+    let wincount = winnr('$')
+
+    if s:wincount == wincount
+        return 0
+    endif
+
+    let s:wincount = wincount
     return 1
 endfunction
 
 " NOTE: this function updates the statusline too, as it depends on the padding
-function! s:set_padding(padding) abort
+function! s:set_padding_in_preview(padding) abort
     execute 'setlocal foldcolumn=' . a:padding
 
     let statusline = '%=' . s:buffer_name . ' ' " trailing space for padding
@@ -682,7 +756,7 @@ endfunction
 function! s:popup_open(winid, lines) abort
     call s:echof('> popup_open', len(a:lines))
     if g:context_presenter == 'nvim-float'
-        let winid = s:nvim_open_popup(a:lines)
+        let winid = s:nvim_open_popup(a:winid, a:lines)
     elseif g:context_presenter == 'vim-popup'
         let winid = s:vim_open_popup(a:winid, a:lines)
     endif
@@ -703,7 +777,7 @@ endfunction
 function! s:popup_update(winid, popup, lines) abort
     call s:echof('> popup_update', len(a:lines))
     if g:context_presenter == 'nvim-float'
-        call s:nvim_update_popup(a:popup, a:lines)
+        call s:nvim_update_popup(a:winid, a:popup, a:lines)
     elseif g:context_presenter == 'vim-popup'
         call s:vim_update_popup(a:winid, a:popup, a:lines)
     endif
@@ -738,17 +812,20 @@ function! s:popup_valid(popup) abort
     endif
 endfunction
 
-function! s:nvim_open_popup(lines) abort
+function! s:nvim_open_popup(winid, lines) abort
     call s:echof('  > nvim_open_popup', len(a:lines))
     if len(a:lines) == 0
         return
     endif
 
+    let width = getwinvar(a:winid, 'width')
+    let padding = getwinvar(a:winid, 'padding', 0)
+
     let buf = nvim_create_buf(v:false, v:true)
     call nvim_buf_set_lines(buf, 0, -1, v:true, a:lines)
     let opts = {
                 \ 'relative':  'win',
-                \ 'width':     w:width,
+                \ 'width':     width,
                 \ 'height':    len(a:lines),
                 \ 'col':       0,
                 \ 'row':       0,
@@ -765,33 +842,41 @@ function! s:nvim_open_popup(lines) abort
     " TODO: rename, g:context_highlight_normal ?
     call nvim_win_set_option(winid, 'winhighlight', 'Normal:' . g:context_highlight_normal)
 
-    call setbufvar(buf, '&foldcolumn', w:padding)
+    call setbufvar(buf, '&foldcolumn', padding)
 
     return winid
 endfunction
 
-function! s:nvim_update_popup(popup, lines) abort
+function! s:nvim_update_popup(winid, popup, lines) abort
     call s:echof('  > nvim_update_popup', len(a:lines))
+
+    let width = getwinvar(a:winid, 'width')
+    let padding = getwinvar(a:winid, 'padding', 0)
+
     let buf = winbufnr(a:popup)
     " NOTE: this seems to reset the 'foldcolumn' setting
     call nvim_win_set_config(a:popup, {
                 \ 'height': len(a:lines),
-                \ 'width':  w:width,
+                \ 'width':  width,
                 \ })
     call nvim_buf_set_lines(buf, 0, -1, v:true, a:lines)
 
-    call setbufvar(buf, '&foldcolumn', w:padding)
+    call setbufvar(buf, '&foldcolumn', padding)
 
     " NOTE: this redraws the screen. this is needed because there's
     " a redraw issue: https://github.com/neovim/neovim/issues/11597
     " for some reason sometimes it's not enough to :mode without :redraw
     " TODO: remove this once that issue has been resolved
+    " TODO: only do this once (in case we update all layout)
     redraw
     mode
 endfunction
 
 function! s:vim_open_popup(winid, lines) abort
     call s:echof('  > vim_open_popup', len(a:lines))
+
+    let width = getwinvar(a:winid, 'width')
+    let padding = getwinvar(a:winid, 'padding', 0)
 
     " NOTE: popups don't move automatically when windows get resized
     " same for width
@@ -800,16 +885,17 @@ function! s:vim_open_popup(winid, lines) abort
     let opts = {
                 \ 'line':     line,
                 \ 'col':      col,
-                \ 'minwidth': w:width,
-                \ 'maxwidth': w:width,
+                \ 'minwidth': width,
+                \ 'maxwidth': width,
                 \ 'wrap':     v:false,
+                \ 'fixed':    v:true,
                 \ }
     let winid = popup_create(a:lines, opts)
     " NOTE: this option is vim only
 
 	call setwinvar(winid, '&wincolor', g:context_highlight_normal)
 
-	call win_execute(winid, 'set foldcolumn=' . w:padding)
+	call win_execute(winid, 'set foldcolumn=' . padding)
 
     return winid
 endfunction
@@ -818,18 +904,21 @@ function! s:vim_update_popup(winid, popup, lines) abort
     call s:echof('  > vim_update_popup', len(a:lines))
     call popup_settext(a:popup, a:lines)
 
+    let width = getwinvar(a:winid, 'width')
+    let padding = getwinvar(a:winid, 'padding', 0)
+
     " TODO: dry
     let [line, col] = win_screenpos(a:winid)
     let opts = {
                 \ 'line':     line,
                 \ 'col':      col,
-                \ 'minwidth': w:width,
-                \ 'maxwidth': w:width,
+                \ 'minwidth': width,
+                \ 'maxwidth': width,
                 \ 'wrap':     v:false,
                 \ }
     call popup_move(a:popup, opts)
 
-	call win_execute(a:popup, 'set foldcolumn=' . w:padding)
+	call win_execute(a:popup, 'set foldcolumn=' . padding)
 endfunction
 
 
