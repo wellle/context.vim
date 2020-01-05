@@ -134,8 +134,8 @@ function! s:update_context(allow_resize, force_resize, source) abort
                 \ || a:force_resize
                 \ || scroll_offset != 0
                 \ || w:needs_update
-        call s:update_one_context(winid, a:allow_resize, a:force_resize, a:source)
-        let w:needs_update = 0
+        let w:needs_update = 0 " reset before recursion
+        call s:update_one_context(winid, a:allow_resize, a:force_resize, a:source, scroll_offset)
     endif
 
     " TODO: not on force_resize
@@ -212,7 +212,7 @@ endfunction
 " maybe split accordingly
 " TODO: later, maybe use w: instead of getwinvar in some places?
 " TODO: don't inject winid, will always be current
-function! s:update_one_context(winid, allow_resize, force_resize, source) abort
+function! s:update_one_context(winid, allow_resize, force_resize, source, scroll_offset) abort
     let top_line = getwinvar(a:winid, 'top_line')
 
     call s:echof('> update_one_context', a:source, a:winid, top_line)
@@ -224,7 +224,7 @@ function! s:update_one_context(winid, allow_resize, force_resize, source) abort
         " TODO: call get_min_height internally?
         " or don't bother with min_height anymore? at least not the slow
         " resizing part
-        let min_height = s:get_min_height(a:allow_resize, a:force_resize, scroll_offset)
+        let min_height = s:get_min_height(a:allow_resize, a:force_resize, a:scroll_offset)
         let lines = s:get_context_for_preview(base_line, min_height)
     else
         let lines = s:get_context_for_popup(a:winid, top_line)
@@ -246,7 +246,11 @@ function! s:update_one_context(winid, allow_resize, force_resize, source) abort
     if g:context_presenter == 'preview'
         " call again until it stabilizes
         " disallow resizing to make sure it will eventually
-        call s:update_context(0, 0)
+        let top_line = line('w0')
+        if w:top_line != top_line
+            let w:top_line = top_line
+            call s:update_one_context(a:winid, 0, 0, 'recurse', 0)
+        endif
     endif
 
     let s:log_indent -= 2
@@ -274,7 +278,6 @@ function! s:get_hidden_indent(top_line, lines) abort
         endif
 
         let indent = indent(current_line)
-        call s:echof('  got', current_line, max_line, indent, min_indent)
         if min_indent == -1 || min_indent > indent
             let min_indent = indent
         endif
@@ -345,27 +348,34 @@ function! s:get_context_for_popup(winid, top_line) abort
         endif
         let context_count += 1
 
-        if line_count >= line_offset
-            " try again on next line if this context doesn't fit
-            let skipped = 0
-            continue
+        if line_count < line_offset
+            break
         endif
 
-        " success, we found a fitting context
-        while len(lines) < line_offset - skipped - 1
-            " TODO: do we still need nil_line? probably yes
-            call add(lines, '')
-        endwhile
-
-        let w:indent = base_line.indent
-        call add(lines, s:get_border_line(a:winid))
-        return lines
+        " try again on next line if this context doesn't fit
+        let skipped = 0
     endwhile
+
+    " NOTE: this overwrites lines, from here on out it's just a list of string
+    call map(lines, function('s:display_line'))
+
+    " success, we found a fitting context
+    while len(lines) < line_offset - skipped - 1
+        " TODO: do we still need nil_line? probably yes
+        call add(lines, '')
+    endwhile
+
+    let w:indent = base_line.indent
+    call add(lines, s:get_border_line(a:winid))
+    return lines
 endfunction
 
 function! s:get_context_for_preview(base_line, min_height) abort
     let lines = s:get_context(a:base_line)
     let s:hidden_indent = s:get_hidden_indent(a:base_line, lines)
+
+    " NOTE: this overwrites lines, from here on out it's just a list of string
+    call map(lines, function('s:display_line'))
 
     while len(lines) < a:min_height
         call add(lines, '')
@@ -456,9 +466,6 @@ function! s:get_context(line) abort
         call remove(lines, max/2, -(max+1)/2)
         call insert(lines, ellipsis_line, max/2)
     endif
-
-    " NOTE: this overwrites lines, from here on out it's just a list of string
-    call map(lines, function('s:display_line'))
 
     return lines
 endfunction
@@ -643,6 +650,7 @@ function! s:update_state() abort
 endfunction
 
 function! s:update_window_state(winid) abort
+    " TODO: always use these w: vars
     let width = winwidth(a:winid)
     if getwinvar(a:winid, 'width') != width
         call setwinvar(a:winid, 'width', width)
@@ -655,10 +663,12 @@ function! s:update_window_state(winid) abort
         call setwinvar(a:winid, 'needs_layout', 1)
     endif
 
-    let screenpos = win_screenpos(a:winid)
-    if getwinvar(a:winid, 'screenpos', []) != screenpos
-        call setwinvar(a:winid, 'screenpos', screenpos)
-        call setwinvar(a:winid, 'needs_layout', 1)
+    if g:context_presenter != 'preview'
+        let screenpos = win_screenpos(a:winid)
+        if getwinvar(a:winid, 'screenpos', []) != screenpos
+            call setwinvar(a:winid, 'screenpos', screenpos)
+            call setwinvar(a:winid, 'needs_layout', 1)
+        endif
     endif
 endfunction
 
