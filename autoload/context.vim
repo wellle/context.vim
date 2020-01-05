@@ -20,11 +20,11 @@ let s:nil_line  = {'number': 0, 'indent': 0, 'text': ''}
 
 " state
 " NOTE: there's more state in window local w: variables
-let s:activated      = 0
-let s:ignore_autocmd = 0
-let s:log_indent     = 0
-let s:popups         = {}
-let s:wincount       = 0
+let s:activated     = 0
+let s:ignore_update = 0
+let s:log_indent    = 0
+let s:popups        = {}
+let s:wincount      = 0
 
 
 " TODO: rename
@@ -38,12 +38,12 @@ function! context#activate() abort
     " one buffer before another one gets opened in startup
     " to avoid that we wait for startup to be finished
     let s:activated = 1
-    call context#update(0, 'VimEnter')
+    call context#update(0, '#activate')
 endfunction
 
 function! context#enable() abort
     let g:context_enabled = 1
-    call context#update(1, 0)
+    call context#update(1, '#enable')
 endfunction
 
 function! context#disable() abort
@@ -70,37 +70,19 @@ function! context#toggle() abort
 endfunction
 
 
-function! context#update(force_resize, autocmd) abort
-    if !g:context_enabled || !s:activated
-        " call s:echof('  disabled')
+function! context#update(force_resize, source) abort
+    if 0
+                \ || !g:context_enabled
+                \ || !s:activated
+                \ || s:ignore_update
+                \ || &previewwindow
+                \ || mode() != 'n'
         return
     endif
 
-    if &previewwindow
-        " no context of preview windows (which we use to display context)
-        " call s:echof('  abort preview')
-        return
-    endif
-
-    if mode() != 'n'
-        " call s:echof('  abort mode')
-        return
-    endif
-
-    if type(a:autocmd) == type('') && s:ignore_autocmd
-        " ignore nested calls from auto commands
-        " call s:echof('  abort from autocmd')
-        return
-    endif
-
-    call s:echof()
-    call s:echof('> update', a:force_resize, a:autocmd)
-
-    let s:ignore_autocmd = 1
-    let s:log_indent += 2
-    call s:update_context(1, a:force_resize)
-    let s:log_indent -= 2
-    let s:ignore_autocmd = 0
+    let s:ignore_update = 1
+    call s:update_context(1, a:force_resize, a:source)
+    let s:ignore_update = 0
 endfunction
 
 function! context#clear_cache() abort
@@ -110,6 +92,7 @@ function! context#clear_cache() abort
     let b:context_skips = {}
     let b:context_cost  = 0
     let b:context_saved = 0
+    call context#update(0, '#clear_cache')
 endfunction
 
 function! context#cache_stats() abort
@@ -119,23 +102,15 @@ function! context#cache_stats() abort
     echom printf('cache: %d skips, %d / %d (%.1f%%)', skips, cost, total, 100.0 * cost / total)
 endfunction
 
-" TODO: inline
-function! context#update_padding(autocmd) abort
-    call context#update(1, 0)
-endfunction
-
-
-" this function actually updates the context and calls itself until it stabilizes
+" this function actually updates the context and calls itself until it stabilizes (TODO: mention: only for preview)
 " TODO: remove allow_resize, force_resize?
 " TODO: merge into caller?
-function! s:update_context(allow_resize, force_resize) abort
+function! s:update_context(allow_resize, force_resize, source) abort
     let top_line = line('w0')
-
-    call s:echof('> update_context', a:allow_resize, a:force_resize, top_line)
 
     " TODO: extract function?
     " TODO: use get()?
-    " TODO: can we move this into update_state functions too?
+    " TODO: can we move this into update_state functions too? yes!
     if exists('w:top_line')
         let scroll_offset = w:top_line - top_line
     else
@@ -149,16 +124,20 @@ function! s:update_context(allow_resize, force_resize) abort
     call s:update_state()
     call s:update_window_state(winid)
 
+    " TODO: no scroll_offset check here, move into needs_update
+    if w:needs_update || w:needs_layout || scroll_offset != 0 || a:force_resize
+        call s:echof()
+    endif
+
     " TODO: also if there's no popup window? (after :only for example)
     if 0
                 \ || a:force_resize
                 \ || scroll_offset != 0
                 \ || w:needs_update
-        call s:update_one_context(winid, a:allow_resize, a:force_resize)
+        call s:update_one_context(winid, a:allow_resize, a:force_resize, a:source)
         let w:needs_update = 0
     endif
 
-    " TODO: also if win_screenpos() changed, for vim
     " TODO: not on force_resize
     if w:needs_layout || a:force_resize
         " update all contexts
@@ -171,6 +150,8 @@ function! s:update_context(allow_resize, force_resize) abort
 endfunction
 
 function! s:update_layout() abort
+    call s:echof('> update_layout')
+
     if g:context_presenter == 'preview'
         return
     endif
@@ -231,10 +212,10 @@ endfunction
 " maybe split accordingly
 " TODO: later, maybe use w: instead of getwinvar in some places?
 " TODO: don't inject winid, will always be current
-function! s:update_one_context(winid, allow_resize, force_resize) abort
-    call s:echof('> update_one_context', a:winid, a:allow_resize, a:force_resize)
-
+function! s:update_one_context(winid, allow_resize, force_resize, source) abort
     let top_line = getwinvar(a:winid, 'top_line')
+
+    call s:echof('> update_one_context', a:source, a:winid, top_line)
 
     let popup = get(s:popups, a:winid)
 

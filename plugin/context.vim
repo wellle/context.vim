@@ -72,8 +72,10 @@ command! -bar ContextActivate call context#activate()
 command! -bar ContextEnable   call context#enable()
 command! -bar ContextDisable  call context#disable()
 command! -bar ContextToggle   call context#toggle()
-command! -bar ContextUpdate   call context#update(0, 0)
+command! -bar ContextUpdate   call context#update(0, 'command')
 
+
+" " TODO update docs, as we changed the mappings and autocmds
 
 " mappings
 if g:context_add_mappings
@@ -81,12 +83,12 @@ if g:context_add_mappings
     " context#update(). unfortunately this is needed because it seems like Vim
     " sometimes gets confused if the window height changes shortly after zz/zt/zb
     " have been executed.
-    nnoremap <silent> <C-L> <C-L>:call context#update(1, 0)<CR>
-    nnoremap <silent> <C-E> <C-E>:call context#update(0, 0)<CR>
-    nnoremap <silent> <C-Y> <C-Y>:call context#update(0, 0)<CR>
-    nnoremap <silent> zz     zzzz:call context#update(0, 0)<CR>
-    nnoremap <silent> zt     ztzt:call context#update(0, 0)<CR>
-    nnoremap <silent> zb     zbzb:call context#update(0, 0)<CR>
+    nnoremap <silent> <C-L> <C-L>:call context#update(1, 'C-L')<CR>
+    nnoremap <silent> <C-E> <C-E>:call context#update(0, 'C-E')<CR>
+    nnoremap <silent> <C-Y> <C-Y>:call context#update(0, 'C-Y')<CR>
+    nnoremap <silent> zz     zzzz:call context#update(0, 'zz')<CR>
+    nnoremap <silent> zt     ztzt:call context#update(0, 'zt')<CR>
+    nnoremap <silent> zb     zbzb:call context#update(0, 'zb')<CR>
 endif
 
 
@@ -98,9 +100,13 @@ if g:context_add_autocmds
         autocmd BufAdd       * call context#update(1, 'BufAdd')
         autocmd BufEnter     * call context#update(0, 'BufEnter')
         autocmd CursorMoved  * call context#update(0, 'CursorMoved')
+        autocmd VimResized   * call context#update(0, 'VimResized')
+        autocmd CursorHold   * call context#update(0, 'CursorHold')
+        " TODO: use changetick instead?
         autocmd TextChanged  * call context#clear_cache()
         autocmd TextChangedI * call context#clear_cache()
-        autocmd User GitGutter call context#update_padding('GitGutter')
+        autocmd User GitGutter call context#update(0, 'GitGutter')
+
     augroup END
 
     " lazy loading was used
