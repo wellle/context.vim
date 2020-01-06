@@ -95,12 +95,6 @@ function! context#update(force_resize, source) abort
 endfunction
 
 function! context#clear_cache() abort
-    " this dictionary maps a line to its next context line
-    " so it allows us to skip large portions of the buffer instead of always
-    " having to scan through all of it
-    let b:context_skips = {}
-    let b:context_cost  = 0
-    let b:context_saved = 0
     call context#update(0, 'clear_cache')
 endfunction
 
@@ -345,8 +339,14 @@ function! s:get_context(line) abort
 
     let context = {}
 
-    if !exists('b:context_skips')
+    if get(b:, 'context_tick') != b:changedtick
+        let b:context_tick  = b:changedtick
+        " this dictionary maps a line to its next context line
+        " so it allows us to skip large portions of the buffer instead of always
+        " having to scan through all of it
         let b:context_skips = {}
+        let b:context_cost  = 0
+        let b:context_saved = 0
     endif
 
     while 1
@@ -391,14 +391,6 @@ function! s:get_context(line) abort
 endfunction
 
 function! s:get_context_line(line) abort
-    " this is a very primitive way of counting how many lines we scan in total
-    " highly unscientific, but can the effect of our caching and where it
-    " should be improved
-    if !exists('b:context_cost')
-        let b:context_cost  = 0
-        let b:context_saved = 0
-    endif
-
     " check if we have a skip available from the base line
     let skipped = get(b:context_skips, a:line.number, -1)
     if skipped != -1

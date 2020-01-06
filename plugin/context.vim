@@ -6,7 +6,8 @@
 
 " settings
 
-" TODO: document
+" TODO: update docs
+
 if exists('g:context_presenter')
     " keep the value
 elseif has('nvim-0.4.0')
@@ -38,10 +39,9 @@ let g:context_max_join_parts = get(g:, 'context_max_join_parts', 5)
 " which character to use for the ellipsis "..."
 let g:context_ellipsis_char = get(g:, 'context_ellipsis_char', '·')
 
-" TODO: update docs
 let g:context_border_char = get(g:, 'context_border_char', '▬')
 
-" TODO: mention that this is preview only?
+" TODO: mention that this is preview only
 " how much to decrease window height when scrolling linewise (^E/^Y)
 let g:context_resize_linewise = get(g:, 'context_resize_linewise', 0.25)
 
@@ -62,7 +62,6 @@ let g:context_extend_regex = get(g:, 'context_extend_regex', '^\s*\([]{})]\|end\
 " for example a `{` might be lifted to the preceeding `if` line
 let g:context_join_regex = get(g:, 'context_join_regex', '^\W*$')
 
-" TODO: update docs
 let g:context_highlight_normal = get(g:, 'context_highlight_normal', 'Normal')
 let g:context_highlight_border = get(g:, 'context_highlight_border', 'Comment')
 let g:context_highlight_tag    = get(g:, 'context_highlight_tag',    'Special')
@@ -102,9 +101,6 @@ if g:context_add_autocmds
         autocmd CursorMoved  * call context#update(0, 'CursorMoved')
         autocmd VimResized   * call context#update(0, 'VimResized')
         autocmd CursorHold   * call context#update(0, 'CursorHold')
-        " TODO: use changetick instead?
-        autocmd TextChanged  * call context#clear_cache()
-        autocmd TextChangedI * call context#clear_cache()
         autocmd User GitGutter call context#update(0, 'GitGutter')
 
     augroup END
