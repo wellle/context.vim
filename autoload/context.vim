@@ -2,19 +2,20 @@
 " partial?
 " TODO: reorder functions and split out into autoload dirs
 
+" TODO: these used to be s:, are now g:, need update/move?
 " consts
-let s:buffer_name = '<context.vim>'
+let g:context_buffer_name = '<context.vim>'
 
 " cached
-let s:ellipsis  = repeat(g:context_ellipsis_char, 3)
-let s:ellipsis5 = repeat(g:context_ellipsis_char, 5)
-let s:nil_line  = {'number': 0, 'indent': 0, 'text': ''}
+let g:context_ellipsis  = repeat(g:context_ellipsis_char, 3)
+let g:context_ellipsis5 = repeat(g:context_ellipsis_char, 5)
+" TODO: use make_line later?
+let s:nil_line = {'number': 0, 'indent': 0, 'text': ''}
 
 " state
 " NOTE: there's more state in window local w: variables
 let s:activated     = 0
 let s:ignore_update = 0
-let s:log_indent    = 0
 let s:popups        = {}
 let s:wincount      = 0
 
@@ -34,17 +35,13 @@ function! context#enable() abort
 endfunction
 
 function! context#disable() abort
-    call s:popup_clear()
     let g:context_enabled = 0
 
-    silent! wincmd P " jump to new preview window
-    if &previewwindow
-        let bufname = bufname('%')
-        wincmd p " jump back
-        if bufname == s:buffer_name
-            " if current preview window is context, close it
-            pclose
-        endif
+    " TODO: extract one general function, similar in other places
+    " TODO: also how can we avoid the explicit presenter checks?
+    call s:popup_clear()
+    if g:context_presenter == 'preview'
+        call context#preview#close()
     endif
 endfunction
 
@@ -77,7 +74,7 @@ function! context#update(force_resize, source) abort
     call s:update_window_state(winid)
 
     if w:context_needs_update || w:context_needs_layout
-        call s:echof()
+        call context#util#echof()
     endif
 
     if w:context_needs_update
@@ -111,7 +108,7 @@ function! s:update_layout() abort
         return
     endif
 
-    call s:echof('> update_layout')
+    call context#util#echof('> update_layout')
 
     for winid in keys(s:popups)
         let popup = s:popups[winid]
@@ -144,15 +141,14 @@ endfunction
 " NOTE: winid is injected, but will always be current window
 " TODO: remove allow_resize, force_resize?
 function! s:update_context(winid, allow_resize, force_resize, source) abort
-    call s:echof('> update_context', a:source, a:winid, w:context_top_line)
-    let s:log_indent += 2
+    call context#util#echof('> update_context', a:source, a:winid, w:context_top_line)
+    call context#util#log_indent(2)
 
     let popup = get(s:popups, a:winid)
 
     let base_line = s:get_base_line()
     if g:context_presenter == 'preview'
-        let min_height = s:get_min_height_for_preview(a:allow_resize, a:force_resize)
-        let lines = s:get_context_for_preview(base_line, min_height)
+        let lines = context#preview#get_context(base_line, a:allow_resize, a:force_resize)
     else
         let lines = s:get_context_for_popup(a:winid)
         let w:context_lines = lines " to update border line on padding change
@@ -164,7 +160,7 @@ function! s:update_context(winid, allow_resize, force_resize, source) abort
     endif
 
     if g:context_presenter == 'preview'
-        call s:show_in_preview(lines)
+        call context#preview#show(lines)
     else
         call s:show_in_popup(a:winid, lines)
     endif
@@ -178,38 +174,7 @@ function! s:update_context(winid, allow_resize, force_resize, source) abort
         endif
     endif
 
-    let s:log_indent -= 2
-endfunction
-
-" find first line above (hidden) which isn't empty
-" return its indent, -1 if no such line
-" TODO: this is expensive now, maybe not do it like this? or limit it somehow?
-function! s:get_hidden_indent_for_preview(base_line, lines) abort
-    call s:echof('> get_hidden_indent_for_preview', a:base_line.number, len(a:lines))
-    if len(a:lines) == 0
-        " don't show ellipsis if context is empty
-        return -1
-    endif
-
-    let min_indent = -1
-    let max_line = a:lines[-1].number
-    let current_line = a:base_line.number - 1 " first hidden line
-    while current_line > max_line
-        let line = getline(current_line)
-        if s:skip_line(line)
-            let current_line -= 1
-            continue
-        endif
-
-        let indent = indent(current_line)
-        if min_indent == -1 || min_indent > indent
-            let min_indent = indent
-        endif
-
-        let current_line -= 1
-    endwhile
-
-    return min_indent
+    call context#util#log_indent(-2)
 endfunction
 
 " find line downwards (from top line) which isn't empty
@@ -222,7 +187,7 @@ function! s:get_base_line() abort
         endif
 
         let line = getline(current_line)
-        if s:skip_line(line)
+        if context#util#skip_line(line)
             let current_line += 1
             continue
         endif
@@ -250,15 +215,15 @@ function! s:get_context_for_popup(winid) abort
 
         if base_line.indent < 0
             let lines = []
-        elseif s:skip_line(line)
+        elseif context#util#skip_line(line)
             let skipped += 1
             continue
         else
-            let lines = s:get_context(base_line)
+            let lines = context#get_context(base_line)
         endif
 
         let line_count = len(lines)
-        " call s:echof('  got', line_offset, line_offset, line_count, skipped)
+        " call context#util#echof('  got', line_offset, line_offset, line_count, skipped)
 
         if line_count == 0 && context_count == 0
             " if we get an empty context on the first non skipped line
@@ -275,7 +240,7 @@ function! s:get_context_for_popup(winid) abort
     endwhile
 
     " NOTE: this overwrites lines, from here on out it's just a list of string
-    call map(lines, function('s:display_line'))
+    call map(lines, function('context#util#display_line'))
 
     " success, we found a fitting context
     while len(lines) < line_offset - skipped - 1
@@ -287,51 +252,9 @@ function! s:get_context_for_popup(winid) abort
     return lines
 endfunction
 
-function! s:get_context_for_preview(base_line, min_height) abort
-    let lines = s:get_context(a:base_line)
-    let s:hidden_indent = s:get_hidden_indent_for_preview(a:base_line, lines)
-
-    " NOTE: this overwrites lines, from here on out it's just a list of string
-    call map(lines, function('s:display_line'))
-
-    while len(lines) < a:min_height
-        call add(lines, '')
-    endwhile
-    let w:context_min_height = len(lines)
-
-    return lines
-endfunction
-
-function! s:get_min_height_for_preview(allow_resize, force_resize) abort
-    " adjust min window height based on scroll amount
-    if a:force_resize || !exists('w:context_min_height')
-        return 0
-    endif
-
-    if !a:allow_resize || w:context_scroll_offset == 0
-        return w:context_min_height
-    endif
-
-    if !exists('w:context_resize_level')
-        let w:context_resize_level = 0 " for decreasing window height based on scrolling
-    endif
-
-    let diff = abs(w:context_scroll_offset)
-    if diff == 1
-        " slowly decrease min height if moving line by line
-        let w:context_resize_level += g:context_resize_linewise
-    else
-        " quicker if moving multiple lines (^U/^D: decrease by one line)
-        let w:context_resize_level += g:context_resize_scroll / &scroll * diff
-    endif
-
-    let t = float2nr(w:context_resize_level)
-    let w:context_resize_level -= t
-    return w:context_min_height - t
-endfunction
-
+" TODO: move to #util?
 " collect all context lines
-function! s:get_context(line) abort
+function! context#get_context(line) abort
     let base_line = a:line
     if base_line.number == 0
         return []
@@ -395,14 +318,14 @@ function! s:get_context_line(line) abort
     let skipped = get(b:context_skips, a:line.number, -1)
     if skipped != -1
         let b:context_saved += a:line.number-1 - skipped
-        " call s:echof('  skipped', a:line.number, '->', skipped)
+        " call context#util#echof('  skipped', a:line.number, '->', skipped)
         return s:make_line(skipped, indent(skipped), getline(skipped))
     endif
 
     " if line starts with closing brace or similar: jump to matching
     " opening one and add it to context. also for other prefixes to show
     " the if which belongs to an else etc.
-    if s:extend_line(a:line.text)
+    if context#util#extend_line(a:line.text)
         let max_indent = a:line.indent " allow same indent
     else
         let max_indent = a:line.indent - 1 " must be strictly less
@@ -432,7 +355,7 @@ function! s:get_context_line(line) abort
         endif
 
         let line = getline(current_line)
-        if s:skip_line(line)
+        if context#util#skip_line(line)
             let current_line -= 1
             continue
         endif
@@ -445,83 +368,14 @@ function! s:get_border_line(winid) abort
     let width    = getwinvar(a:winid, 'context_width')
     let indent   = getwinvar(a:winid, 'context_indent')
     let padding  = getwinvar(a:winid, 'context_padding')
-    let line_len = width - indent - len(s:buffer_name) - 2 - padding
+    let line_len = width - indent - len(g:context_buffer_name) - 2 - padding
 
     return ''
                 \ . repeat(' ', indent)
                 \ . repeat(g:context_border_char, line_len)
                 \ . ' '
-                \ . s:buffer_name
+                \ . g:context_buffer_name
                 \ . ' '
-endfunction
-
-function! s:show_in_preview(lines) abort
-    call s:echof('> show_in_preview', len(a:lines))
-
-    call s:close_preview()
-
-    if len(a:lines) == 0
-        " nothing to do
-        call s:echof('  none')
-        return
-    endif
-
-    let syntax  = &syntax
-    let tabstop = &tabstop
-    let padding = w:context_padding
-
-    execute 'silent! aboveleft pedit' s:buffer_name
-
-    " try to jump to new preview window
-    silent! wincmd P
-    if !&previewwindow
-        " NOTE: apparently this can fail with E242, see #6
-        " in that case just silently abort
-        call s:echof('  no preview window')
-        return
-    endif
-
-    silent 0put =a:lines " paste lines
-    1                    " and jump to first line
-
-    setlocal buftype=nofile
-    setlocal modifiable
-    setlocal nobuflisted
-    setlocal nocursorline
-    setlocal nonumber
-    setlocal norelativenumber
-    setlocal noswapfile
-    setlocal nowrap
-    setlocal signcolumn=no
-    execute 'setlocal syntax='  . syntax
-    execute 'setlocal tabstop=' . tabstop
-    let b:airline_disable_statusline=1
-    call s:set_padding_in_preview(padding)
-
-    " resize window
-    execute 'resize' len(a:lines)
-
-    wincmd p " jump back
-endfunction
-
-function! s:close_preview() abort
-    silent! wincmd P " jump to preview, but don't show error
-    if !&previewwindow
-        return
-    endif
-    wincmd p
-
-    if &equalalways
-        " NOTE: if 'equalalways' is set (which it is by default) then :pclose
-        " will change the window layout. here we try to restore the window
-        " layout based on some help from /u/bradagy, see
-        " https://www.reddit.com/r/vim/comments/e7l4m1
-        set noequalalways
-        pclose
-        let layout = winrestcmd() | set equalalways | noautocmd execute layout
-    else
-        pclose
-    endif
 endfunction
 
 function! s:update_state() abort
@@ -578,21 +432,10 @@ function! s:update_window_state(winid) abort
     endif
 endfunction
 
-" NOTE: this function updates the statusline too, as it depends on the padding
-function! s:set_padding_in_preview(padding) abort
-    execute 'setlocal foldcolumn=' . a:padding
-
-    let statusline = '%=' . s:buffer_name . ' ' " trailing space for padding
-    if s:hidden_indent >= 0
-        let statusline = repeat(' ', a:padding + s:hidden_indent) . s:ellipsis . statusline
-    endif
-    execute 'setlocal statusline=' . escape(statusline, ' ')
-endfunction
-
 
 " popup related
 function! s:show_in_popup(winid, lines) abort
-    call s:echof('> show_in_popup', len(a:lines))
+    call context#util#echof('> show_in_popup', len(a:lines))
     let popup = get(s:popups, a:winid)
     let popupbuf = winbufnr(popup)
 
@@ -602,7 +445,7 @@ function! s:show_in_popup(winid, lines) abort
     endif
 
     if len(a:lines) == 0
-        call s:echof('  no lines')
+        call context#util#echof('  no lines')
         if popup > 0
             call s:popup_close(popup)
             call remove(s:popups, a:winid)
@@ -630,15 +473,15 @@ function! s:show_in_popup(winid, lines) abort
 endfunction
 
 function! s:popup_open() abort
-    call s:echof('  > popup_open')
+    call context#util#echof('  > popup_open')
     if g:context_presenter == 'nvim-float'
         let popup = s:nvim_open_popup()
     elseif g:context_presenter == 'vim-popup'
         let popup = s:vim_open_popup()
     endif
 
-    let border = ' *' .g:context_border_char . '* ' . s:buffer_name . ' '
-    let tag = s:buffer_name
+    let border = ' *' .g:context_border_char . '* ' . g:context_buffer_name . ' '
+    let tag = g:context_buffer_name
     let m = matchadd(g:context_highlight_border, border, 10, -1, {'window': popup})
     let m = matchadd(g:context_highlight_tag,    tag,    10, -1, {'window': popup})
 
@@ -649,7 +492,7 @@ function! s:popup_open() abort
 endfunction
 
 function! s:popup_update(winid, popup, lines) abort
-    call s:echof('  > popup_update', len(a:lines))
+    call context#util#echof('  > popup_update', len(a:lines))
     if g:context_presenter == 'nvim-float'
         call s:nvim_update_popup(a:winid, a:popup, a:lines)
     elseif g:context_presenter == 'vim-popup'
@@ -658,7 +501,7 @@ function! s:popup_update(winid, popup, lines) abort
 endfunction
 
 function! s:popup_close(popup) abort
-    call s:echof('  > popup_close')
+    call context#util#echof('  > popup_close')
     if g:context_presenter == 'nvim-float'
         call nvim_win_close(a:popup, v:true)
     elseif g:context_presenter == 'vim-popup'
@@ -674,7 +517,7 @@ function! s:popup_clear() abort
 endfunction
 
 function! s:nvim_open_popup() abort
-    call s:echof('    > nvim_open_popup')
+    call context#util#echof('    > nvim_open_popup')
 
     let buf = nvim_create_buf(v:false, v:true)
     let popup = nvim_open_win(buf, 0, {
@@ -695,7 +538,7 @@ function! s:nvim_open_popup() abort
 endfunction
 
 function! s:nvim_update_popup(winid, popup, lines) abort
-    call s:echof('    > nvim_update_popup', len(a:lines))
+    call context#util#echof('    > nvim_update_popup', len(a:lines))
 
     let width   = getwinvar(a:winid, 'context_width')
     let padding = getwinvar(a:winid, 'context_padding')
@@ -711,7 +554,7 @@ function! s:nvim_update_popup(winid, popup, lines) abort
 endfunction
 
 function! s:vim_open_popup() abort
-    call s:echof('    > vim_open_popup')
+    call context#util#echof('    > vim_open_popup')
 
     " NOTE: popups don't move automatically when windows get resized
     let popup = popup_create('', {
@@ -726,7 +569,7 @@ function! s:vim_open_popup() abort
 endfunction
 
 function! s:vim_update_popup(winid, popup, lines) abort
-    call s:echof('    > vim_update_popup', len(a:lines))
+    call context#util#echof('    > vim_update_popup', len(a:lines))
     call popup_settext(a:popup, a:lines)
 
     let width   = getwinvar(a:winid, 'context_width')
@@ -753,11 +596,11 @@ function! s:join(lines) abort
         return a:lines
     endif
 
-    " call s:echof('> join', len(a:lines))
+    " call context#util#echof('> join', len(a:lines))
     let pending = [] " lines which might be joined with previous
     let joined = a:lines[:0] " start with first line
     for line in a:lines[1:]
-        if s:join_line(line.text)
+        if context#util#join_line(line.text)
             " add lines without word characters to pending list
             call add(pending, line)
             continue
@@ -776,7 +619,7 @@ function! s:join(lines) abort
 endfunction
 
 function! s:join_pending(base, pending) abort
-    " call s:echof('> join_pending', len(a:pending))
+    " call context#util#echof('> join_pending', len(a:pending))
     if len(a:pending) == 0
         return a:base
     endif
@@ -792,13 +635,13 @@ function! s:join_pending(base, pending) abort
         let joined.text .= ' '
         if line.number == 0
             " this is the middle marker, use long ellipsis
-            let joined.text .= s:ellipsis5
+            let joined.text .= g:context_ellipsis5
         elseif joined.number != 0 && line.number != joined.number + 1
             " not after middle marker and there are lines in between: show ellipsis
-            let joined.text .= s:ellipsis . ' '
+            let joined.text .= g:context_ellipsis . ' '
         endif
 
-        let joined.text .= s:trim(line.text)
+        let joined.text .= context#util#trim(line.text)
         let joined.number = line.number
     endfor
 
@@ -806,7 +649,7 @@ function! s:join_pending(base, pending) abort
 endfunction
 
 function! s:limit(lines, indent) abort
-    " call s:echof('> limit', a:indent, len(a:lines))
+    " call context#util#echof('> limit', a:indent, len(a:lines))
 
     let max = g:context_max_per_indent
     if len(a:lines) <= max
@@ -816,7 +659,7 @@ function! s:limit(lines, indent) abort
     let diff = len(a:lines) - max
 
     let limited = a:lines[: max/2-1]
-    call add(limited, s:make_line(0, a:indent, repeat(' ', a:indent) . s:ellipsis))
+    call add(limited, s:make_line(0, a:indent, repeat(' ', a:indent) . g:context_ellipsis))
     call extend(limited, a:lines[-(max-1)/2 :])
     return limited
 endif
@@ -829,43 +672,3 @@ function! s:make_line(number, indent, text) abort
                 \ 'text':   a:text,
                 \ }
 endfunction
-
-function! s:display_line(index, line) abort
-    return a:line.text
-
-    " NOTE: comment out the line above to include this debug info
-    let n = &columns - 25 - strchars(s:trim(a:line.text)) - a:line.indent
-    return printf('%s%s // %2d n:%5d i:%2d', a:line.text, repeat(' ', n), a:index+1, a:line.number, a:line.indent)
-endfunction
-
-function! s:extend_line(line) abort
-    return a:line =~ g:context_extend_regex
-endfunction
-
-function! s:skip_line(line) abort
-    return a:line =~ g:context_skip_regex
-endfunction
-
-function! s:join_line(line) abort
-    return a:line =~ g:context_join_regex
-endfunction
-
-function s:trim(string) abort
-    return substitute(a:string, '^\s*', '', '')
-endfunction
-
-" debug logging, set g:context_logfile to activate
-function! s:echof(...) abort
-    let args = join(a:000)
-    let args = substitute(args, "'", '"', 'g')
-    let args = substitute(args, '!', '^', 'g')
-    let message = repeat(' ', s:log_indent) . args
-
-    " echom message
-    if exists('g:context_logfile')
-        execute "silent! !echo '" . message . "' >>" g:context_logfile
-    endif
-endfunction
-
-let layout = winrestcmd() | set equalalways | noautocmd execute layout
-let padding = wincol() - virtcol('.')
