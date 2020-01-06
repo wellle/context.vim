@@ -1,7 +1,8 @@
-function! context#preview#get_context(base_line, allow_resize, force_resize) abort
-    let lines = context#get_context(a:base_line)
+function! context#preview#get_context(allow_resize, force_resize) abort
+    let base_line = s:get_base_line()
+    let lines = context#get_context(base_line)
     " TODO: pass this instead of using s: var?
-    let s:hidden_indent = s:get_hidden_indent_for_preview(a:base_line, lines)
+    let s:hidden_indent = s:get_hidden_indent_for_preview(base_line, lines)
 
     " NOTE: this overwrites lines, from here on out it's just a list of string
     call map(lines, function('context#util#display_line'))
@@ -105,6 +106,25 @@ function! context#preview#close() abort
     let layout = winrestcmd() | set equalalways | noautocmd execute layout
 endfunction
 
+
+" find line downwards (from top line) which isn't empty
+function! s:get_base_line() abort
+    let current_line = w:context_top_line
+    while 1
+        let indent = indent(current_line)
+        if indent < 0 " invalid line
+            return s:nil_line
+        endif
+
+        let line = getline(current_line)
+        if context#util#skip_line(line)
+            let current_line += 1
+            continue
+        endif
+
+        return context#util#make_line(current_line, indent, line)
+    endwhile
+endfunction
 
 " find first line above (hidden) which isn't empty
 " return its indent, -1 if no such line
