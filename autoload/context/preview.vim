@@ -1,11 +1,11 @@
 function! context#preview#get_context(allow_resize, force_resize) abort
     let base_line = s:get_base_line()
-    let lines = context#get_context(base_line)
+    let lines = context#context#get(base_line)
     " TODO: pass this instead of using s: var?
     let s:hidden_indent = s:get_hidden_indent_for_preview(base_line, lines)
 
     " NOTE: this overwrites lines, from here on out it's just a list of string
-    call map(lines, function('context#util#display_line'))
+    call map(lines, function('context#line#display'))
 
     let min_height = s:get_min_height_for_preview(a:allow_resize, a:force_resize)
     while len(lines) < min_height
@@ -113,16 +113,16 @@ function! s:get_base_line() abort
     while 1
         let indent = indent(current_line)
         if indent < 0 " invalid line
-            return s:nil_line
+            return g:context_nil_line
         endif
 
         let line = getline(current_line)
-        if context#util#skip_line(line)
+        if context#line#should_skip(line)
             let current_line += 1
             continue
         endif
 
-        return context#util#make_line(current_line, indent, line)
+        return context#line#make(current_line, indent, line)
     endwhile
 endfunction
 
@@ -142,7 +142,7 @@ function! s:get_hidden_indent_for_preview(base_line, lines) abort
     let current_line = a:base_line.number - 1 " first hidden line
     while current_line > max_line
         let line = getline(current_line)
-        if context#util#skip_line(line)
+        if context#line#should_skip(line)
             let current_line -= 1
             continue
         endif
@@ -185,4 +185,3 @@ function! s:get_min_height_for_preview(allow_resize, force_resize) abort
     let w:context_resize_level -= t
     return w:context_min_height - t
 endfunction
-

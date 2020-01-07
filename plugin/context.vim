@@ -51,12 +51,14 @@ let g:context_resize_scroll = get(g:, 'context_resize_scroll', 1.0)
 " lines matching this regex will be ignored for the context
 " match whitespace only lines to show the full context
 " also by default excludes comment lines etc.
-let g:context_skip_regex = get(g:, 'context_skip_regex', '^\([<=>]\{7\}\|\s*\($\|#\|//\|/\*\|\*\($\|\s\|/\)\)\)')
+let g:context_skip_regex = get(g:, 'context_skip_regex',
+            \ '^\([<=>]\{7\}\|\s*\($\|#\|//\|/\*\|\*\($\|\s\|/\)\)\)')
 
 " if a line matches this regex we will extend the context by looking upwards
 " for another line with the same indent
 " (to show the if which belongs to an else etc.)
-let g:context_extend_regex = get(g:, 'context_extend_regex', '^\s*\([]{})]\|end\|else\|\(case\|default\|done\|elif\|fi\)\>\)')
+let g:context_extend_regex = get(g:, 'context_extend_regex',
+            \ '^\s*\([]{})]\|end\|else\|\(case\|default\|done\|elif\|fi\)\>\)')
 
 " if a line matches this regex we consider joining it into the one above
 " for example a `{` might be lifted to the preceeding `if` line
@@ -65,6 +67,10 @@ let g:context_join_regex = get(g:, 'context_join_regex', '^\W*$')
 let g:context_highlight_normal = get(g:, 'context_highlight_normal', 'Normal')
 let g:context_highlight_border = get(g:, 'context_highlight_border', 'Comment')
 let g:context_highlight_tag    = get(g:, 'context_highlight_tag',    'Special')
+
+" TODO: everything above (except context_add_mappings, context_add_autocmds,
+" context_enabled) could be moved to autoload/context.vim, as they are not
+" used here
 
 " commands
 command! -bar ContextActivate call context#activate()
@@ -105,6 +111,7 @@ if g:context_add_autocmds
 
     augroup END
 
+    " TODO: move out of this check?
     " lazy loading was used
     if v:vim_did_enter
         let g:context_enabled = 0 " plugin was effectively disabled before load

@@ -1,5 +1,3 @@
-let s:popups = {}
-
 function! context#popup#get_context() abort
     " NOTE: there's a problem if some of the hidden lines (behind the
     " popup) are wrapped. then our calculations are off
@@ -15,15 +13,15 @@ function! context#popup#get_context() abort
         let line_number = w:context_top_line + line_offset
         let indent = indent(line_number) "    -1 for invalid lines
         let line = getline(line_number)  " empty for invalid lines
-        let base_line = context#util#make_line(line_number, indent, line)
+        let base_line = context#line#make(line_number, indent, line)
 
         if base_line.indent < 0
             let lines = []
-        elseif context#util#skip_line(line)
+        elseif context#line#should_skip(line)
             let skipped += 1
             continue
         else
-            let lines = context#get_context(base_line)
+            let lines = context#context#get(base_line)
         endif
 
         let line_count = len(lines)
@@ -44,7 +42,7 @@ function! context#popup#get_context() abort
     endwhile
 
     " NOTE: this overwrites lines, from here on out it's just a list of string
-    call map(lines, function('context#util#display_line'))
+    call map(lines, function('context#line#display'))
 
     " success, we found a fitting context
     while len(lines) < line_offset - skipped - 1
@@ -57,6 +55,8 @@ function! context#popup#get_context() abort
     let w:context_lines = lines " to update border line on padding change
     return lines
 endfunction
+
+let s:popups = {}
 
 " popup related
 function! context#popup#show(winid, lines) abort
@@ -180,4 +180,3 @@ function! s:get_border_line(winid) abort
                 \ . g:context_buffer_name
                 \ . ' '
 endfunction
-

@@ -1,4 +1,3 @@
-
 function! context#popup#vim#open() abort
     call context#util#echof('    > vim_open_popup')
 

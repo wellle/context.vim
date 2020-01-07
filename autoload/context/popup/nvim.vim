@@ -1,4 +1,3 @@
-
 function! context#popup#nvim#open() abort
     call context#util#echof('    > nvim_open_popup')
 
