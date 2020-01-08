@@ -2,12 +2,13 @@ function! context#popup#nvim#open() abort
     call context#util#echof('    > nvim_open_popup')
 
     let buf = nvim_create_buf(v:false, v:true)
+    " TODO: maybe use relative:editor to be more similar to vim popups?
     let popup = nvim_open_win(buf, 0, {
                 \ 'relative':  'win',
                 \ 'width':     1,
                 \ 'height':    1,
-                \ 'col':       0,
                 \ 'row':       0,
+                \ 'col':       0,
                 \ 'focusable': v:false,
                 \ 'anchor':    'NW',
                 \ 'style':     'minimal',
@@ -24,12 +25,16 @@ function! context#popup#nvim#update(winid, popup, lines) abort
 
     let width   = getwinvar(a:winid, 'context_width')
     let padding = getwinvar(a:winid, 'context_padding')
+    let offset  = getwinvar(a:winid, 'context_popup_offset', 0)
     let buf     = winbufnr(a:popup)
 
     call nvim_buf_set_lines(buf, 0, -1, v:true, a:lines)
     call nvim_win_set_config(a:popup, {
-                \ 'height': len(a:lines),
-                \ 'width':  width,
+                \ 'relative': 'win',
+                \ 'height':   len(a:lines),
+                \ 'width':    width,
+                \ 'row':      offset,
+                \ 'col':      0,
                 \ })
 
     call setwinvar(a:popup, '&foldcolumn', padding)

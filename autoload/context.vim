@@ -1,5 +1,6 @@
 " TODO: don't hide cursor, hide (partially) context instead, hint that it's
 " partial?
+" TODO: multiple tabs don't work, look into that
 
 " TODO: these used to be s:, are now g:, need update/move?
 " consts
@@ -66,6 +67,7 @@ function! context#update(force_resize, source) abort
 
     let w:context_needs_update = a:force_resize
     let w:context_needs_layout = a:force_resize
+    let w:context_needs_move   = a:force_resize
     call context#util#update_state()
     call context#util#update_window_state(winid)
 
@@ -77,12 +79,21 @@ function! context#update(force_resize, source) abort
         call context#context#update(winid, 1, a:force_resize, a:source)
     endif
 
-    if w:context_needs_layout && g:context_presenter != 'preview'
-        call context#popup#update_layout()
+    if g:context_presenter != 'preview'
+        if w:context_needs_layout
+            call context#popup#update_layout()
+        endif
+
+        " TODO: only if we didn't above? currently we do it on every cursor
+        " line move...
+        if w:context_needs_move
+            call context#popup#move(winid)
+        endif
     endif
 
     let w:context_needs_update = 0
     let w:context_needs_layout = 0
+    let w:context_needs_move   = 0
 
     let s:ignore_update = 0
 endfunction

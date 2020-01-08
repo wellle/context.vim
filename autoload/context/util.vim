@@ -28,6 +28,13 @@ function! context#util#update_state() abort
         let w:context_padding = padding
         let w:context_needs_update = 1
     endif
+
+    let cursor_line = line('.')
+    let cursor_offset = cursor_line - top_line
+    if get(w:, 'context_cursor_offset') != cursor_offset
+        let w:context_cursor_offset = cursor_offset
+        let w:context_needs_move = 1
+    endif
 endfunction
 
 function! context#util#update_window_state(winid) abort

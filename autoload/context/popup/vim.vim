@@ -19,10 +19,11 @@ function! context#popup#vim#update(winid, popup, lines) abort
 
     let width   = getwinvar(a:winid, 'context_width')
     let padding = getwinvar(a:winid, 'context_padding')
+    let offset  = getwinvar(a:winid, 'context_popup_offset', 0)
 
     let [line, col] = getwinvar(a:winid, 'context_screenpos')
     call popup_move(a:popup, {
-                \ 'line':     line,
+                \ 'line':     line + offset,
                 \ 'col':      col,
                 \ 'minwidth': width,
                 \ 'maxwidth': width,

@@ -29,7 +29,8 @@ function! context#popup#get_context() abort
 
         if line_count == 0 && context_count == 0
             " if we get an empty context on the first non skipped line
-            return []
+            unlet! w:context_lines
+            return
         endif
         let context_count += 1
 
@@ -51,16 +52,14 @@ function! context#popup#get_context() abort
 
     let winid = win_getid()
     let w:context_indent = base_line.indent
-    call add(lines, s:get_border_line(winid))
     let w:context_lines = lines " to update border line on padding change
-    return lines
 endfunction
 
 let s:popups = {}
 
 " popup related
-function! context#popup#show(winid, lines) abort
-    call context#util#echof('> show_in_popup', len(a:lines))
+function! context#popup#show(winid) abort
+    call context#util#echof('> show_in_popup')
     let popup = get(s:popups, a:winid)
     let popupbuf = winbufnr(popup)
 
@@ -69,7 +68,11 @@ function! context#popup#show(winid, lines) abort
         call remove(s:popups, a:winid)
     endif
 
-    if len(a:lines) == 0
+    " TODO: what about this idea? seems to work and is simple, but has some
+    " annoying behaviors when scrolling...
+    " call setwinvar(a:winid, '&scrolloff', len(w:context_lines))
+
+    if !exists('w:context_lines')
         call context#util#echof('  no lines')
         if popup > 0
             call s:popup_close(popup)
@@ -83,7 +86,7 @@ function! context#popup#show(winid, lines) abort
         let s:popups[a:winid] = popup
     endif
 
-    call s:popup_update(a:winid, popup, a:lines)
+    call s:popup_update(a:winid, popup)
 
     if g:context_presenter == 'nvim-float'
         call context#popup#nvim#redraw()
@@ -113,16 +116,27 @@ function! context#popup#update_layout() abort
         " changed, but we can't really fix that (without temporarily
         " moving the cursor which we'd like to avoid)
         " TODO: fix that?
-        let lines = getwinvar(winid, 'context_lines')
-        if len(lines) > 0
-            let lines[-1] = s:get_border_line(winid)
-        endif
-
-        call s:popup_update(winid, popup, lines)
+        call s:popup_update(winid, popup)
     endfor
 endfunction
 
+" TODO: remove?
+function! context#popup#move(winid) abort
+    let popup = get(s:popups, a:winid, -1)
+    if popup == -1
+        return
+    endif
+
+    if w:context_cursor_offset < len(w:context_lines) + 1
+        let w:context_popup_offset = winheight(a:winid) - len(w:context_lines)
+    else
+        let w:context_popup_offset = 0
+    endif
+    call s:popup_update(a:winid, popup)
+endfunction
+
 function! context#popup#clear() abort
+
     for key in keys(s:popups)
         call s:popup_close(s:popups[key])
     endfor
@@ -149,12 +163,29 @@ function! s:popup_open() abort
     return popup
 endfunction
 
-function! s:popup_update(winid, popup, lines) abort
-    call context#util#echof('  > popup_update', len(a:lines))
+" TODO: split windows are weird. now sometimes the context moves to the wrong
+" window...
+function! s:popup_update(winid, popup) abort
+    let lines = copy(getwinvar(a:winid, 'context_lines'))
+
+    " TODO: this should only affect the active window, not others!
+    if get(w:, 'context_cursor_offset') >= len(lines) + 2
+        " popup at top
+        call add(lines, s:get_border_line(a:winid, 1))
+        let w:context_popup_offset = 0
+    else
+        " popup at bottom
+        " TODO: don't need filler lines at bottom
+        " also no empty context
+        call insert(lines, s:get_border_line(a:winid, 0))
+        let w:context_popup_offset = winheight(a:winid) - len(lines)
+    endif
+
+    call context#util#echof('  > popup_update', len(lines))
     if g:context_presenter == 'nvim-float'
-        call context#popup#nvim#update(a:winid, a:popup, a:lines)
+        call context#popup#nvim#update(a:winid, a:popup, lines)
     elseif g:context_presenter == 'vim-popup'
-        call context#popup#vim#update(a:winid, a:popup, a:lines)
+        call context#popup#vim#update(a:winid, a:popup, lines)
     endif
 endfunction
 
@@ -167,12 +198,12 @@ function! s:popup_close(popup) abort
     endif
 endfunction
 
-function! s:get_border_line(winid) abort
-    let width    = getwinvar(a:winid, 'context_width')
-    let indent   = getwinvar(a:winid, 'context_indent')
-    let padding  = getwinvar(a:winid, 'context_padding')
-    let line_len = width - indent - len(g:context_buffer_name) - 2 - padding
+function! s:get_border_line(winid, indent) abort
+    let width   =            getwinvar(a:winid, 'context_width')
+    let padding =            getwinvar(a:winid, 'context_padding')
+    let indent  = a:indent ? getwinvar(a:winid, 'context_indent') : 0
 
+    let line_len = width - indent - len(g:context_buffer_name) - 2 - padding
     return ''
                 \ . repeat(' ', indent)
                 \ . repeat(g:context_border_char, line_len)
