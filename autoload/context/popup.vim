@@ -7,6 +7,7 @@ function! context#popup#get_context() abort
     let skipped = 0
     let context_count = 0 " how many contexts did we check?
     let line_offset = -1 " first iteration starts with zero
+    let winid = win_getid()
 
     while 1
         let line_offset += 1
@@ -22,6 +23,12 @@ function! context#popup#get_context() abort
             continue
         else
             let lines = context#context#get(base_line)
+            if line_offset == 0
+                let bottom_lines = copy(lines)
+                call map(bottom_lines, function('context#line#display'))
+                call insert(bottom_lines, s:get_border_line(winid, 0))
+                let w:context_bottom_lines = bottom_lines
+            endif
         endif
 
         let line_count = len(lines)
@@ -29,7 +36,8 @@ function! context#popup#get_context() abort
 
         if line_count == 0 && context_count == 0
             " if we get an empty context on the first non skipped line
-            unlet! w:context_lines
+            " TODO: rename to context_top_lines?
+            let w:context_lines = []
             return
         endif
         let context_count += 1
@@ -50,8 +58,8 @@ function! context#popup#get_context() abort
         call add(lines, '')
     endwhile
 
-    let winid = win_getid()
     let w:context_indent = base_line.indent
+    call add(lines, s:get_border_line(winid, 1))
     let w:context_lines = lines " to update border line on padding change
 endfunction
 
@@ -59,7 +67,8 @@ let s:popups = {}
 
 " popup related
 function! context#popup#show(winid) abort
-    call context#util#echof('> show_in_popup')
+    let line_count = len(w:context_lines)
+    call context#util#echof('> context#popup#show', line_count)
     let popup = get(s:popups, a:winid)
     let popupbuf = winbufnr(popup)
 
@@ -72,7 +81,7 @@ function! context#popup#show(winid) abort
     " annoying behaviors when scrolling...
     " call setwinvar(a:winid, '&scrolloff', len(w:context_lines))
 
-    if !exists('w:context_lines')
+    if line_count == 0
         call context#util#echof('  no lines')
         if popup > 0
             call s:popup_close(popup)
@@ -86,7 +95,7 @@ function! context#popup#show(winid) abort
         let s:popups[a:winid] = popup
     endif
 
-    call s:popup_update(a:winid, popup)
+    call s:popup_update(a:winid, popup, 1)
 
     if g:context_presenter == 'nvim-float'
         call context#popup#nvim#redraw()
@@ -95,7 +104,7 @@ endfunction
 
 " TODO: reorder functions, after split out to autoload files
 function! context#popup#update_layout() abort
-    call context#util#echof('> update_layout')
+    call context#util#echof('> context#popup#update_layout')
 
     for winid in keys(s:popups)
         let popup = s:popups[winid]
@@ -116,23 +125,21 @@ function! context#popup#update_layout() abort
         " changed, but we can't really fix that (without temporarily
         " moving the cursor which we'd like to avoid)
         " TODO: fix that?
-        call s:popup_update(winid, popup)
+        call s:popup_update(winid, popup, 1)
     endfor
 endfunction
 
 " TODO: remove?
 function! context#popup#move(winid) abort
+    call context#util#echof('> context#popup#move')
     let popup = get(s:popups, a:winid, -1)
     if popup == -1
         return
     endif
 
-    if w:context_cursor_offset < len(w:context_lines) + 1
-        let w:context_popup_offset = winheight(a:winid) - len(w:context_lines)
-    else
-        let w:context_popup_offset = 0
-    endif
-    call s:popup_update(a:winid, popup)
+    " NOTE: don't force update here, only if we switched between top and
+    " bottom
+    call s:popup_update(a:winid, popup, 0)
 endfunction
 
 function! context#popup#clear() abort
@@ -165,21 +172,42 @@ endfunction
 
 " TODO: split windows are weird. now sometimes the context moves to the wrong
 " window...
-function! s:popup_update(winid, popup) abort
+function! s:popup_update(winid, popup, force) abort
     let lines = copy(getwinvar(a:winid, 'context_lines'))
+    if len(lines) == 0
+        return
+    endif
+
+    " TODO: need this check?
+    if !a:force
+        let last_offset = get(w:, 'context_popup_offset')
+    endif
 
     " TODO: this should only affect the active window, not others!
     if get(w:, 'context_cursor_offset') >= len(lines) + 2
-        " popup at top
-        call add(lines, s:get_border_line(a:winid, 1))
+        if !a:force && last_offset == 0
+            call context#util#echof('  > popup_update no force skip top')
+            return
+        endif
         let w:context_popup_offset = 0
-    else
-        " popup at bottom
-        " TODO: don't need filler lines at bottom
-        " also no empty context
-        call insert(lines, s:get_border_line(a:winid, 0))
+    else " bottom
+        if !a:force && last_offset > 0
+            call context#util#echof('  > popup_update no force skip bottom')
+            return
+        endif
+
+        let lines = copy(getwinvar(a:winid, 'context_bottom_lines'))
+        " TODO: need this check?
+        if len(lines) == 0
+            " return
+        endif
+
         let w:context_popup_offset = winheight(a:winid) - len(lines)
     endif
+
+
+    " TODO: avoid update if we didn't switch between top and bottom
+    " as will often be the case when scrolling
 
     call context#util#echof('  > popup_update', len(lines))
     if g:context_presenter == 'nvim-float'

@@ -1,7 +1,7 @@
 " NOTE: winid is injected, but will always be current window
 " TODO: remove allow_resize, force_resize?
 function! context#context#update(winid, allow_resize, force_resize, source) abort
-    call context#util#echof('> update_context', a:source, a:winid, w:context_top_line)
+    call context#util#echof('> context#context#update', a:source, a:winid, w:context_top_line)
     call context#util#log_indent(2)
 
     if g:context_presenter == 'preview'

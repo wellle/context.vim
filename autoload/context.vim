@@ -71,7 +71,7 @@ function! context#update(force_resize, source) abort
     call context#util#update_state()
     call context#util#update_window_state(winid)
 
-    if w:context_needs_update || w:context_needs_layout
+    if w:context_needs_update || w:context_needs_layout || w:context_needs_move
         call context#util#echof()
     endif
 

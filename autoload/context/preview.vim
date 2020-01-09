@@ -17,7 +17,7 @@ function! context#preview#get_context(allow_resize, force_resize) abort
 endfunction
 
 function! context#preview#show(lines) abort
-    call context#util#echof('> show_in_preview', len(a:lines))
+    call context#util#echof('> context#preview#show', len(a:lines))
 
     call context#preview#close()
 

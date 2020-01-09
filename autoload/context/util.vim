@@ -74,6 +74,7 @@ function! context#util#echof(...) abort
     let args = join(a:000)
     let args = substitute(args, "'", '"', 'g')
     let args = substitute(args, '!', '^', 'g')
+    let args = substitute(args, '#', '+', 'g')
     let message = repeat(' ', s:log_indent) . args
     execute "silent! !echo '" . message . "' >>" g:context_logfile
 endfunction

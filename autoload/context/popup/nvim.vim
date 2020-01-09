@@ -1,5 +1,5 @@
 function! context#popup#nvim#open() abort
-    call context#util#echof('    > nvim_open_popup')
+    call context#util#echof('    > context#popup#nvim#open')
 
     let buf = nvim_create_buf(v:false, v:true)
     " TODO: maybe use relative:editor to be more similar to vim popups?
@@ -21,7 +21,7 @@ function! context#popup#nvim#open() abort
 endfunction
 
 function! context#popup#nvim#update(winid, popup, lines) abort
-    call context#util#echof('    > nvim_update_popup', len(a:lines))
+    call context#util#echof('    > context#popup#nvim#update', len(a:lines))
 
     let width   = getwinvar(a:winid, 'context_width')
     let padding = getwinvar(a:winid, 'context_padding')
