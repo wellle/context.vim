@@ -1,7 +1,8 @@
 function! context#preview#get_context(allow_resize, force_resize) abort
     let base_line = s:get_base_line()
     let lines = context#context#get(base_line)
-    " TODO: pass this instead of using s: var?
+    " TODO: pass this instead of using s: var? yes after we merged the
+    " functions
     let s:hidden_indent = s:get_hidden_indent_for_preview(base_line, lines)
 
     " NOTE: this overwrites lines, from here on out it's just a list of string

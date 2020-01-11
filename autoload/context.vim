@@ -1,6 +1,5 @@
-" TODO: don't hide cursor, hide (partially) context instead, hint that it's
-" partial?
-" TODO: multiple tabs don't work, look into that
+" TODO: multiple tabs don't work, look into that. maybe good now? check again,
+" vim too
 
 " TODO: these used to be s:, are now g:, need update/move?
 " consts
@@ -9,7 +8,6 @@ let g:context_buffer_name = '<context.vim>'
 " cached
 let g:context_ellipsis  = repeat(g:context_ellipsis_char, 3)
 let g:context_ellipsis5 = repeat(g:context_ellipsis_char, 5)
-" TODO: use make_line later?
 let g:context_nil_line = context#line#make(0, 0, '')
 
 " state
@@ -61,8 +59,6 @@ function! context#update(force_resize, source) abort
         return
     endif
 
-    let s:ignore_update = 1
-
     let winid = win_getid()
 
     let w:context_needs_update = a:force_resize
@@ -73,27 +69,31 @@ function! context#update(force_resize, source) abort
 
     if w:context_needs_update || w:context_needs_layout || w:context_needs_move
         call context#util#echof()
-    endif
+        call context#util#echof('> context#update', a:source)
+        call context#util#log_indent(2)
 
-    if w:context_needs_update
-        call context#context#update(winid, 1, a:force_resize, a:source)
-    endif
+        let s:ignore_update = 1
 
-    if g:context_presenter != 'preview'
-        if w:context_needs_layout
-            call context#popup#update_layout()
+        if w:context_needs_update
+            call context#context#update(winid, 1, a:force_resize, a:source)
         endif
 
-        " TODO: only if we didn't above? currently we do it on every cursor
-        " line move...
-        if w:context_needs_move
-            call context#popup#move(winid)
+        if g:context_presenter != 'preview'
+            if w:context_needs_layout
+                call context#popup#update_layout()
+            endif
+
+            if w:context_needs_move
+                call context#popup#move(winid)
+            endif
         endif
+
+        let s:ignore_update = 0
+
+        call context#util#log_indent(-2)
+
+        let w:context_needs_update = 0
+        let w:context_needs_layout = 0
+        let w:context_needs_move   = 0
     endif
-
-    let w:context_needs_update = 0
-    let w:context_needs_layout = 0
-    let w:context_needs_move   = 0
-
-    let s:ignore_update = 0
 endfunction

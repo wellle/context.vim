@@ -5,11 +5,11 @@ function! context#context#update(winid, allow_resize, force_resize, source) abor
     call context#util#log_indent(2)
 
     if g:context_presenter == 'preview'
-        " TODO: merge?
+        " TODO: merge
         let lines = context#preview#get_context(a:allow_resize, a:force_resize)
         call context#preview#show(lines)
     else
-        " TODO: merge?
+        " TODO: merge
         call context#popup#get_context()
         call context#popup#show(a:winid)
     endif

@@ -8,6 +8,7 @@ function! context#popup#get_context() abort
     let context_count = 0 " how many contexts did we check?
     let line_offset = -1 " first iteration starts with zero
     let winid = win_getid()
+    let w:context_bottom_lines = []
 
     while 1
         let line_offset += 1
@@ -23,7 +24,7 @@ function! context#popup#get_context() abort
             continue
         else
             let lines = context#context#get(base_line)
-            if line_offset == 0
+            if len(w:context_bottom_lines) == 0
                 let bottom_lines = copy(lines)
                 call map(bottom_lines, function('context#line#display'))
                 call insert(bottom_lines, s:get_border_line(winid, 0))
@@ -66,6 +67,7 @@ endfunction
 let s:popups = {}
 
 " popup related
+" TODO: merge with above
 function! context#popup#show(winid) abort
     let line_count = len(w:context_lines)
     call context#util#echof('> context#popup#show', line_count)
@@ -130,6 +132,8 @@ function! context#popup#update_layout() abort
 endfunction
 
 " TODO: remove?
+" probably yes, stop injecting popup into s:popup_update and rename that
+" function, then can inline this one
 function! context#popup#move(winid) abort
     call context#util#echof('> context#popup#move')
     let popup = get(s:popups, a:winid, -1)
@@ -170,8 +174,6 @@ function! s:popup_open() abort
     return popup
 endfunction
 
-" TODO: split windows are weird. now sometimes the context moves to the wrong
-" window...
 function! s:popup_update(winid, popup, force) abort
     let lines = copy(getwinvar(a:winid, 'context_lines'))
     if len(lines) == 0
@@ -180,16 +182,19 @@ function! s:popup_update(winid, popup, force) abort
 
     " TODO: need this check?
     if !a:force
-        let last_offset = get(w:, 'context_popup_offset')
+        let last_offset = getwinvar(a:winid, 'context_popup_offset')
     endif
 
     " TODO: this should only affect the active window, not others!
-    if get(w:, 'context_cursor_offset') >= len(lines) + 2
+    " TODO: map H and zt to not switch to bottom context?
+    " TODO: minor: can we move this logic into update_state to avoid logs if no
+    " update is needed?
+    if getwinvar(a:winid, 'context_cursor_offset') >= len(lines)
         if !a:force && last_offset == 0
             call context#util#echof('  > popup_update no force skip top')
             return
         endif
-        let w:context_popup_offset = 0
+        call setwinvar(a:winid, 'context_popup_offset', 0)
     else " bottom
         if !a:force && last_offset > 0
             call context#util#echof('  > popup_update no force skip bottom')
@@ -202,7 +207,7 @@ function! s:popup_update(winid, popup, force) abort
             " return
         endif
 
-        let w:context_popup_offset = winheight(a:winid) - len(lines)
+        call setwinvar(a:winid, 'context_popup_offset', winheight(a:winid) - len(lines))
     endif
 
 

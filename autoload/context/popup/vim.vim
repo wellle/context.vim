@@ -3,8 +3,8 @@ function! context#popup#vim#open() abort
 
     " NOTE: popups don't move automatically when windows get resized
     let popup = popup_create('', {
-                \ 'wrap':     v:false,
                 \ 'fixed':    v:true,
+                \ 'wrap':     v:false,
                 \ })
 
 	call setwinvar(popup, '&wincolor', g:context_highlight_normal)
@@ -14,14 +14,15 @@ function! context#popup#vim#open() abort
 endfunction
 
 function! context#popup#vim#update(winid, popup, lines) abort
-    call context#util#echof('    > context#popup#vim#update', len(a:lines))
     call popup_settext(a:popup, a:lines)
 
-    let width   = getwinvar(a:winid, 'context_width')
-    let padding = getwinvar(a:winid, 'context_padding')
-    let offset  = getwinvar(a:winid, 'context_popup_offset', 0)
-
+    let width       = getwinvar(a:winid, 'context_width')
+    let padding     = getwinvar(a:winid, 'context_padding')
+    let offset      = getwinvar(a:winid, 'context_popup_offset', 0)
     let [line, col] = getwinvar(a:winid, 'context_screenpos')
+
+    call context#util#echof('    > context#popup#vim#update', len(a:lines))
+
     call popup_move(a:popup, {
                 \ 'line':     line + offset,
                 \ 'col':      col,
