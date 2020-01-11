@@ -18,8 +18,6 @@ function! context#popup#nvim#open() abort
     return popup
 endfunction
 
-" TODO!: buffer line doesn't update anymore when window width changes
-" in vim8 too
 function! context#popup#nvim#update(winid, popup, lines) abort
     let buf = winbufnr(a:popup)
     call nvim_buf_set_lines(buf, 0, -1, v:true, a:lines)

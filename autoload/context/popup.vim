@@ -27,7 +27,7 @@ function! context#popup#get_context() abort
             if len(w:context_bottom_lines) == 0
                 let bottom_lines = copy(lines)
                 call map(bottom_lines, function('context#line#display'))
-                call insert(bottom_lines, s:get_border_line(winid, 0))
+                call insert(bottom_lines, '') " will be replaced with border line
                 let w:context_bottom_lines = bottom_lines
             endif
         endif
@@ -60,7 +60,7 @@ function! context#popup#get_context() abort
     endwhile
 
     let w:context_indent = base_line.indent
-    call add(lines, s:get_border_line(winid, 1))
+    call add(lines, '') " will be replaced with border line
     let w:context_lines = lines " to update border line on padding change
 endfunction
 
@@ -189,11 +189,20 @@ function! s:popup_update(winid, popup, force) abort
     " TODO: map H and zt to not switch to bottom context?
     " TODO: minor: can we move this logic into update_state to avoid logs if no
     " update is needed?
-    if getwinvar(a:winid, 'context_cursor_offset') >= len(lines)
+    " TODO: can we simplify this?
+    if getwinvar(a:winid, 'context_cursor_offset') >= len(lines) " top
         if !a:force && last_offset == 0
             call context#util#echof('  > popup_update no force skip top')
             return
         endif
+
+        let lines = getwinvar(a:winid, 'context_lines')
+
+        if len(lines) > 0
+            let lines[-1] = s:get_border_line(a:winid, 1)
+            call setwinvar(a:winid, 'context_lines', lines)
+        endif
+
         call setwinvar(a:winid, 'context_popup_offset', 0)
     else " bottom
         if !a:force && last_offset > 0
@@ -205,6 +214,12 @@ function! s:popup_update(winid, popup, force) abort
         " TODO: need this check?
         if len(lines) == 0
             " return
+        endif
+
+        let lines = getwinvar(a:winid, 'context_bottom_lines')
+        if len(lines) > 0
+            let lines[0] = s:get_border_line(a:winid, 0)
+            call setwinvar(a:winid, 'context_bottom_lines', lines)
         endif
 
         call setwinvar(a:winid, 'context_popup_offset', winheight(a:winid) - len(lines))
