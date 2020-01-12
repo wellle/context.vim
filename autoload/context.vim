@@ -97,3 +97,47 @@ function! context#update(force_resize, source) abort
         let w:context_needs_move   = 0
     endif
 endfunction
+
+function! context#zt() abort
+    let suffix = ":call context#update(0, 'zt')\<CR>"
+    if g:context_presenter == 'preview' || v:count != 0
+        " TODO: mention double ztzt issue here too?
+        return 'ztzt' . suffix
+    endif
+
+    let cursor_line = line('.')
+    let base_line = context#line#get_base_line(cursor_line)
+    let lines = context#context#get(base_line)
+    if len(lines) == 0
+        return 'zt' . suffix
+    endif
+
+    let n = cursor_line - w:context_top_line - len(lines) - 1
+    call context#util#echof('zt', w:context_top_line, cursor_line, len(lines), n)
+
+    if n <= 0
+        return 'zt' . suffix
+    endif
+
+    return "\<ESC>" . n . "\<C-E>" . suffix
+endfunction
+
+function! context#h() abort
+    if g:context_presenter == 'preview'
+        return 'H'
+    endif
+
+    if get(w:, 'context_popup_offset') > 0
+        " TODO: not return in this case? (to always try to show context)
+        " might seem counter intuitive though
+        return 'H'
+    endif
+
+    let lines = get(w:, 'context_lines', [])
+    if len(lines) == 0
+        return 'H'
+    endif
+
+    let n = len(lines) + v:count1
+    return "\<ESC>" . n . 'H'
+endfunction

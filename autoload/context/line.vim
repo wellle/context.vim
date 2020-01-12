@@ -1,3 +1,22 @@
+" find line downwards (from given line) which isn't empty
+function! context#line#get_base_line(line) abort
+    let current_line = a:line
+    while 1
+        let indent = indent(current_line)
+        if indent < 0 " invalid line
+            return g:context_nil_line
+        endif
+
+        let line = getline(current_line)
+        if context#line#should_skip(line)
+            let current_line += 1
+            continue
+        endif
+
+        return context#line#make(current_line, indent, line)
+    endwhile
+endfunction
+
 function! context#line#make(number, indent, text) abort
     return {
                 \ 'number': a:number,

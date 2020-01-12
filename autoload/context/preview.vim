@@ -1,5 +1,5 @@
 function! context#preview#get_context(allow_resize, force_resize) abort
-    let base_line = s:get_base_line()
+    let base_line = context#line#get_base_line(w:context_top_line)
     let lines = context#context#get(base_line)
     " TODO: pass this instead of using s: var? yes after we merged the
     " functions
@@ -107,25 +107,6 @@ function! context#preview#close() abort
     let layout = winrestcmd() | set equalalways | noautocmd execute layout
 endfunction
 
-
-" find line downwards (from top line) which isn't empty
-function! s:get_base_line() abort
-    let current_line = w:context_top_line
-    while 1
-        let indent = indent(current_line)
-        if indent < 0 " invalid line
-            return g:context_nil_line
-        endif
-
-        let line = getline(current_line)
-        if context#line#should_skip(line)
-            let current_line += 1
-            continue
-        endif
-
-        return context#line#make(current_line, indent, line)
-    endwhile
-endfunction
 
 " find first line above (hidden) which isn't empty
 " return its indent, -1 if no such line
