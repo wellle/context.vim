@@ -80,7 +80,7 @@ command! -bar ContextToggle   call context#toggle()
 command! -bar ContextUpdate   call context#update(0, 'command')
 
 
-" " TODO update docs, as we changed the mappings and autocmds
+" TODO update docs, as we changed the mappings and autocmds
 
 " mappings
 if g:context_add_mappings
@@ -93,7 +93,7 @@ if g:context_add_mappings
     nnoremap <silent> <C-Y> <C-Y>:call context#update(0, 'C-Y')<CR>
     nnoremap <silent> zz     zzzz:call context#update(0, 'zz')<CR>
     nnoremap <silent> zb     zbzb:call context#update(0, 'zb')<CR>
-    " TODO: do custom things for <C-E> too?
+    " TODO: do custom things for <C-E> too? maybe k too?
     nnoremap <silent> <expr> zt context#zt()
     nnoremap <silent> <expr> H  context#h()
 endif
@@ -112,11 +112,10 @@ if g:context_add_autocmds
         autocmd User GitGutter call context#update(0, 'GitGutter')
 
     augroup END
+endif
 
-    " TODO: move out of this check?
-    " lazy loading was used
-    if v:vim_did_enter
-        let g:context_enabled = 0 " plugin was effectively disabled before load
-        ContextActivate
-    endif
+" lazy loading was used
+if v:vim_did_enter
+    let g:context_enabled = 0 " plugin was effectively disabled before load
+    ContextActivate
 endif
