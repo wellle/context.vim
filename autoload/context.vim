@@ -66,7 +66,7 @@ function! context#update(force_resize, source) abort
         let s:ignore_update = 1
 
         if w:context_needs_update
-            call context#context#update(winid, 1, a:force_resize, a:source)
+            call context#context#update(1, a:force_resize, a:source)
         endif
 
         if g:context_presenter != 'preview'
@@ -90,6 +90,7 @@ function! context#update(force_resize, source) abort
 endfunction
 
 function! context#zt() abort
+    " TODO: abort if disabled
     let suffix = ":call context#update(0, 'zt')\<CR>"
     if g:context_presenter == 'preview' || v:count != 0
         " TODO: mention double ztzt issue here too?
@@ -114,6 +115,7 @@ function! context#zt() abort
 endfunction
 
 function! context#h() abort
+    " TODO: abort if disabled
     if g:context_presenter == 'preview'
         return 'H'
     endif

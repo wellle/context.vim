@@ -1,6 +1,62 @@
 let s:context_buffer_name = '<context.vim>'
 
-function! context#popup#get_context() abort
+function! context#popup#update() abort
+    call s:get_context()
+    call context#util#echof('> context#popup#update', len(w:context_top_lines))
+    call s:show()
+endfunction
+
+" TODO: reorder functions, after split out to autoload files
+function! context#popup#layout() abort
+    call context#util#echof('> context#popup#layout')
+
+    for winid in keys(s:popups)
+        let popup = s:popups[winid]
+        let winbuf = winbufnr(winid)
+        let popupbuf = winbufnr(popup)
+
+        if winbuf == -1 || popupbuf == -1
+            if popupbuf != -1
+                call s:close(popup)
+            endif
+            call remove(s:popups, winid)
+            continue
+        endif
+
+        call context#util#update_window_state(winid)
+
+        " NOTE: the context might be wrong as the top line might have
+        " changed, but we can't really fix that (without temporarily
+        " moving the cursor which we'd like to avoid)
+        " TODO: fix that?
+        call s:update(winid, popup, 1)
+    endfor
+endfunction
+
+" TODO: remove?
+" probably yes, stop injecting popup into s:update and rename that
+" function, then can inline this one
+function! context#popup#move(winid) abort
+    call context#util#echof('> context#popup#move')
+    let popup = get(s:popups, a:winid, -1)
+    if popup == -1
+        return
+    endif
+
+    " NOTE: don't force update here, only if we switched between top and
+    " bottom
+    call s:update(a:winid, popup, 0)
+endfunction
+
+function! context#popup#clear() abort
+
+    for key in keys(s:popups)
+        call s:close(s:popups[key])
+    endfor
+    let s:popups = {}
+endfunction
+
+function! s:get_context() abort
     " NOTE: there's a problem if some of the hidden lines (behind the
     " popup) are wrapped. then our calculations are off
     " TODO: fix that?
@@ -9,7 +65,6 @@ function! context#popup#get_context() abort
     let skipped = 0
     let context_count = 0 " how many contexts did we check?
     let line_offset = -1 " first iteration starts with zero
-    let winid = win_getid()
     let w:context_bottom_lines = []
 
     while 1
@@ -69,92 +124,40 @@ let s:popups = {}
 
 " popup related
 " TODO: merge with above
-function! context#popup#show(winid) abort
-    let line_count = len(w:context_top_lines)
-    call context#util#echof('> context#popup#show', line_count)
-    let popup = get(s:popups, a:winid)
+function! s:show() abort
+    let winid = win_getid()
+    let popup = get(s:popups, winid)
     let popupbuf = winbufnr(popup)
 
     if popup > 0 && popupbuf == -1
         let popup = 0
-        call remove(s:popups, a:winid)
+        call remove(s:popups, winid)
     endif
 
     " TODO: what about this idea? seems to work and is simple, but has some
     " annoying behaviors when scrolling...
-    " call setwinvar(a:winid, '&scrolloff', len(w:context_top_lines))
+    " call setwinvar(winid, '&scrolloff', len(w:context_top_lines))
 
-    if line_count == 0
+    if len(w:context_top_lines) == 0
         call context#util#echof('  no lines')
         if popup > 0
             call s:close(popup)
-            call remove(s:popups, a:winid)
+            call remove(s:popups, winid)
         endif
         return
     endif
 
     if popup == 0
         let popup = s:open()
-        let s:popups[a:winid] = popup
+        let s:popups[winid] = popup
     endif
 
-    call s:update(a:winid, popup, 1)
+    call s:update(winid, popup, 1)
 
     if g:context_presenter == 'nvim-float'
         call context#popup#nvim#redraw()
     endif
 endfunction
-
-" TODO: reorder functions, after split out to autoload files
-function! context#popup#layout() abort
-    call context#util#echof('> context#popup#layout')
-
-    for winid in keys(s:popups)
-        let popup = s:popups[winid]
-        let winbuf = winbufnr(winid)
-        let popupbuf = winbufnr(popup)
-
-        if winbuf == -1 || popupbuf == -1
-            if popupbuf != -1
-                call s:close(popup)
-            endif
-            call remove(s:popups, winid)
-            continue
-        endif
-
-        call context#util#update_window_state(winid)
-
-        " NOTE: the context might be wrong as the top line might have
-        " changed, but we can't really fix that (without temporarily
-        " moving the cursor which we'd like to avoid)
-        " TODO: fix that?
-        call s:update(winid, popup, 1)
-    endfor
-endfunction
-
-" TODO: remove?
-" probably yes, stop injecting popup into s:update and rename that
-" function, then can inline this one
-function! context#popup#move(winid) abort
-    call context#util#echof('> context#popup#move')
-    let popup = get(s:popups, a:winid, -1)
-    if popup == -1
-        return
-    endif
-
-    " NOTE: don't force update here, only if we switched between top and
-    " bottom
-    call s:update(a:winid, popup, 0)
-endfunction
-
-function! context#popup#clear() abort
-
-    for key in keys(s:popups)
-        call s:close(s:popups[key])
-    endfor
-    let s:popups = {}
-endfunction
-
 
 function! s:open() abort
     call context#util#echof('  > popup_open')

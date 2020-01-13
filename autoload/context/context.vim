@@ -1,16 +1,13 @@
-" NOTE: winid is injected, but will always be current window
 " TODO: remove allow_resize, force_resize?
 " TODO: inline this one too? it's somewhat weird to have it here
-function! context#context#update(winid, allow_resize, force_resize, source) abort
-    call context#util#echof('> context#context#update', a:source, a:winid, w:context_top_line)
+function! context#context#update(allow_resize, force_resize, source) abort
+    call context#util#echof('> context#context#update', a:source, w:context_top_line)
     call context#util#log_indent(2)
 
     if g:context_presenter == 'preview'
          call context#preview#update(a:allow_resize, a:force_resize)
     else
-        " TODO: merge
-        call context#popup#get_context()
-        call context#popup#show(a:winid)
+        call context#popup#update()
     endif
 
     if g:context_presenter == 'preview'
@@ -18,7 +15,7 @@ function! context#context#update(winid, allow_resize, force_resize, source) abor
         call context#util#update_state()
         if w:context_needs_update
             let w:context_needs_update = 0
-            call context#context#update(a:winid, 0, 0, 'recurse')
+            call context#context#update(0, 0, 'recurse')
         endif
     endif
 
