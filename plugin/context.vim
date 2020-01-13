@@ -93,7 +93,7 @@ if g:context_add_mappings
     nnoremap <silent> <C-Y> <C-Y>:call context#update(0, 'C-Y')<CR>
     nnoremap <silent> zz     zzzz:call context#update(0, 'zz')<CR>
     nnoremap <silent> zb     zbzb:call context#update(0, 'zb')<CR>
-    " TODO: do custom things for <C-E> too? maybe k too?
+    " TODO!: do custom things for <C-E> too? maybe k too?
     nnoremap <silent> <expr> zt context#zt()
     nnoremap <silent> <expr> H  context#h()
 endif

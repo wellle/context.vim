@@ -1,5 +1,6 @@
 " TODO: remove allow_resize, force_resize?
-" TODO: inline this one too? it's somewhat weird to have it here
+" TODO: inline this one too? it's somewhat weird to have it here. or move
+" somewhere else?
 function! context#context#update(allow_resize, force_resize, source) abort
     call context#util#echof('> context#context#update', a:source, w:context_top_line)
     call context#util#log_indent(2)
@@ -83,7 +84,7 @@ function! context#context#get(base_line) abort
 endfunction
 
 function! context#context#cache_stats() abort
-    " TODO: have a single dict b:context so we would access fields like
+    " TODO!: have a single dict b:context so we would access fields like
     " b:context.skip, like gitgutter does. similar for w:context
     " that way we can probably also create a single default thing once we hit
     " a new buffer/window

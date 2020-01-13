@@ -33,7 +33,7 @@ function! context#popup#layout() abort
     endfor
 endfunction
 
-" TODO: remove?
+" TODO!: remove?
 " probably yes, stop injecting popup into s:update and rename that
 " function, then can inline this one
 function! context#popup#move(winid) abort
@@ -123,7 +123,6 @@ endfunction
 let s:popups = {}
 
 " popup related
-" TODO: merge with above
 function! s:show() abort
     let winid = win_getid()
     let popup = get(s:popups, winid)
@@ -190,7 +189,6 @@ function! s:update(winid, popup, force) abort
     endif
 
     " TODO: this should only affect the active window, not others!
-    " TODO: map H and zt to not switch to bottom context?
     " TODO: minor: can we move this logic into update_state to avoid logs if no
     " update is needed?
     " TODO: can we simplify this?
@@ -214,12 +212,6 @@ function! s:update(winid, popup, force) abort
             return
         endif
 
-        let lines = copy(getwinvar(a:winid, 'context_bottom_lines'))
-        " TODO: need this check?
-        if len(lines) == 0
-            " return
-        endif
-
         let lines = getwinvar(a:winid, 'context_bottom_lines')
         if len(lines) > 0
             let lines[0] = s:get_border_line(a:winid, 0)
@@ -229,9 +221,6 @@ function! s:update(winid, popup, force) abort
         call setwinvar(a:winid, 'context_popup_offset', winheight(a:winid) - len(lines))
     endif
 
-
-    " TODO: avoid update if we didn't switch between top and bottom
-    " as will often be the case when scrolling
 
     call context#util#echof('  > popup_update', len(lines))
     if g:context_presenter == 'nvim-float'

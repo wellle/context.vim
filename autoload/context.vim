@@ -90,7 +90,10 @@ function! context#update(force_resize, source) abort
 endfunction
 
 function! context#zt() abort
-    " TODO: abort if disabled
+    if !g:context_enabled
+        return 'zt'
+    endif
+
     let suffix = ":call context#update(0, 'zt')\<CR>"
     if g:context_presenter == 'preview' || v:count != 0
         " TODO: mention double ztzt issue here too?
@@ -115,14 +118,15 @@ function! context#zt() abort
 endfunction
 
 function! context#h() abort
-    " TODO: abort if disabled
+    if !g:context_enabled
+        return 'H'
+    endif
+
     if g:context_presenter == 'preview'
         return 'H'
     endif
 
     if get(w:, 'context_popup_offset') > 0
-        " TODO: not return in this case? (to always try to show context)
-        " might seem counter intuitive though
         return 'H'
     endif
 
