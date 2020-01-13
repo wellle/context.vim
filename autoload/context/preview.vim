@@ -1,14 +1,16 @@
+let s:context_buffer_name = '<context.vim>'
+
 function! context#preview#get_context(allow_resize, force_resize) abort
     let base_line = context#line#get_base_line(w:context_top_line)
     let lines = context#context#get(base_line)
-    " TODO: pass this instead of using s: var? yes after we merged the
+    " TODO!: pass this instead of using s: var? yes after we merged the
     " functions
-    let s:hidden_indent = s:get_hidden_indent_for_preview(base_line, lines)
+    let s:hidden_indent = s:get_hidden_indent(base_line, lines)
 
     " NOTE: this overwrites lines, from here on out it's just a list of string
     call map(lines, function('context#line#display'))
 
-    let min_height = s:get_min_height_for_preview(a:allow_resize, a:force_resize)
+    let min_height = s:get_min_height(a:allow_resize, a:force_resize)
     while len(lines) < min_height
         call add(lines, '')
     endwhile
@@ -32,7 +34,7 @@ function! context#preview#show(lines) abort
     let tabstop = &tabstop
     let padding = w:context_padding
 
-    execute 'silent! aboveleft pedit' g:context_buffer_name
+    execute 'silent! aboveleft pedit' s:context_buffer_name
 
     " try to jump to new preview window
     silent! wincmd P
@@ -67,11 +69,11 @@ function! context#preview#show(lines) abort
 endfunction
 
 " NOTE: this function updates the statusline too, as it depends on the padding
-" TODO: inline
+" TODO!: inline
 function! context#preview#update_padding(padding) abort
     execute 'setlocal foldcolumn=' . a:padding
 
-    let statusline = '%=' . g:context_buffer_name . ' ' " trailing space for padding
+    let statusline = '%=' . s:context_buffer_name . ' ' " trailing space for padding
     if s:hidden_indent >= 0
         let statusline = repeat(' ', a:padding + s:hidden_indent) . g:context_ellipsis . statusline
     endif
@@ -87,7 +89,7 @@ function! context#preview#close() abort
     let bufname = bufname('%')
     wincmd p " jump back
 
-    if bufname != g:context_buffer_name
+    if bufname != s:context_buffer_name
         return
     endif
 
@@ -111,9 +113,8 @@ endfunction
 " find first line above (hidden) which isn't empty
 " return its indent, -1 if no such line
 " TODO: this is expensive now, maybe not do it like this? or limit it somehow?
-" TODO: rename some functions now after move
-function! s:get_hidden_indent_for_preview(base_line, lines) abort
-    call context#util#echof('> get_hidden_indent_for_preview', a:base_line.number, len(a:lines))
+function! s:get_hidden_indent(base_line, lines) abort
+    call context#util#echof('> get_hidden_indent', a:base_line.number, len(a:lines))
     if len(a:lines) == 0
         " don't show ellipsis if context is empty
         return -1
@@ -140,7 +141,7 @@ function! s:get_hidden_indent_for_preview(base_line, lines) abort
     return min_indent
 endfunction
 
-function! s:get_min_height_for_preview(allow_resize, force_resize) abort
+function! s:get_min_height(allow_resize, force_resize) abort
     " adjust min window height based on scroll amount
     if a:force_resize || !exists('w:context_min_height')
         return 0

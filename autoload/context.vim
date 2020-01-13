@@ -1,17 +1,8 @@
-" TODO: multiple tabs don't work, look into that. maybe good now? check again,
-" vim too
-
-" TODO: these used to be s:, are now g:, need update/move?
-" consts
-let g:context_buffer_name = '<context.vim>'
-
 " cached
 let g:context_ellipsis  = repeat(g:context_ellipsis_char, 3)
 let g:context_ellipsis5 = repeat(g:context_ellipsis_char, 5)
 let g:context_nil_line = context#line#make(0, 0, '')
 
-" state
-" NOTE: there's more state in window local w: variables
 let s:activated     = 0
 let s:ignore_update = 0
 
@@ -80,7 +71,7 @@ function! context#update(force_resize, source) abort
 
         if g:context_presenter != 'preview'
             if w:context_needs_layout
-                call context#popup#update_layout()
+                call context#popup#layout()
             endif
 
             if w:context_needs_move
@@ -133,7 +124,7 @@ function! context#h() abort
         return 'H'
     endif
 
-    let lines = get(w:, 'context_lines', [])
+    let lines = get(w:, 'context_top_lines', [])
     if len(lines) == 0
         return 'H'
     endif
