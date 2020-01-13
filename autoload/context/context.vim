@@ -1,13 +1,12 @@
 " NOTE: winid is injected, but will always be current window
 " TODO: remove allow_resize, force_resize?
+" TODO: inline this one too? it's somewhat weird to have it here
 function! context#context#update(winid, allow_resize, force_resize, source) abort
     call context#util#echof('> context#context#update', a:source, a:winid, w:context_top_line)
     call context#util#log_indent(2)
 
     if g:context_presenter == 'preview'
-        " TODO: merge
-        let lines = context#preview#get_context(a:allow_resize, a:force_resize)
-        call context#preview#show(lines)
+         call context#preview#update(a:allow_resize, a:force_resize)
     else
         " TODO: merge
         call context#popup#get_context()

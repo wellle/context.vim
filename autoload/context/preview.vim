@@ -1,11 +1,11 @@
 let s:context_buffer_name = '<context.vim>'
 
-function! context#preview#get_context(allow_resize, force_resize) abort
+function! context#preview#update(allow_resize, force_resize) abort
     let base_line = context#line#get_base_line(w:context_top_line)
     let lines = context#context#get(base_line)
-    " TODO!: pass this instead of using s: var? yes after we merged the
-    " functions
-    let s:hidden_indent = s:get_hidden_indent(base_line, lines)
+    let hidden_indent = s:get_hidden_indent(base_line, lines)
+
+    call context#util#echof('> context#preview#update', len(lines))
 
     " NOTE: this overwrites lines, from here on out it's just a list of string
     call map(lines, function('context#line#display'))
@@ -16,68 +16,11 @@ function! context#preview#get_context(allow_resize, force_resize) abort
     endwhile
     let w:context_min_height = len(lines)
 
-    return lines
-endfunction
-
-function! context#preview#show(lines) abort
-    call context#util#echof('> context#preview#show', len(a:lines))
-
-    call context#preview#close()
-
-    if len(a:lines) == 0
-        " nothing to do
-        call context#util#echof('  none')
-        return
-    endif
-
-    let syntax  = &syntax
-    let tabstop = &tabstop
-    let padding = w:context_padding
-
-    execute 'silent! aboveleft pedit' s:context_buffer_name
-
-    " try to jump to new preview window
-    silent! wincmd P
-    if !&previewwindow
-        " NOTE: apparently this can fail with E242, see #6
-        " in that case just silently abort
-        call context#util#echof('  no preview window')
-        return
-    endif
-
-    silent 0put =a:lines " paste lines
-    1                    " and jump to first line
-
-    setlocal buftype=nofile
-    setlocal modifiable
-    setlocal nobuflisted
-    setlocal nocursorline
-    setlocal nonumber
-    setlocal norelativenumber
-    setlocal noswapfile
-    setlocal nowrap
-    setlocal signcolumn=no
-    execute 'setlocal syntax='  . syntax
-    execute 'setlocal tabstop=' . tabstop
-    let b:airline_disable_statusline=1
-    call context#preview#update_padding(padding)
-
-    " resize window
-    execute 'resize' len(a:lines)
-
-    wincmd p " jump back
+    call s:show(lines, hidden_indent)
 endfunction
 
 " NOTE: this function updates the statusline too, as it depends on the padding
-" TODO!: inline
 function! context#preview#update_padding(padding) abort
-    execute 'setlocal foldcolumn=' . a:padding
-
-    let statusline = '%=' . s:context_buffer_name . ' ' " trailing space for padding
-    if s:hidden_indent >= 0
-        let statusline = repeat(' ', a:padding + s:hidden_indent) . g:context_ellipsis . statusline
-    endif
-    execute 'setlocal statusline=' . escape(statusline, ' ')
 endfunction
 
 function! context#preview#close() abort
@@ -109,6 +52,59 @@ function! context#preview#close() abort
     let layout = winrestcmd() | set equalalways | noautocmd execute layout
 endfunction
 
+function! s:show(lines, hidden_indent) abort
+    call context#preview#close()
+
+    if len(a:lines) == 0
+        " nothing to do
+        call context#util#echof('  none')
+        return
+    endif
+
+    let syntax  = &syntax
+    let tabstop = &tabstop
+    let padding = w:context_padding
+
+    execute 'silent! aboveleft pedit' s:context_buffer_name
+
+    " try to jump to new preview window
+    silent! wincmd P
+    if !&previewwindow
+        " NOTE: apparently this can fail with E242, see #6
+        " in that case just silently abort
+        call context#util#echof('  no preview window')
+        return
+    endif
+
+    silent 0put =a:lines " paste lines
+    1                    " and jump to first line
+
+    let statusline = '%=' . s:context_buffer_name . ' ' " trailing space for padding
+    if a:hidden_indent >= 0
+        let statusline = repeat(' ', padding + a:hidden_indent) . g:context_ellipsis . statusline
+    endif
+
+    setlocal buftype=nofile
+    setlocal modifiable
+    setlocal nobuflisted
+    setlocal nocursorline
+    setlocal nonumber
+    setlocal norelativenumber
+    setlocal noswapfile
+    setlocal nowrap
+    setlocal signcolumn=no
+
+    execute 'setlocal syntax='     . syntax
+    execute 'setlocal tabstop='    . tabstop
+    execute 'setlocal foldcolumn=' . padding
+    execute 'setlocal statusline=' . escape(statusline, ' ')
+
+    let b:airline_disable_statusline=1
+
+    execute 'resize' len(a:lines)
+
+    wincmd p " jump back
+endfunction
 
 " find first line above (hidden) which isn't empty
 " return its indent, -1 if no such line
