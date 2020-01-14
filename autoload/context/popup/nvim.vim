@@ -19,25 +19,21 @@ function! context#popup#nvim#open() abort
 endfunction
 
 function! context#popup#nvim#redraw(winid, popup, lines) abort
+    call context#util#echof('    > context#popup#nvim#redraw', len(a:lines))
+
     let buf = winbufnr(a:popup)
     call nvim_buf_set_lines(buf, 0, -1, v:true, a:lines)
 
-    let width       = getwinvar(a:winid, 'context_width')
-    let padding     = getwinvar(a:winid, 'context_padding')
-    let offset      = getwinvar(a:winid, 'context_popup_offset', 0)
-    let [line, col] = getwinvar(a:winid, 'context_screenpos')
-
-    call context#util#echof('    > context#popup#nvim#redraw', len(a:lines))
-
+    let c = getwinvar(a:winid, 'context')
     call nvim_win_set_config(a:popup, {
                 \ 'relative': 'editor',
-                \ 'row':      line - 1 + offset,
-                \ 'col':      col - 1,
+                \ 'row':      c.line - 1 + c.popup_offset,
+                \ 'col':      c.col - 1,
                 \ 'height':   len(a:lines),
-                \ 'width':    width,
+                \ 'width':    c.width,
                 \ })
 
-    call setwinvar(a:popup, '&foldcolumn', padding)
+    call setwinvar(a:popup, '&foldcolumn', c.padding)
 endfunction
 
 function! context#popup#nvim#close(popup) abort

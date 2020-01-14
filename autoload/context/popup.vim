@@ -2,7 +2,7 @@ let s:context_buffer_name = '<context.vim>'
 
 function! context#popup#update_context() abort
     call s:get_context()
-    call context#util#echof('> context#popup#update_context', len(w:context_top_lines))
+    call context#util#echof('> context#popup#update_context', len(w:context.top_lines))
     call s:show()
 endfunction
 
@@ -50,11 +50,11 @@ function! s:get_context() abort
     let skipped = 0
     let context_count = 0 " how many contexts did we check?
     let line_offset = -1 " first iteration starts with zero
-    let w:context_bottom_lines = []
+    let w:context.bottom_lines = []
 
     while 1
         let line_offset += 1
-        let line_number = w:context_top_line + line_offset
+        let line_number = w:context.top_line + line_offset
         let indent = indent(line_number) "    -1 for invalid lines
         let line = getline(line_number)  " empty for invalid lines
         let base_line = context#line#make(line_number, indent, line)
@@ -66,11 +66,11 @@ function! s:get_context() abort
             continue
         else
             let lines = context#context#get(base_line)
-            if len(w:context_bottom_lines) == 0
+            if len(w:context.bottom_lines) == 0
                 let bottom_lines = copy(lines)
                 call map(bottom_lines, function('context#line#display'))
                 call insert(bottom_lines, '') " will be replaced with border line
-                let w:context_bottom_lines = bottom_lines
+                let w:context.bottom_lines = bottom_lines
             endif
         endif
 
@@ -79,7 +79,7 @@ function! s:get_context() abort
 
         if line_count == 0 && context_count == 0
             " if we get an empty context on the first non skipped line
-            let w:context_top_lines = []
+            let w:context.top_lines = []
             return
         endif
         let context_count += 1
@@ -100,9 +100,9 @@ function! s:get_context() abort
         call add(lines, '')
     endwhile
 
-    let w:context_indent = base_line.indent
+    let w:context.indent = base_line.indent
     call add(lines, '') " will be replaced with border line
-    let w:context_top_lines = lines " to update border line on padding change
+    let w:context.top_lines = lines " to update border line on padding change
 endfunction
 
 let s:popups = {}
@@ -120,9 +120,9 @@ function! s:show() abort
 
     " TODO: what about this idea? seems to work and is simple, but has some
     " annoying behaviors when scrolling...
-    " call setwinvar(winid, '&scrolloff', len(w:context_top_lines))
+    " call setwinvar(winid, '&scrolloff', len(w:context.top_lines))
 
-    if len(w:context_top_lines) == 0
+    if len(w:context.top_lines) == 0
         call context#util#echof('  no lines')
         if popup > 0
             call s:close(popup)
@@ -168,47 +168,48 @@ function! context#popup#redraw(winid, force) abort
         return
     endif
 
-    let lines = copy(getwinvar(a:winid, 'context_top_lines'))
+    let c = getwinvar(a:winid, 'context')
+    let lines = c.top_lines
     if len(lines) == 0
         return
     endif
 
     " TODO: need this check?
     if !a:force
-        let last_offset = getwinvar(a:winid, 'context_popup_offset')
+        let last_offset = c.popup_offset
     endif
 
     " TODO: this should only affect the active window, not others!
     " TODO: minor: can we move this logic into update_state to avoid logs if no
     " update is needed?
     " TODO: can we simplify this?
-    if getwinvar(a:winid, 'context_cursor_offset') >= len(lines) " top
+    if c.cursor_offset >= len(lines) " top
         if !a:force && last_offset == 0
             call context#util#echof('  > context#popup#redraw no force skip top')
             return
         endif
 
-        let lines = getwinvar(a:winid, 'context_top_lines')
+        let lines = c.top_lines
 
         if len(lines) > 0
             let lines[-1] = s:get_border_line(a:winid, 1)
-            call setwinvar(a:winid, 'context_top_lines', lines)
+            let c.top_lines = lines
         endif
 
-        call setwinvar(a:winid, 'context_popup_offset', 0)
+        let c.popup_offset = 0
     else " bottom
         if !a:force && last_offset > 0
             call context#util#echof('  > context#popup#redraw no force skip bottom')
             return
         endif
 
-        let lines = getwinvar(a:winid, 'context_bottom_lines')
+        let lines = c.bottom_lines
         if len(lines) > 0
             let lines[0] = s:get_border_line(a:winid, 0)
-            call setwinvar(a:winid, 'context_bottom_lines', lines)
+            let c.bottom_lines = lines
         endif
 
-        call setwinvar(a:winid, 'context_popup_offset', winheight(a:winid) - len(lines))
+        let c.popup_offset = winheight(a:winid) - len(lines)
     endif
 
     call context#util#echof('  > context#popup#redraw', len(lines))
@@ -229,11 +230,10 @@ function! s:close(popup) abort
 endfunction
 
 function! s:get_border_line(winid, indent) abort
-    let width   =            getwinvar(a:winid, 'context_width')
-    let padding =            getwinvar(a:winid, 'context_padding')
-    let indent  = a:indent ? getwinvar(a:winid, 'context_indent') : 0
+    let c = getwinvar(a:winid, 'context')
+    let indent  = a:indent ? c.indent : 0
 
-    let line_len = width - indent - len(s:context_buffer_name) - 2 - padding
+    let line_len = c.width - indent - len(s:context_buffer_name) - 2 - c.padding
     return ''
                 \ . repeat(' ', indent)
                 \ . repeat(g:context_border_char, line_len)

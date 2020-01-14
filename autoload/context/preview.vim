@@ -1,7 +1,7 @@
 let s:context_buffer_name = '<context.vim>'
 
 function! context#preview#update_context(allow_resize, force_resize) abort
-    let base_line = context#line#get_base_line(w:context_top_line)
+    let base_line = context#line#get_base_line(w:context.top_line)
     let lines = context#context#get(base_line)
     let hidden_indent = s:get_hidden_indent(base_line, lines)
 
@@ -14,7 +14,7 @@ function! context#preview#update_context(allow_resize, force_resize) abort
     while len(lines) < min_height
         call add(lines, '')
     endwhile
-    let w:context_min_height = len(lines)
+    let w:context.min_height = len(lines)
 
     call s:show(lines, hidden_indent)
 endfunction
@@ -63,7 +63,7 @@ function! s:show(lines, hidden_indent) abort
 
     let syntax  = &syntax
     let tabstop = &tabstop
-    let padding = w:context_padding
+    let padding = w:context.padding
 
     execute 'silent! aboveleft pedit' s:context_buffer_name
 
@@ -139,28 +139,28 @@ endfunction
 
 function! s:get_min_height(allow_resize, force_resize) abort
     " adjust min window height based on scroll amount
-    if a:force_resize || !exists('w:context_min_height')
+    if a:force_resize || !exists('w:context.min_height')
         return 0
     endif
 
-    if !a:allow_resize || w:context_scroll_offset == 0
-        return w:context_min_height
+    if !a:allow_resize || w:context.scroll_offset == 0
+        return w:context.min_height
     endif
 
-    if !exists('w:context_resize_level')
-        let w:context_resize_level = 0 " for decreasing window height based on scrolling
+    if !exists('w:context.resize_level')
+        let w:context.resize_level = 0 " for decreasing window height based on scrolling
     endif
 
-    let diff = abs(w:context_scroll_offset)
+    let diff = abs(w:context.scroll_offset)
     if diff == 1
         " slowly decrease min height if moving line by line
-        let w:context_resize_level += g:context_resize_linewise
+        let w:context.resize_level += g:context_resize_linewise
     else
         " quicker if moving multiple lines (^U/^D: decrease by one line)
-        let w:context_resize_level += g:context_resize_scroll / &scroll * diff
+        let w:context.resize_level += g:context_resize_scroll / &scroll * diff
     endif
 
-    let t = float2nr(w:context_resize_level)
-    let w:context_resize_level -= t
-    return w:context_min_height - t
+    let t = float2nr(w:context.resize_level)
+    let w:context.resize_level -= t
+    return w:context.min_height - t
 endfunction

@@ -2,7 +2,7 @@
 " TODO: inline this one too? it's somewhat weird to have it here. or move
 " somewhere else?
 function! context#context#update(allow_resize, force_resize, source) abort
-    call context#util#echof('> context#context#update', a:source, w:context_top_line)
+    call context#util#echof('> context#context#update', a:source, w:context.top_line)
     call context#util#log_indent(2)
 
     if g:context_presenter == 'preview'
@@ -14,8 +14,8 @@ function! context#context#update(allow_resize, force_resize, source) abort
     if g:context_presenter == 'preview'
         " call again until it stabilizes
         call context#util#update_state()
-        if w:context_needs_update
-            let w:context_needs_update = 0
+        if w:context.needs_update
+            let w:context.needs_update = 0
             call context#context#update(0, 0, 'recurse')
         endif
     endif

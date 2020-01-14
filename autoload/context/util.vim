@@ -2,17 +2,17 @@ function! context#util#update_state() abort
     let wincount = winnr('$')
     if get(s:, 'wincount') != wincount
         let s:wincount = wincount
-        let w:context_needs_layout = 1
+        let w:context.needs_layout = 1
     endif
 
     let top_line = line('w0')
-    let last_top_line = get(w:, 'context_top_line', 0)
+    let last_top_line = get(w:context, 'top_line', 0)
     if last_top_line != top_line
-        let w:context_top_line = top_line
-        let w:context_needs_update = 1
+        let w:context.top_line = top_line
+        let w:context.needs_update = 1
     endif
     " used in preview only
-    let w:context_scroll_offset = last_top_line - top_line
+    let w:context.scroll_offset = last_top_line - top_line
 
     " padding can only be checked for the current window
     let padding = wincol() - virtcol('.')
@@ -21,40 +21,43 @@ function! context#util#update_state() abort
         " wrapped line in that case don't take the new value
         " in this case we don't want to trigger an update, but still set
         " padding to a value
-        if !exists('w:context_padding')
-            let w:context_padding = 0
+        if !exists('w:context.padding')
+            let w:context.padding = 0
         endif
-    elseif get(w:, 'context_padding', -1) != padding
-        let w:context_padding = padding
-        let w:context_needs_update = 1
+    elseif get(w:context, 'padding', -1) != padding
+        let w:context.padding = padding
+        let w:context.needs_update = 1
     endif
 
     let cursor_line = line('.')
     let cursor_offset = cursor_line - top_line
-    if get(w:, 'context_cursor_offset') != cursor_offset
-        let w:context_cursor_offset = cursor_offset
-        let w:context_needs_move = 1
+    if get(w:context, 'cursor_offset') != cursor_offset
+        let w:context.cursor_offset = cursor_offset
+        let w:context.needs_move = 1
     endif
 endfunction
 
 function! context#util#update_window_state(winid) abort
+    let c = getwinvar(a:winid, 'context')
+
     let width = winwidth(a:winid)
-    if getwinvar(a:winid, 'context_width') != width
-        call setwinvar(a:winid, 'context_width', width)
-        call setwinvar(a:winid, 'context_needs_layout', 1)
+    if c.width != width
+        let c.width = width
+        let c.needs_layout = 1
     endif
 
     let height = winheight(a:winid)
-    if getwinvar(a:winid, 'context_height') != height
-        call setwinvar(a:winid, 'context_height', height)
-        call setwinvar(a:winid, 'context_needs_layout', 1)
+    if c.height != height
+        let c.height = height
+        let c.needs_layout = 1
     endif
 
     if g:context_presenter != 'preview'
-        let screenpos = win_screenpos(a:winid)
-        if getwinvar(a:winid, 'context_screenpos', []) != screenpos
-            call setwinvar(a:winid, 'context_screenpos', screenpos)
-            call setwinvar(a:winid, 'context_needs_layout', 1)
+        let [line, col] = win_screenpos(a:winid)
+        if c.line != line || c.col != col
+            let c.line = line
+            let c.col  = col
+            let c.needs_layout = 1
         endif
     endif
 endfunction
