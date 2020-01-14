@@ -13,7 +13,7 @@ function! context#popup#vim#open() abort
     return popup
 endfunction
 
-function! context#popup#vim#update(winid, popup, lines) abort
+function! context#popup#vim#redraw(winid, popup, lines) abort
     call popup_settext(a:popup, a:lines)
 
     let width       = getwinvar(a:winid, 'context_width')
@@ -21,7 +21,7 @@ function! context#popup#vim#update(winid, popup, lines) abort
     let offset      = getwinvar(a:winid, 'context_popup_offset', 0)
     let [line, col] = getwinvar(a:winid, 'context_screenpos')
 
-    call context#util#echof('    > context#popup#vim#update', len(a:lines))
+    call context#util#echof('    > context#popup#vim#redraw', len(a:lines))
 
     call popup_move(a:popup, {
                 \ 'line':     line + offset,

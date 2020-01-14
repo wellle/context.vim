@@ -1,8 +1,8 @@
 let s:context_buffer_name = '<context.vim>'
 
-function! context#popup#update() abort
+function! context#popup#update_context() abort
     call s:get_context()
-    call context#util#echof('> context#popup#update', len(w:context_top_lines))
+    call context#util#echof('> context#popup#update_context', len(w:context_top_lines))
     call s:show()
 endfunction
 
@@ -29,23 +29,8 @@ function! context#popup#layout() abort
         " changed, but we can't really fix that (without temporarily
         " moving the cursor which we'd like to avoid)
         " TODO: fix that?
-        call s:update(winid, popup, 1)
+        call context#popup#redraw(winid, 1)
     endfor
-endfunction
-
-" TODO!: remove?
-" probably yes, stop injecting popup into s:update and rename that
-" function, then can inline this one
-function! context#popup#move(winid) abort
-    call context#util#echof('> context#popup#move')
-    let popup = get(s:popups, a:winid, -1)
-    if popup == -1
-        return
-    endif
-
-    " NOTE: don't force update here, only if we switched between top and
-    " bottom
-    call s:update(a:winid, popup, 0)
 endfunction
 
 function! context#popup#clear() abort
@@ -151,15 +136,15 @@ function! s:show() abort
         let s:popups[winid] = popup
     endif
 
-    call s:update(winid, popup, 1)
+    call context#popup#redraw(winid, 1)
 
     if g:context_presenter == 'nvim-float'
-        call context#popup#nvim#redraw()
+        call context#popup#nvim#redraw_screen()
     endif
 endfunction
 
 function! s:open() abort
-    call context#util#echof('  > popup_open')
+    call context#util#echof('  > open')
     if g:context_presenter == 'nvim-float'
         let popup = context#popup#nvim#open()
     elseif g:context_presenter == 'vim-popup'
@@ -177,7 +162,12 @@ function! s:open() abort
     return popup
 endfunction
 
-function! s:update(winid, popup, force) abort
+function! context#popup#redraw(winid, force) abort
+    let popup = get(s:popups, a:winid)
+    if popup == 0
+        return
+    endif
+
     let lines = copy(getwinvar(a:winid, 'context_top_lines'))
     if len(lines) == 0
         return
@@ -194,7 +184,7 @@ function! s:update(winid, popup, force) abort
     " TODO: can we simplify this?
     if getwinvar(a:winid, 'context_cursor_offset') >= len(lines) " top
         if !a:force && last_offset == 0
-            call context#util#echof('  > popup_update no force skip top')
+            call context#util#echof('  > context#popup#redraw no force skip top')
             return
         endif
 
@@ -208,7 +198,7 @@ function! s:update(winid, popup, force) abort
         call setwinvar(a:winid, 'context_popup_offset', 0)
     else " bottom
         if !a:force && last_offset > 0
-            call context#util#echof('  > popup_update no force skip bottom')
+            call context#util#echof('  > context#popup#redraw no force skip bottom')
             return
         endif
 
@@ -221,17 +211,16 @@ function! s:update(winid, popup, force) abort
         call setwinvar(a:winid, 'context_popup_offset', winheight(a:winid) - len(lines))
     endif
 
-
-    call context#util#echof('  > popup_update', len(lines))
+    call context#util#echof('  > context#popup#redraw', len(lines))
     if g:context_presenter == 'nvim-float'
-        call context#popup#nvim#update(a:winid, a:popup, lines)
+        call context#popup#nvim#redraw(a:winid, popup, lines)
     elseif g:context_presenter == 'vim-popup'
-        call context#popup#vim#update(a:winid, a:popup, lines)
+        call context#popup#vim#redraw(a:winid, popup, lines)
     endif
 endfunction
 
 function! s:close(popup) abort
-    call context#util#echof('  > popup_close')
+    call context#util#echof('  > close')
     if g:context_presenter == 'nvim-float'
         call context#popup#nvim#close(a:popup)
     elseif g:context_presenter == 'vim-popup'

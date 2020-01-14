@@ -75,7 +75,7 @@ function! context#update(force_resize, source) abort
             endif
 
             if w:context_needs_move
-                call context#popup#move(winid)
+                call context#popup#redraw(winid, 0)
             endif
         endif
 

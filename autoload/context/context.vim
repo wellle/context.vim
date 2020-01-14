@@ -6,9 +6,9 @@ function! context#context#update(allow_resize, force_resize, source) abort
     call context#util#log_indent(2)
 
     if g:context_presenter == 'preview'
-         call context#preview#update(a:allow_resize, a:force_resize)
+         call context#preview#update_context(a:allow_resize, a:force_resize)
     else
-        call context#popup#update()
+        call context#popup#update_context()
     endif
 
     if g:context_presenter == 'preview'

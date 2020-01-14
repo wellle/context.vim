@@ -1,11 +1,11 @@
 let s:context_buffer_name = '<context.vim>'
 
-function! context#preview#update(allow_resize, force_resize) abort
+function! context#preview#update_context(allow_resize, force_resize) abort
     let base_line = context#line#get_base_line(w:context_top_line)
     let lines = context#context#get(base_line)
     let hidden_indent = s:get_hidden_indent(base_line, lines)
 
-    call context#util#echof('> context#preview#update', len(lines))
+    call context#util#echof('> context#preview#update_context', len(lines))
 
     " NOTE: this overwrites lines, from here on out it's just a list of string
     call map(lines, function('context#line#display'))

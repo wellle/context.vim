@@ -18,7 +18,7 @@ function! context#popup#nvim#open() abort
     return popup
 endfunction
 
-function! context#popup#nvim#update(winid, popup, lines) abort
+function! context#popup#nvim#redraw(winid, popup, lines) abort
     let buf = winbufnr(a:popup)
     call nvim_buf_set_lines(buf, 0, -1, v:true, a:lines)
 
@@ -27,7 +27,7 @@ function! context#popup#nvim#update(winid, popup, lines) abort
     let offset      = getwinvar(a:winid, 'context_popup_offset', 0)
     let [line, col] = getwinvar(a:winid, 'context_screenpos')
 
-    call context#util#echof('    > context#popup#nvim-update', len(a:lines))
+    call context#util#echof('    > context#popup#nvim#redraw', len(a:lines))
 
     call nvim_win_set_config(a:popup, {
                 \ 'relative': 'editor',
@@ -44,7 +44,7 @@ function! context#popup#nvim#close(popup) abort
     call nvim_win_close(a:popup, v:true)
 endfunction
 
-function! context#popup#nvim#redraw() abort
+function! context#popup#nvim#redraw_screen() abort
     " NOTE: this redraws the screen. this is needed because there's
     " a redraw issue: https://github.com/neovim/neovim/issues/11597
     " TODO: remove this once that issue has been resolved for some reason
