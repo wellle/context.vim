@@ -32,19 +32,21 @@ function! context#context#get(base_line) abort
 
     let context = {}
 
-    if get(b:, 'context_tick') != b:changedtick
-        let b:context_tick  = b:changedtick
-        " this dictionary maps a line to its next context line
-        " so it allows us to skip large portions of the buffer instead of always
+    if !exists('b:context') || b:context.tick != b:changedtick
+        " skips is a dictionary that maps a line to its next context line so
+        " it allows us to skip large portions of the buffer instead of always
         " having to scan through all of it
-        let b:context_skips = {}
-        let b:context_cost  = 0
-        let b:context_saved = 0
+        let b:context = {
+                    \ 'tick':  b:changedtick,
+                    \ 'skips': {},
+                    \ 'cost':  0,
+                    \ 'saved': 0,
+                    \ }
     endif
 
     while 1
         let context_line = s:get_context_line(base_line)
-        let b:context_skips[base_line.number] = context_line.number " cache this lookup
+        let b:context.skips[base_line.number] = context_line.number " cache this lookup
 
         if context_line.number == 0
             break
@@ -84,21 +86,17 @@ function! context#context#get(base_line) abort
 endfunction
 
 function! context#context#cache_stats() abort
-    " TODO!: have a single dict b:context so we would access fields like
-    " b:context.skip, like gitgutter does. similar for w:context
-    " that way we can probably also create a single default thing once we hit
-    " a new buffer/window
-    let skips = len(b:context_skips)
-    let cost  = b:context_cost
-    let total = b:context_cost + b:context_saved
+    let skips = len(b:context.skips)
+    let cost  = b:context.cost
+    let total = b:context.cost + b:context.saved
     echom printf('cache: %d skips, %d / %d (%.1f%%)', skips, cost, total, 100.0 * cost / total)
 endfunction
 
 function! s:get_context_line(line) abort
     " check if we have a skip available from the base line
-    let skipped = get(b:context_skips, a:line.number, -1)
+    let skipped = get(b:context.skips, a:line.number, -1)
     if skipped != -1
-        let b:context_saved += a:line.number-1 - skipped
+        let b:context.saved += a:line.number-1 - skipped
         " call context#util#echof('  skipped', a:line.number, '->', skipped)
         return context#line#make(skipped, indent(skipped), getline(skipped))
     endif
@@ -124,13 +122,13 @@ function! s:get_context_line(line) abort
             return g:context_nil_line
         endif
 
-        let b:context_cost += 1
+        let b:context.cost += 1
 
         let indent = indent(current_line)
         if indent > max_indent
             " use skip if we have, next line otherwise
-            let skipped = get(b:context_skips, current_line, current_line-1)
-            let b:context_saved += current_line-1 - skipped
+            let skipped = get(b:context.skips, current_line, current_line-1)
+            let b:context.saved += current_line-1 - skipped
             let current_line = skipped
             continue
         endif
