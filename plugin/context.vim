@@ -12,7 +12,7 @@ command! -bar ContextActivate call context#activate()
 command! -bar ContextEnable   call context#enable()
 command! -bar ContextDisable  call context#disable()
 command! -bar ContextToggle   call context#toggle()
-command! -bar ContextUpdate   call context#update(0, 'command')
+command! -bar ContextUpdate   call context#update('command')
 
 
 " TODO update docs, as we changed the mappings and autocmds
@@ -23,11 +23,12 @@ if g:context.add_mappings
     " context#update(). unfortunately this is needed because it seems like Vim
     " sometimes gets confused if the window height changes shortly after zz/zt/zb
     " have been executed.
-    nnoremap <silent> <C-L> <C-L>:call context#update(1, 'C-L')<CR>
-    nnoremap <silent> <C-E> <C-E>:call context#update(0, 'C-E')<CR>
-    nnoremap <silent> <C-Y> <C-Y>:call context#update(0, 'C-Y')<CR>
-    nnoremap <silent> zz     zzzz:call context#update(0, 'zz')<CR>
-    nnoremap <silent> zb     zbzb:call context#update(0, 'zb')<CR>
+    " TODO: do we still need the ^L mapping?
+    nnoremap <silent> <C-L> <C-L>:call context#update('C-L')<CR>
+    nnoremap <silent> <C-E> <C-E>:call context#update('C-E')<CR>
+    nnoremap <silent> <C-Y> <C-Y>:call context#update('C-Y')<CR>
+    nnoremap <silent> zz     zzzz:call context#update('zz')<CR>
+    nnoremap <silent> zb     zbzb:call context#update('zb')<CR>
     nnoremap <silent> <expr> zt context#zt()
     nnoremap <silent> <expr> H  context#h()
 endif
@@ -38,12 +39,12 @@ if g:context.add_autocmds
     augroup context.vim
         autocmd!
         autocmd VimEnter     * ContextActivate
-        autocmd BufAdd       * call context#update(1, 'BufAdd')
-        autocmd BufEnter     * call context#update(0, 'BufEnter')
-        autocmd CursorMoved  * call context#update(0, 'CursorMoved')
-        autocmd VimResized   * call context#update(0, 'VimResized')
-        autocmd CursorHold   * call context#update(0, 'CursorHold')
-        autocmd User GitGutter call context#update(0, 'GitGutter')
+        autocmd BufAdd       * call context#update('BufAdd')
+        autocmd BufEnter     * call context#update('BufEnter')
+        autocmd CursorMoved  * call context#update('CursorMoved')
+        autocmd VimResized   * call context#update('VimResized')
+        autocmd CursorHold   * call context#update('CursorHold')
+        autocmd User GitGutter call context#update('GitGutter')
 
     augroup END
 endif

@@ -7,12 +7,12 @@ function! context#activate() abort
     " one buffer before another one gets opened in startup
     " to avoid that we wait for startup to be finished
     let s:activated = 1
-    call context#update(0, 'activate')
+    call context#update('activate')
 endfunction
 
 function! context#enable() abort
     let g:context.enabled = 1
-    call context#update(1, 'enable')
+    call context#update('enable')
 endfunction
 
 function! context#disable() abort
@@ -33,7 +33,7 @@ function! context#toggle() abort
     endif
 endfunction
 
-function! context#update(force_resize, source) abort
+function! context#update(source) abort
     if 0
                 \ || !g:context.enabled
                 \ || !s:activated
@@ -66,9 +66,6 @@ function! context#update(force_resize, source) abort
                     \ }
     endif
 
-    let w:context.needs_update = a:force_resize
-    let w:context.needs_layout = a:force_resize
-    let w:context.needs_move   = a:force_resize
     call context#util#update_state()
     call context#util#update_window_state(winid)
 
@@ -82,7 +79,7 @@ function! context#update(force_resize, source) abort
 
             if w:context.needs_update
                 let w:context.needs_update = 0
-                call context#preview#update_context(1, a:force_resize)
+                call context#preview#update_context()
             endif
 
             let s:ignore_update = 0
@@ -113,7 +110,7 @@ function! context#zt() abort
         return 'zt'
     endif
 
-    let suffix = ":call context#update(0, 'zt')\<CR>"
+    let suffix = ":call context#update('zt')\<CR>"
     if g:context.presenter == 'preview' || v:count != 0
         " NOTE: see plugin/context.vim for why we use double zt here
         return 'ztzt' . suffix

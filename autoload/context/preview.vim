@@ -1,9 +1,6 @@
 let s:context_buffer_name = '<context.vim>'
 
-" TODO: remove allow_resize, force_resize?
-function! context#preview#update_context(allow_resize, force_resize) abort
-    let allow_resize = a:allow_resize
-    let force_resize = a:force_resize
+function! context#preview#update_context() abort
 
     while 1
         let base_line = context#line#get_base_line(w:context.top_line)
@@ -15,7 +12,7 @@ function! context#preview#update_context(allow_resize, force_resize) abort
         " NOTE: this overwrites lines, from here on out it's just a list of string
         call map(lines, function('context#line#display'))
 
-        let min_height = s:get_min_height(allow_resize, force_resize)
+        let min_height = s:get_min_height()
         while len(lines) < min_height
             call add(lines, '')
         endwhile
@@ -27,8 +24,6 @@ function! context#preview#update_context(allow_resize, force_resize) abort
         if w:context.needs_update
             let w:context.needs_update = 0
             " update again until it stabilizes
-            let allow_resize = 0
-            let force_resize = 0
             continue
         endif
 
@@ -155,13 +150,13 @@ function! s:get_hidden_indent(base_line, lines) abort
     return min_indent
 endfunction
 
-function! s:get_min_height(allow_resize, force_resize) abort
+function! s:get_min_height() abort
     " adjust min window height based on scroll amount
-    if a:force_resize || !exists('w:context.min_height')
+    if !exists('w:context.min_height')
         return 0
     endif
 
-    if !a:allow_resize || w:context.scroll_offset == 0
+    if w:context.scroll_offset == 0
         return w:context.min_height
     endif
 
@@ -169,6 +164,7 @@ function! s:get_min_height(allow_resize, force_resize) abort
         let w:context.resize_level = 0 " for decreasing window height based on scrolling
     endif
 
+    " TODO: remove this slow resize logic?
     let diff = abs(w:context.scroll_offset)
     if diff == 1
         " slowly decrease min height if moving line by line
