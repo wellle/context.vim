@@ -1,30 +1,5 @@
 let s:nil_line = context#line#make(0, 0, '')
 
-" TODO: remove allow_resize, force_resize?
-" TODO: inline this one too? it's somewhat weird to have it here. or move
-" somewhere else?
-function! context#context#update(allow_resize, force_resize, source) abort
-    call context#util#echof('> context#context#update', a:source, w:context.top_line)
-    call context#util#log_indent(2)
-
-    if g:context.presenter == 'preview'
-         call context#preview#update_context(a:allow_resize, a:force_resize)
-    else
-        call context#popup#update_context()
-    endif
-
-    if g:context.presenter == 'preview'
-        " call again until it stabilizes
-        call context#util#update_state()
-        if w:context.needs_update
-            let w:context.needs_update = 0
-            call context#context#update(0, 0, 'recurse')
-        endif
-    endif
-
-    call context#util#log_indent(-2)
-endfunction
-
 " collect all context lines
 function! context#context#get(base_line) abort
     let base_line = a:base_line

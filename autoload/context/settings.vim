@@ -35,11 +35,13 @@ function! context#settings#parse() abort
 
     let border_char = get(g:, 'context_border_char', '▬')
 
-    " TODO: mention that this is preview only
-    " how much to decrease window height when scrolling linewise (^E/^Y)
+    " TODO: mention in docs that this is preview only
+    " NOTE: preview only
+    " how much to decrease preview height when scrolling linewise (^E/^Y)
     let resize_linewise = get(g:, 'context_resize_linewise', 0.25)
 
-    " how much to decrease window height when scrolling half-screen wise (^U/^D)
+    " NOTE: preview only
+    " how much to decrease preview height when scrolling half-screen wise (^U/^D)
     let resize_scroll = get(g:, 'context_resize_scroll', 1.0)
 
     " lines matching this regex will be ignored for the context

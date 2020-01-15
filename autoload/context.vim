@@ -18,11 +18,10 @@ endfunction
 function! context#disable() abort
     let g:context.enabled = 0
 
-    " TODO: extract one general function, similar in other places
-    " TODO: also how can we avoid the explicit presenter checks?
-    call context#popup#clear()
     if g:context.presenter == 'preview'
         call context#preview#close()
+    else
+        call context#popup#clear()
     endif
 endfunction
 
@@ -78,29 +77,34 @@ function! context#update(force_resize, source) abort
         call context#util#echof('> context#update', a:source)
         call context#util#log_indent(2)
 
-        let s:ignore_update = 1
+        if g:context.presenter == 'preview'
+            let s:ignore_update = 1
 
-        if w:context.needs_update
-            call context#context#update(1, a:force_resize, a:source)
-        endif
+            if w:context.needs_update
+                let w:context.needs_update = 0
+                call context#preview#update_context(1, a:force_resize)
+            endif
 
-        if g:context.presenter != 'preview'
+            let s:ignore_update = 0
+
+        else " popup
+            if w:context.needs_update
+                let w:context.needs_update = 0
+                call context#popup#update_context()
+            endif
+
             if w:context.needs_layout
+                let w:context.needs_layout = 0
                 call context#popup#layout()
             endif
 
             if w:context.needs_move
+                let w:context.needs_move = 0
                 call context#popup#redraw(winid, 0)
             endif
         endif
 
-        let s:ignore_update = 0
-
         call context#util#log_indent(-2)
-
-        let w:context.needs_update = 0
-        let w:context.needs_layout = 0
-        let w:context.needs_move   = 0
     endif
 endfunction
 
@@ -111,7 +115,7 @@ function! context#zt() abort
 
     let suffix = ":call context#update(0, 'zt')\<CR>"
     if g:context.presenter == 'preview' || v:count != 0
-        " TODO: mention double ztzt issue here too?
+        " NOTE: see plugin/context.vim for why we use double zt here
         return 'ztzt' . suffix
     endif
 
@@ -141,12 +145,11 @@ function! context#h() abort
         return 'H'
     endif
 
-    " TODO: can we avoid the get() calls here?
-    if get(w:context, 'popup_offset') > 0
+    if w:context.popup_offset > 0
         return 'H'
     endif
 
-    let lines = get(w:context, 'top_lines', [])
+    let lines = w:context.top_lines
     if len(lines) == 0
         return 'H'
     endif

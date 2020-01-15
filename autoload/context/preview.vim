@@ -1,22 +1,39 @@
 let s:context_buffer_name = '<context.vim>'
 
+" TODO: remove allow_resize, force_resize?
 function! context#preview#update_context(allow_resize, force_resize) abort
-    let base_line = context#line#get_base_line(w:context.top_line)
-    let lines = context#context#get(base_line)
-    let hidden_indent = s:get_hidden_indent(base_line, lines)
+    let allow_resize = a:allow_resize
+    let force_resize = a:force_resize
 
-    call context#util#echof('> context#preview#update_context', len(lines))
+    while 1
+        let base_line = context#line#get_base_line(w:context.top_line)
+        let lines = context#context#get(base_line)
+        let hidden_indent = s:get_hidden_indent(base_line, lines)
 
-    " NOTE: this overwrites lines, from here on out it's just a list of string
-    call map(lines, function('context#line#display'))
+        call context#util#echof('> context#preview#update_context', len(lines))
 
-    let min_height = s:get_min_height(a:allow_resize, a:force_resize)
-    while len(lines) < min_height
-        call add(lines, '')
+        " NOTE: this overwrites lines, from here on out it's just a list of string
+        call map(lines, function('context#line#display'))
+
+        let min_height = s:get_min_height(allow_resize, force_resize)
+        while len(lines) < min_height
+            call add(lines, '')
+        endwhile
+        let w:context.min_height = len(lines)
+
+        call s:show(lines, hidden_indent)
+
+        call context#util#update_state()
+        if w:context.needs_update
+            let w:context.needs_update = 0
+            " update again until it stabilizes
+            let allow_resize = 0
+            let force_resize = 0
+            continue
+        endif
+
+        break
     endwhile
-    let w:context.min_height = len(lines)
-
-    call s:show(lines, hidden_indent)
 endfunction
 
 " NOTE: this function updates the statusline too, as it depends on the padding

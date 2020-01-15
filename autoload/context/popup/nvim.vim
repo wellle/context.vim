@@ -43,7 +43,7 @@ endfunction
 function! context#popup#nvim#redraw_screen() abort
     " NOTE: this redraws the screen. this is needed because there's
     " a redraw issue: https://github.com/neovim/neovim/issues/11597
-    " TODO: remove this once that issue has been resolved for some reason
+    " TODO: remove this once that issue has been resolved
     " sometimes it's not enough to :mode without :redraw we do it here because
     " it's not needed for when we call update from layout
     redraw

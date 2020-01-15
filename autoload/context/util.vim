@@ -6,7 +6,7 @@ function! context#util#update_state() abort
     endif
 
     let top_line = line('w0')
-    let last_top_line = get(w:context, 'top_line', 0)
+    let last_top_line = w:context.top_line
     if last_top_line != top_line
         let w:context.top_line = top_line
         let w:context.needs_update = 1
@@ -24,14 +24,14 @@ function! context#util#update_state() abort
         if !exists('w:context.padding')
             let w:context.padding = 0
         endif
-    elseif get(w:context, 'padding', -1) != padding
+    elseif w:context.padding != padding
         let w:context.padding = padding
         let w:context.needs_update = 1
     endif
 
     let cursor_line = line('.')
     let cursor_offset = cursor_line - top_line
-    if get(w:context, 'cursor_offset') != cursor_offset
+    if w:context.cursor_offset != cursor_offset
         let w:context.cursor_offset = cursor_offset
         let w:context.needs_move = 1
     endif
