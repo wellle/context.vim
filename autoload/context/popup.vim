@@ -138,23 +138,23 @@ function! s:show() abort
 
     call context#popup#redraw(winid, 1)
 
-    if g:context_presenter == 'nvim-float'
+    if g:context.presenter == 'nvim-float'
         call context#popup#nvim#redraw_screen()
     endif
 endfunction
 
 function! s:open() abort
     call context#util#echof('  > open')
-    if g:context_presenter == 'nvim-float'
+    if g:context.presenter == 'nvim-float'
         let popup = context#popup#nvim#open()
-    elseif g:context_presenter == 'vim-popup'
+    elseif g:context.presenter == 'vim-popup'
         let popup = context#popup#vim#open()
     endif
 
-    let border = ' *' .g:context_border_char . '* ' . s:context_buffer_name . ' '
+    let border = ' *' .g:context.border_char . '* ' . s:context_buffer_name . ' '
     let tag = s:context_buffer_name
-    let m = matchadd(g:context_highlight_border, border, 10, -1, {'window': popup})
-    let m = matchadd(g:context_highlight_tag,    tag,    10, -1, {'window': popup})
+    let m = matchadd(g:context.highlight_border, border, 10, -1, {'window': popup})
+    let m = matchadd(g:context.highlight_tag,    tag,    10, -1, {'window': popup})
 
     let buf = winbufnr(popup)
     call setbufvar(buf, '&syntax', &syntax)
@@ -213,18 +213,18 @@ function! context#popup#redraw(winid, force) abort
     endif
 
     call context#util#echof('  > context#popup#redraw', len(lines))
-    if g:context_presenter == 'nvim-float'
+    if g:context.presenter == 'nvim-float'
         call context#popup#nvim#redraw(a:winid, popup, lines)
-    elseif g:context_presenter == 'vim-popup'
+    elseif g:context.presenter == 'vim-popup'
         call context#popup#vim#redraw(a:winid, popup, lines)
     endif
 endfunction
 
 function! s:close(popup) abort
     call context#util#echof('  > close')
-    if g:context_presenter == 'nvim-float'
+    if g:context.presenter == 'nvim-float'
         call context#popup#nvim#close(a:popup)
-    elseif g:context_presenter == 'vim-popup'
+    elseif g:context.presenter == 'vim-popup'
         call context#popup#vim#close(a:popup)
     endif
 endfunction
@@ -236,7 +236,7 @@ function! s:get_border_line(winid, indent) abort
     let line_len = c.width - indent - len(s:context_buffer_name) - 2 - c.padding
     return ''
                 \ . repeat(' ', indent)
-                \ . repeat(g:context_border_char, line_len)
+                \ . repeat(g:context.border_char, line_len)
                 \ . ' '
                 \ . s:context_buffer_name
                 \ . ' '

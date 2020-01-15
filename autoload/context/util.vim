@@ -52,7 +52,7 @@ function! context#util#update_window_state(winid) abort
         let c.needs_layout = 1
     endif
 
-    if g:context_presenter != 'preview'
+    if g:context.presenter != 'preview'
         let [line, col] = win_screenpos(a:winid)
         if c.line != line || c.col != col
             let c.line = line
@@ -68,9 +68,9 @@ function! context#util#log_indent(amount) abort
     let s:log_indent += a:amount
 endfunction
 
-" debug logging, set g:context_logfile to activate
+" debug logging, set g:context.logfile to activate
 function! context#util#echof(...) abort
-    if !exists('g:context_logfile')
+    if g:context.logfile == ''
         return
     endif
 
@@ -79,5 +79,5 @@ function! context#util#echof(...) abort
     let args = substitute(args, '!', '^', 'g')
     let args = substitute(args, '#', '+', 'g')
     let message = repeat(' ', s:log_indent) . args
-    execute "silent! !echo '" . message . "' >>" g:context_logfile
+    execute "silent! !echo '" . message . "' >>" g:context.logfile
 endfunction

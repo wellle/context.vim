@@ -1,13 +1,5 @@
-" TODO: do a single g:context dict too?
-
-" cached
-let g:context_ellipsis  = repeat(g:context_ellipsis_char, 3)
-let g:context_ellipsis5 = repeat(g:context_ellipsis_char, 5)
-let g:context_nil_line = context#line#make(0, 0, '')
-
 let s:activated     = 0
 let s:ignore_update = 0
-
 
 " call this on VimEnter to activate the plugin
 function! context#activate() abort
@@ -19,23 +11,23 @@ function! context#activate() abort
 endfunction
 
 function! context#enable() abort
-    let g:context_enabled = 1
+    let g:context.enabled = 1
     call context#update(1, 'enable')
 endfunction
 
 function! context#disable() abort
-    let g:context_enabled = 0
+    let g:context.enabled = 0
 
     " TODO: extract one general function, similar in other places
     " TODO: also how can we avoid the explicit presenter checks?
     call context#popup#clear()
-    if g:context_presenter == 'preview'
+    if g:context.presenter == 'preview'
         call context#preview#close()
     endif
 endfunction
 
 function! context#toggle() abort
-    if g:context_enabled
+    if g:context.enabled
         call context#disable()
     else
         call context#enable()
@@ -44,7 +36,7 @@ endfunction
 
 function! context#update(force_resize, source) abort
     if 0
-                \ || !g:context_enabled
+                \ || !g:context.enabled
                 \ || !s:activated
                 \ || s:ignore_update
                 \ || &previewwindow
@@ -92,7 +84,7 @@ function! context#update(force_resize, source) abort
             call context#context#update(1, a:force_resize, a:source)
         endif
 
-        if g:context_presenter != 'preview'
+        if g:context.presenter != 'preview'
             if w:context.needs_layout
                 call context#popup#layout()
             endif
@@ -113,12 +105,12 @@ function! context#update(force_resize, source) abort
 endfunction
 
 function! context#zt() abort
-    if !g:context_enabled
+    if !g:context.enabled
         return 'zt'
     endif
 
     let suffix = ":call context#update(0, 'zt')\<CR>"
-    if g:context_presenter == 'preview' || v:count != 0
+    if g:context.presenter == 'preview' || v:count != 0
         " TODO: mention double ztzt issue here too?
         return 'ztzt' . suffix
     endif
@@ -141,11 +133,11 @@ function! context#zt() abort
 endfunction
 
 function! context#h() abort
-    if !g:context_enabled
+    if !g:context.enabled
         return 'H'
     endif
 
-    if g:context_presenter == 'preview'
+    if g:context.presenter == 'preview'
         return 'H'
     endif
 

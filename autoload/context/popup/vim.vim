@@ -7,7 +7,7 @@ function! context#popup#vim#open() abort
                 \ 'wrap':     v:false,
                 \ })
 
-	call setwinvar(popup, '&wincolor', g:context_highlight_normal)
+	call setwinvar(popup, '&wincolor', g:context.highlight_normal)
     call setwinvar(popup, '&tabstop', &tabstop)
 
     return popup

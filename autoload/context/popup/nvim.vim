@@ -12,7 +12,7 @@ function! context#popup#nvim#open() abort
                 \ 'style':     'minimal',
                 \ })
 
-	call setwinvar(popup, '&winhighlight', 'Normal:' . g:context_highlight_normal)
+	call setwinvar(popup, '&winhighlight', 'Normal:' . g:context.highlight_normal)
     call setwinvar(popup, '&wrap', 0)
 
     return popup

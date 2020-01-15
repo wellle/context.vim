@@ -1,10 +1,20 @@
+function! context#line#make(number, indent, text) abort
+    return {
+                \ 'number': a:number,
+                \ 'indent': a:indent,
+                \ 'text':   a:text,
+                \ }
+endfunction
+
+let s:nil_line = context#line#make(0, 0, '')
+
 " find line downwards (from given line) which isn't empty
 function! context#line#get_base_line(line) abort
     let current_line = a:line
     while 1
         let indent = indent(current_line)
         if indent < 0 " invalid line
-            return g:context_nil_line
+            return s:nil_line
         endif
 
         let line = getline(current_line)
@@ -15,14 +25,6 @@ function! context#line#get_base_line(line) abort
 
         return context#line#make(current_line, indent, line)
     endwhile
-endfunction
-
-function! context#line#make(number, indent, text) abort
-    return {
-                \ 'number': a:number,
-                \ 'indent': a:indent,
-                \ 'text':   a:text,
-                \ }
 endfunction
 
 function! context#line#display(index, line) abort
@@ -38,13 +40,13 @@ function! context#line#trim(string) abort
 endfunction
 
 function! context#line#should_extend(line) abort
-    return a:line =~ g:context_extend_regex
+    return a:line =~ g:context.extend_regex
 endfunction
 
 function! context#line#should_skip(line) abort
-    return a:line =~ g:context_skip_regex
+    return a:line =~ g:context.skip_regex
 endfunction
 
 function! context#line#should_join(line) abort
-    return a:line =~ g:context_join_regex
+    return a:line =~ g:context.join_regex
 endfunction

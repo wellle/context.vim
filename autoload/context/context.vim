@@ -1,3 +1,5 @@
+let s:nil_line = context#line#make(0, 0, '')
+
 " TODO: remove allow_resize, force_resize?
 " TODO: inline this one too? it's somewhat weird to have it here. or move
 " somewhere else?
@@ -5,13 +7,13 @@ function! context#context#update(allow_resize, force_resize, source) abort
     call context#util#echof('> context#context#update', a:source, w:context.top_line)
     call context#util#log_indent(2)
 
-    if g:context_presenter == 'preview'
+    if g:context.presenter == 'preview'
          call context#preview#update_context(a:allow_resize, a:force_resize)
     else
         call context#popup#update_context()
     endif
 
-    if g:context_presenter == 'preview'
+    if g:context.presenter == 'preview'
         " call again until it stabilizes
         call context#util#update_state()
         if w:context.needs_update
@@ -72,11 +74,11 @@ function! context#context#get(base_line) abort
     endfor
 
     " limit total context
-    let max = g:context_max_height
+    let max = g:context.max_height
     if len(lines) > max
         let indent1 = lines[max/2].indent
         let indent2 = lines[-(max-1)/2].indent
-        let ellipsis = repeat(g:context_ellipsis_char, max([indent2 - indent1, 3]))
+        let ellipsis = repeat(g:context.ellipsis_char, max([indent2 - indent1, 3]))
         let ellipsis_line = context#line#make(0, indent1, repeat(' ', indent1) . ellipsis)
         call remove(lines, max/2, -(max+1)/2)
         call insert(lines, ellipsis_line, max/2)
@@ -111,7 +113,7 @@ function! s:get_context_line(line) abort
     endif
 
     if max_indent < 0
-        return g:context_nil_line
+        return s:nil_line
     endif
 
     " search for line with matching indent
@@ -119,7 +121,7 @@ function! s:get_context_line(line) abort
     while 1
         if current_line <= 0
             " nothing found
-            return g:context_nil_line
+            return s:nil_line
         endif
 
         let b:context.cost += 1
@@ -145,7 +147,7 @@ endfunction
 
 function! s:join(lines) abort
     " only works with at least 3 parts, so disable otherwise
-    if g:context_max_join_parts < 3
+    if g:context.max_join_parts < 3
         return a:lines
     endif
 
@@ -177,10 +179,10 @@ function! s:join_pending(base, pending) abort
         return a:base
     endif
 
-    let max = g:context_max_join_parts
+    let max = g:context.max_join_parts
     if len(a:pending) > max-1
         call remove(a:pending, (max-1)/2-1, -max/2-1)
-        call insert(a:pending, g:context_nil_line, (max-1)/2-1) " middle marker
+        call insert(a:pending, s:nil_line, (max-1)/2-1) " middle marker
     endif
 
     let joined = a:base
@@ -188,10 +190,10 @@ function! s:join_pending(base, pending) abort
         let joined.text .= ' '
         if line.number == 0
             " this is the middle marker, use long ellipsis
-            let joined.text .= g:context_ellipsis5
+            let joined.text .= g:context.ellipsis5
         elseif joined.number != 0 && line.number != joined.number + 1
             " not after middle marker and there are lines in between: show ellipsis
-            let joined.text .= g:context_ellipsis . ' '
+            let joined.text .= g:context.ellipsis . ' '
         endif
 
         let joined.text .= context#line#trim(line.text)
@@ -204,7 +206,7 @@ endfunction
 function! s:limit(lines, indent) abort
     " call context#util#echof('> limit', a:indent, len(a:lines))
 
-    let max = g:context_max_per_indent
+    let max = g:context.max_per_indent
     if len(a:lines) <= max
         return a:lines
     endif
@@ -212,7 +214,7 @@ function! s:limit(lines, indent) abort
     let diff = len(a:lines) - max
 
     let limited = a:lines[: max/2-1]
-    call add(limited, context#line#make(0, a:indent, repeat(' ', a:indent) . g:context_ellipsis))
+    call add(limited, context#line#make(0, a:indent, repeat(' ', a:indent) . g:context.ellipsis))
     call extend(limited, a:lines[-(max-1)/2 :])
     return limited
 endif

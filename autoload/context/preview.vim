@@ -81,7 +81,7 @@ function! s:show(lines, hidden_indent) abort
 
     let statusline = '%=' . s:context_buffer_name . ' ' " trailing space for padding
     if a:hidden_indent >= 0
-        let statusline = repeat(' ', padding + a:hidden_indent) . g:context_ellipsis . statusline
+        let statusline = repeat(' ', padding + a:hidden_indent) . g:context.ellipsis . statusline
     endif
 
     setlocal buftype=nofile
@@ -106,9 +106,10 @@ function! s:show(lines, hidden_indent) abort
     wincmd p " jump back
 endfunction
 
-" find first line above (hidden) which isn't empty
-" return its indent, -1 if no such line
-" TODO: this is expensive now, maybe not do it like this? or limit it somehow?
+" check lines above base_line, but below context lines
+" return smallest indentation found, -1 if there are none
+" TODO: this is potentially expensive now
+" we might want to limit the number of lines we check here
 function! s:get_hidden_indent(base_line, lines) abort
     call context#util#echof('> get_hidden_indent', a:base_line.number, len(a:lines))
     if len(a:lines) == 0
@@ -154,10 +155,10 @@ function! s:get_min_height(allow_resize, force_resize) abort
     let diff = abs(w:context.scroll_offset)
     if diff == 1
         " slowly decrease min height if moving line by line
-        let w:context.resize_level += g:context_resize_linewise
+        let w:context.resize_level += g:context.resize_linewise
     else
         " quicker if moving multiple lines (^U/^D: decrease by one line)
-        let w:context.resize_level += g:context_resize_scroll / &scroll * diff
+        let w:context.resize_level += g:context.resize_scroll / &scroll * diff
     endif
 
     let t = float2nr(w:context.resize_level)
