@@ -6,7 +6,6 @@ function! context#popup#update_context() abort
     call s:show()
 endfunction
 
-" TODO: reorder functions, after split out to autoload files
 function! context#popup#layout() abort
     call context#util#echof('> context#popup#layout')
 
@@ -42,8 +41,8 @@ function! context#popup#clear() abort
 endfunction
 
 function! s:get_context() abort
-    " NOTE: there's a problem if some of the hidden lines (behind the
-    " popup) are wrapped. then our calculations are off
+    " NOTE: there's a problem if some of the hidden lines
+    " (behind the popup) are wrapped. then our calculations are off
     " TODO: fix that?
 
     " a skipped line has the same context as the next unskipped one below
@@ -118,10 +117,6 @@ function! s:show() abort
         call remove(s:popups, winid)
     endif
 
-    " TODO: what about this idea? seems to work and is simple, but has some
-    " annoying behaviors when scrolling...
-    " call setwinvar(winid, '&scrolloff', len(w:context.top_lines))
-
     if len(w:context.top_lines) == 0
         call context#util#echof('  no lines')
         if popup > 0
@@ -174,23 +169,16 @@ function! context#popup#redraw(winid, force) abort
         return
     endif
 
-    " TODO: need this check?
-    if !a:force
-        let last_offset = c.popup_offset
-    endif
-
-    " TODO: this should only affect the active window, not others!
-    " TODO: minor: can we move this logic into update_state to avoid logs if no
-    " update is needed?
-    " TODO: can we simplify this?
+    " check where to put the context, prefer top, but switch to bottom if
+    " cursor is too high. abort if popup doesn't have to move and no a:force
+    " is given
     if c.cursor_offset >= len(lines) " top
-        if !a:force && last_offset == 0
+        if !a:force && c.popup_offset == 0
             call context#util#echof('  > context#popup#redraw no force skip top')
             return
         endif
 
         let lines = c.top_lines
-
         if len(lines) > 0
             let lines[-1] = s:get_border_line(a:winid, 1)
             let c.top_lines = lines
@@ -198,7 +186,7 @@ function! context#popup#redraw(winid, force) abort
 
         let c.popup_offset = 0
     else " bottom
-        if !a:force && last_offset > 0
+        if !a:force && c.popup_offset > 0
             call context#util#echof('  > context#popup#redraw no force skip bottom')
             return
         endif
