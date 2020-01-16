@@ -62,6 +62,7 @@ function! context#context#get(base_line) abort
     return lines
 endfunction
 
+" TODO: remove?
 function! context#context#cache_stats() abort
     let skips = len(b:context.skips)
     let cost  = b:context.cost

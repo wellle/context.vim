@@ -1,6 +1,7 @@
 let s:context_buffer_name = '<context.vim>'
 
 function! context#preview#update_context() abort
+    let min_height = 0
 
     while 1
         let base_line = context#line#get_base_line(w:context.top_line)
@@ -12,11 +13,10 @@ function! context#preview#update_context() abort
         " NOTE: this overwrites lines, from here on out it's just a list of string
         call map(lines, function('context#line#display'))
 
-        let min_height = s:get_min_height()
         while len(lines) < min_height
             call add(lines, '')
         endwhile
-        let w:context.min_height = len(lines)
+        let min_height = len(lines)
 
         call s:show(lines, hidden_indent)
 
@@ -148,33 +148,4 @@ function! s:get_hidden_indent(base_line, lines) abort
     endwhile
 
     return min_indent
-endfunction
-
-function! s:get_min_height() abort
-    " adjust min window height based on scroll amount
-    if !exists('w:context.min_height')
-        return 0
-    endif
-
-    if w:context.scroll_offset == 0
-        return w:context.min_height
-    endif
-
-    if !exists('w:context.resize_level')
-        let w:context.resize_level = 0 " for decreasing window height based on scrolling
-    endif
-
-    " TODO: remove this slow resize logic?
-    let diff = abs(w:context.scroll_offset)
-    if diff == 1
-        " slowly decrease min height if moving line by line
-        let w:context.resize_level += g:context.resize_linewise
-    else
-        " quicker if moving multiple lines (^U/^D: decrease by one line)
-        let w:context.resize_level += g:context.resize_scroll / &scroll * diff
-    endif
-
-    let t = float2nr(w:context.resize_level)
-    let w:context.resize_level -= t
-    return w:context.min_height - t
 endfunction

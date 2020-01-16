@@ -35,15 +35,6 @@ function! context#settings#parse() abort
 
     let border_char = get(g:, 'context_border_char', '▬')
 
-    " TODO: mention in docs that this is preview only
-    " NOTE: preview only
-    " how much to decrease preview height when scrolling linewise (^E/^Y)
-    let resize_linewise = get(g:, 'context_resize_linewise', 0.25)
-
-    " NOTE: preview only
-    " how much to decrease preview height when scrolling half-screen wise (^U/^D)
-    let resize_scroll = get(g:, 'context_resize_scroll', 1.0)
-
     " lines matching this regex will be ignored for the context
     " match whitespace only lines to show the full context
     " also by default excludes comment lines etc.
@@ -76,8 +67,6 @@ function! context#settings#parse() abort
                 \ 'max_join_parts':      max_join_parts,
                 \ 'ellipsis_char':       ellipsis_char,
                 \ 'border_char':         border_char,
-                \ 'resize_linewise':     resize_linewise,
-                \ 'resize_scroll':       resize_scroll,
                 \ 'skip_regex':          skip_regex,
                 \ 'extend_regex':        extend_regex,
                 \ 'join_regex':          join_regex,

@@ -110,18 +110,6 @@ let g:context_ellipsis_char = '·'
 By default we use this character (digraph `.M`) in our ellipsis (`···`). Change this variable if this character doesn't work for you or if you don't like it.
 
 ```vim
-let g:context_resize_linewise = 0.25
-```
-As the cursor moves and the context changes we have to adjust the context window height. When the context gets bigger we need to increase it. But when the context gets smaller we have a choice of how much we decrease the context window height. In order to avoid the context window height from jumping to much up and down, we throttle the speed at which it's allowed to decrease.
-
-When scrolling line wise by using <kbd>C-Y</kbd> or <kbd>C-E</kbd> (or moving the cursor line wise with `j` or `k`) we only allow the context window to decrease by one line every four lines the buffer has scrolled.
-
-```vim
-let g:context_resize_scroll = 1.0
-```
-This setting is very similar to the one above, but is about faster scrolling. The default setting means that when you scroll the buffer by half a window height (by using <kbd>C-U</kbd> or <kbd>C-D</kbd>) the context window is allowed to decrease its height by one line. If you scroll by a full window height (<kbd>C-B</kbd> or <kbd>C-F</kbd>) it would be two lines and so on.
-
-```vim
 let g:context_skip_regex = '^\s*\($\|#\|//\|/\*\|\*\($\|/s\|\/\)\)'
 ```
 If a buffer line matches this regular expression then it will be fully ignored for context building. By default we skip empty lines, comments and C preprocessor statements.

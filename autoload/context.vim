@@ -55,7 +55,6 @@ function! context#update(source) abort
                     \ 'height':        0,
                     \ 'cursor_offset': 0,
                     \ 'indent':        0,
-                    \ 'min_height':    0,
                     \ 'needs_layout':  0,
                     \ 'needs_move':    0,
                     \ 'needs_update':  0,
