@@ -118,10 +118,7 @@ function! s:show(lines, hidden_indent) abort
     wincmd p " jump back
 endfunction
 
-" check lines above base_line, but below context lines
-" return smallest indentation found, -1 if there are none
-" TODO: this is potentially expensive now
-" we might want to limit the number of lines we check here
+" returns indent of first nonempty hidden line
 function! s:get_hidden_indent(base_line, lines) abort
     call context#util#echof('> get_hidden_indent', a:base_line.number, len(a:lines))
     if len(a:lines) == 0
@@ -129,7 +126,6 @@ function! s:get_hidden_indent(base_line, lines) abort
         return -1
     endif
 
-    let min_indent = -1
     let max_line = a:lines[-1].number
     let current_line = a:base_line.number - 1 " first hidden line
     while current_line > max_line
@@ -139,13 +135,8 @@ function! s:get_hidden_indent(base_line, lines) abort
             continue
         endif
 
-        let indent = indent(current_line)
-        if min_indent == -1 || min_indent > indent
-            let min_indent = indent
-        endif
-
-        let current_line -= 1
+        return indent(current_line)
     endwhile
 
-    return min_indent
+    return -1
 endfunction
