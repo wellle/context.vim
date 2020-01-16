@@ -16,8 +16,6 @@ function! context#context#get(base_line) abort
         let b:context = {
                     \ 'tick':  b:changedtick,
                     \ 'skips': {},
-                    \ 'cost':  0,
-                    \ 'saved': 0,
                     \ }
     endif
 
@@ -62,19 +60,10 @@ function! context#context#get(base_line) abort
     return lines
 endfunction
 
-" TODO: remove?
-function! context#context#cache_stats() abort
-    let skips = len(b:context.skips)
-    let cost  = b:context.cost
-    let total = b:context.cost + b:context.saved
-    echom printf('cache: %d skips, %d / %d (%.1f%%)', skips, cost, total, 100.0 * cost / total)
-endfunction
-
 function! s:get_context_line(line) abort
     " check if we have a skip available from the base line
     let skipped = get(b:context.skips, a:line.number, -1)
     if skipped != -1
-        let b:context.saved += a:line.number-1 - skipped
         " call context#util#echof('  skipped', a:line.number, '->', skipped)
         return context#line#make(skipped, indent(skipped), getline(skipped))
     endif
@@ -100,13 +89,10 @@ function! s:get_context_line(line) abort
             return s:nil_line
         endif
 
-        let b:context.cost += 1
-
         let indent = indent(current_line)
         if indent > max_indent
             " use skip if we have, next line otherwise
             let skipped = get(b:context.skips, current_line, current_line-1)
-            let b:context.saved += current_line-1 - skipped
             let current_line = skipped
             continue
         endif
