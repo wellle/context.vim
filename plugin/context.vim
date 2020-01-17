@@ -25,12 +25,12 @@ if g:context.add_mappings
     " have been executed.
     " TODO: do we still need the ^L mapping?
     nnoremap <silent> <C-L> <C-L>:call context#update('C-L')<CR>
-    nnoremap <silent> <C-E> <C-E>:call context#update('C-E')<CR>
     nnoremap <silent> <C-Y> <C-Y>:call context#update('C-Y')<CR>
     nnoremap <silent> zz     zzzz:call context#update('zz')<CR>
     nnoremap <silent> zb     zbzb:call context#update('zb')<CR>
-    nnoremap <silent> <expr> zt context#zt()
-    nnoremap <silent> <expr> H  context#h()
+    nnoremap <silent> <expr> <C-E> context#ce()
+    nnoremap <silent> <expr> zt    context#zt()
+    nnoremap <silent> <expr> H     context#h()
 endif
 
 

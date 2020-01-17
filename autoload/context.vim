@@ -123,9 +123,11 @@ function! context#zt() abort
     endif
 
     let n = cursor_line - w:context.top_line - len(lines) - 1
-    call context#util#echof('zt', w:context.top_line, cursor_line, len(lines), n)
+    " call context#util#echof('zt', w:context.top_line, cursor_line, len(lines), n)
 
-    if n <= 0
+    if n == 0
+        return "\<Esc>"
+    elseif n < 0
         return 'zt' . suffix
     endif
 
@@ -141,7 +143,7 @@ function! context#h() abort
         return 'H'
     endif
 
-    if w:context.popup_offset > 0
+    if get(w:context, 'popup_offset') > 0
         return 'H'
     endif
 
@@ -152,4 +154,28 @@ function! context#h() abort
 
     let n = len(lines) + v:count1
     return "\<ESC>" . n . 'H'
+endfunction
+
+function! context#ce() abort
+    let suffix = "\<C-E>:call context#update('C-E')\<CR>"
+    if g:context.presenter == 'preview' || get(w:context, 'popup_offset') > 0
+        return suffix
+    endif
+
+    let next_top_line = line('w0') + v:count1
+    let [lines, _, _] = context#popup#get_context(next_top_line)
+    if len(lines) == 0
+        return suffix
+    endif
+
+    let cursor_line = line('.')
+    " how much do we need to go down to have enough lines above the cursor to
+    " fit the context above?
+    let n = len(lines) - (cursor_line - next_top_line)
+    if n <= 0
+        return suffix
+    endif
+
+    " move down n lines before scrolling
+    return "\<Esc>" . n . 'j' . v:count1 . suffix
 endfunction
