@@ -20,10 +20,10 @@ function! context#popup#vim#redraw(winid, popup, lines) abort
 
     let c = getwinvar(a:winid, 'context')
     call popup_move(a:popup, {
-                \ 'line':     c.line + c.popup_offset,
-                \ 'col':      c.col,
-                \ 'minwidth': c.width,
-                \ 'maxwidth': c.width,
+                \ 'line':     c.pos_y + c.popup_offset,
+                \ 'col':      c.pos_x,
+                \ 'minwidth': c.size_w,
+                \ 'maxwidth': c.size_w,
                 \ })
 
 	call win_execute(a:popup, 'set foldcolumn=' . c.padding)

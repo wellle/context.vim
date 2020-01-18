@@ -47,20 +47,18 @@ function! context#update(source) abort
 
     if !exists('w:context')
         let w:context = {
-                    \ 'top_lines':     [],
-                    \ 'bottom_lines':  [],
-                    \ 'line':          0,
-                    \ 'col':           0,
-                    \ 'width':         0,
-                    \ 'height':        0,
+                    \ 'lines_top':     [],
+                    \ 'lines_bottom':  [],
+                    \ 'pos_y':         0,
+                    \ 'pos_x':         0,
+                    \ 'size_h':        0,
+                    \ 'size_w':        0,
                     \ 'cursor_offset': 0,
                     \ 'indent':        0,
                     \ 'needs_layout':  0,
                     \ 'needs_move':    0,
                     \ 'needs_update':  0,
                     \ 'padding':       0,
-                    \ 'resize_level':  0,
-                    \ 'scroll_offset': 0,
                     \ 'top_line':      0,
                     \ }
     endif
@@ -147,7 +145,7 @@ function! context#h() abort
         return 'H'
     endif
 
-    let lines = w:context.top_lines
+    let lines = w:context.lines_top
     if len(lines) == 0
         return 'H'
     endif
@@ -187,8 +185,8 @@ function! context#k() abort
 
     let top_line = line('w0')
     let next_cursor_line = line('.') - v:count1
-    let n = len(w:context.top_lines) - (next_cursor_line - top_line)
-    " call context#util#echof('k', len(w:context.top_lines), next_cursor_line, top_line, n)
+    let n = len(w:context.lines_top) - (next_cursor_line - top_line)
+    " call context#util#echof('k', len(w:context.lines_top), next_cursor_line, top_line, n)
     if n <= 0
         " current context still fits
         return 'k'

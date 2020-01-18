@@ -27,29 +27,29 @@ function! context#settings#parse() abort
     let max_per_indent = get(g:, 'context_max_per_indent', 5)
 
     " how many lines can be joined in one line (if they match
-    " join_regex) before the ones in the middle get hidden
+    " regex_join) before the ones in the middle get hidden
     let max_join_parts = get(g:, 'context_max_join_parts', 5)
 
     " which character to use for the ellipsis "..."
-    let ellipsis_char = get(g:, 'context_ellipsis_char', '·')
+    let char_ellipsis = get(g:, 'context_ellipsis_char', '·')
 
-    let border_char = get(g:, 'context_border_char', '▬')
+    let char_border = get(g:, 'context_border_char', '▬')
 
     " lines matching this regex will be ignored for the context
     " match whitespace only lines to show the full context
     " also by default excludes comment lines etc.
-    let skip_regex = get(g:, 'context_skip_regex',
+    let regex_skip = get(g:, 'context_skip_regex',
                 \ '^\([<=>]\{7\}\|\s*\($\|#\|//\|/\*\|\*\($\|\s\|/\)\)\)')
 
     " if a line matches this regex we will extend the context by looking upwards
     " for another line with the same indent
     " (to show the if which belongs to an else etc.)
-    let extend_regex = get(g:, 'context_extend_regex',
+    let regex_extend = get(g:, 'context_extend_regex',
                 \ '^\s*\([]{})]\|end\|else\|\(case\|default\|done\|elif\|fi\)\>\)')
 
     " if a line matches this regex we consider joining it into the one above
     " for example a `{` might be lifted to the preceeding `if` line
-    let join_regex = get(g:, 'context_join_regex', '^\W*$')
+    let regex_join = get(g:, 'context_join_regex', '^\W*$')
 
     let highlight_normal = get(g:, 'context_highlight_normal', 'Normal')
     let highlight_border = get(g:, 'context_highlight_border', 'Comment')
@@ -65,16 +65,16 @@ function! context#settings#parse() abort
                 \ 'max_height':          max_height,
                 \ 'max_per_indent':      max_per_indent,
                 \ 'max_join_parts':      max_join_parts,
-                \ 'ellipsis_char':       ellipsis_char,
-                \ 'border_char':         border_char,
-                \ 'skip_regex':          skip_regex,
-                \ 'extend_regex':        extend_regex,
-                \ 'join_regex':          join_regex,
+                \ 'char_ellipsis':       char_ellipsis,
+                \ 'char_border':         char_border,
+                \ 'regex_skip':          regex_skip,
+                \ 'regex_extend':        regex_extend,
+                \ 'regex_join':          regex_join,
                 \ 'highlight_normal':    highlight_normal,
                 \ 'highlight_border':    highlight_border,
                 \ 'highlight_tag':       highlight_tag,
                 \ 'logfile':             logfile,
-                \ 'ellipsis':            repeat(ellipsis_char, 3),
-                \ 'ellipsis5':           repeat(ellipsis_char, 5),
+                \ 'ellipsis':            repeat(char_ellipsis, 3),
+                \ 'ellipsis5':           repeat(char_ellipsis, 5),
                 \ }
 endfunction

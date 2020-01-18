@@ -11,8 +11,6 @@ function! context#util#update_state() abort
         let w:context.top_line = top_line
         let w:context.needs_update = 1
     endif
-    " used in preview only
-    let w:context.scroll_offset = last_top_line - top_line
 
     " padding can only be checked for the current window
     let padding = wincol() - virtcol('.')
@@ -30,6 +28,8 @@ function! context#util#update_state() abort
     endif
 
     let cursor_line = line('.')
+    " TODO: do we still need this in w:context?
+    " maybe just check if cursor has moved
     let cursor_offset = cursor_line - top_line
     if w:context.cursor_offset != cursor_offset
         let w:context.cursor_offset = cursor_offset
@@ -40,23 +40,16 @@ endfunction
 function! context#util#update_window_state(winid) abort
     let c = getwinvar(a:winid, 'context')
 
-    let width = winwidth(a:winid)
-    if c.width != width
-        let c.width = width
-        let c.needs_layout = 1
-    endif
-
-    let height = winheight(a:winid)
-    if c.height != height
-        let c.height = height
+    let size = [winheight(a:winid), winwidth(a:winid)]
+    if [c.size_h, c.size_w] != size
+        let [c.size_h, c.size_w] = size
         let c.needs_layout = 1
     endif
 
     if g:context.presenter != 'preview'
-        let [line, col] = win_screenpos(a:winid)
-        if c.line != line || c.col != col
-            let c.line = line
-            let c.col  = col
+        let pos = win_screenpos(a:winid)
+        if [c.pos_y, c.pos_x] != pos
+            let [c.pos_y, c.pos_x] = pos
             let c.needs_layout = 1
         endif
     endif

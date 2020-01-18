@@ -1,15 +1,15 @@
 let s:context_buffer_name = '<context.vim>'
 
 function! context#popup#update_context() abort
-    let [lines, bottom_lines, indent] = context#popup#get_context(w:context.top_line)
-    call context#util#echof('> context#popup#update_context', len(lines))
-    let w:context.top_lines    = lines
-    let w:context.bottom_lines = bottom_lines
+    let [lines_top, lines_bottom, indent] = context#popup#get_context(w:context.top_line)
+    call context#util#echof('> context#popup#update_context', len(lines_top))
+    let w:context.lines_top    = lines_top
+    let w:context.lines_bottom = lines_bottom
     let w:context.indent       = indent
     call s:show()
 endfunction
 
-" returns [top_lines, bottom_lines, indent]
+" returns [lines_top, lines_bottom, indent]
 function! context#popup#get_context(base_line) abort
     " NOTE: there's a problem if some of the hidden lines
     " (behind the popup) are wrapped. then our calculations are off
@@ -19,7 +19,7 @@ function! context#popup#get_context(base_line) abort
     let skipped = 0
     let context_count = 0 " how many contexts did we check?
     let line_offset = -1 " first iteration starts with zero
-    let bottom_lines = []
+    let lines_bottom = []
 
     while 1
         let line_offset += 1
@@ -35,11 +35,11 @@ function! context#popup#get_context(base_line) abort
             continue
         else
             let lines = context#context#get(base_line)
-            if len(bottom_lines) == 0
-                let bottom_lines = copy(lines)
-                call map(bottom_lines, function('context#line#display'))
-                call insert(bottom_lines, '') " will be replaced with border line
-                let bottom_lines = bottom_lines
+            if len(lines_bottom) == 0
+                let lines_bottom = copy(lines)
+                call map(lines_bottom, function('context#line#display'))
+                call insert(lines_bottom, '') " will be replaced with border line
+                let lines_bottom = lines_bottom
             endif
         endif
 
@@ -69,7 +69,7 @@ function! context#popup#get_context(base_line) abort
     endwhile
 
     call add(lines, '') " will be replaced with border line
-    return [lines, bottom_lines, base_line.indent]
+    return [lines, lines_bottom, base_line.indent]
 endfunction
 
 function! context#popup#layout() abort
@@ -105,7 +105,7 @@ function! context#popup#redraw(winid, force) abort
     endif
 
     let c = getwinvar(a:winid, 'context')
-    let lines = c.top_lines
+    let lines = c.lines_top
     if len(lines) == 0
         return
     endif
@@ -119,10 +119,10 @@ function! context#popup#redraw(winid, force) abort
             return
         endif
 
-        let lines = c.top_lines
+        let lines = c.lines_top
         if len(lines) > 0
             let lines[-1] = s:get_border_line(a:winid, 1)
-            let c.top_lines = lines
+            let c.lines_top = lines
         endif
 
         let c.popup_offset = 0
@@ -132,10 +132,10 @@ function! context#popup#redraw(winid, force) abort
             return
         endif
 
-        let lines = c.bottom_lines
+        let lines = c.lines_bottom
         if len(lines) > 0
             let lines[0] = s:get_border_line(a:winid, 0)
-            let c.bottom_lines = lines
+            let c.lines_bottom = lines
         endif
 
         let c.popup_offset = winheight(a:winid) - len(lines)
@@ -170,7 +170,7 @@ function! s:show() abort
         call remove(s:popups, winid)
     endif
 
-    if len(w:context.top_lines) == 0
+    if len(w:context.lines_top) == 0
         call context#util#echof('  no lines')
 
         " if there are no lines, we reset popup_offset here so we'll try to
@@ -204,7 +204,7 @@ function! s:open() abort
         let popup = context#popup#vim#open()
     endif
 
-    let border = ' *' .g:context.border_char . '* ' . s:context_buffer_name . ' '
+    let border = ' *' .g:context.char_border . '* ' . s:context_buffer_name . ' '
     let tag = s:context_buffer_name
     let m = matchadd(g:context.highlight_border, border, 10, -1, {'window': popup})
     let m = matchadd(g:context.highlight_tag,    tag,    10, -1, {'window': popup})
@@ -228,10 +228,10 @@ function! s:get_border_line(winid, indent) abort
     let c = getwinvar(a:winid, 'context')
     let indent  = a:indent ? c.indent : 0
 
-    let line_len = c.width - indent - len(s:context_buffer_name) - 2 - c.padding
+    let line_len = c.size_w - indent - len(s:context_buffer_name) - 2 - c.padding
     return ''
                 \ . repeat(' ', indent)
-                \ . repeat(g:context.border_char, line_len)
+                \ . repeat(g:context.char_border, line_len)
                 \ . ' '
                 \ . s:context_buffer_name
                 \ . ' '

@@ -40,13 +40,13 @@ function! context#line#trim(string) abort
 endfunction
 
 function! context#line#should_extend(line) abort
-    return a:line =~ g:context.extend_regex
+    return a:line =~ g:context.regex_extend
 endfunction
 
 function! context#line#should_skip(line) abort
-    return a:line =~ g:context.skip_regex
+    return a:line =~ g:context.regex_skip
 endfunction
 
 function! context#line#should_join(line) abort
-    return a:line =~ g:context.join_regex
+    return a:line =~ g:context.regex_join
 endfunction

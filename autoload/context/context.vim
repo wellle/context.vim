@@ -51,7 +51,7 @@ function! context#context#get(base_line) abort
     if len(lines) > max
         let indent1 = lines[max/2].indent
         let indent2 = lines[-(max-1)/2].indent
-        let ellipsis = repeat(g:context.ellipsis_char, max([indent2 - indent1, 3]))
+        let ellipsis = repeat(g:context.char_ellipsis, max([indent2 - indent1, 3]))
         let ellipsis_line = context#line#make(0, indent1, repeat(' ', indent1) . ellipsis)
         call remove(lines, max/2, -(max+1)/2)
         call insert(lines, ellipsis_line, max/2)
