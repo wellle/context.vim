@@ -29,6 +29,7 @@ if g:context.add_mappings
     nnoremap <silent> zz     zzzz:call context#update('zz')<CR>
     nnoremap <silent> zb     zbzb:call context#update('zb')<CR>
     nnoremap <silent> <expr> <C-E> context#ce()
+    nnoremap <silent> <expr> k     context#k()
     nnoremap <silent> <expr> zt    context#zt()
     nnoremap <silent> <expr> H     context#h()
 endif

@@ -179,3 +179,34 @@ function! context#ce() abort
     " move down n lines before scrolling
     return "\<Esc>" . n . 'j' . v:count1 . suffix
 endfunction
+
+function! context#k() abort
+    if g:context.presenter == 'preview' || get(w:context, 'popup_offset') > 0
+        return 'k'
+    endif
+
+    let top_line = line('w0')
+    let next_cursor_line = line('.') - v:count1
+    let n = len(w:context.top_lines) - (next_cursor_line - top_line)
+    " call context#util#echof('k', len(w:context.top_lines), next_cursor_line, top_line, n)
+    if n <= 0
+        " current context still fits
+        return 'k'
+    endif
+
+    let base_line = context#line#get_base_line(next_cursor_line)
+    let lines = context#context#get(base_line)
+    if len(lines) == 0
+        return 'k'
+    endif
+
+    let n = len(lines) + 1 - (next_cursor_line - top_line)
+    " call context#util#echof('k', len(lines), next_cursor_line, top_line, n)
+    if n <= 0
+        " new context will fit
+        return 'k'
+    endif
+
+    " scroll so that the new context will fit
+    return "\<Esc>" . n . "\<C-Y>" . v:count1. 'k'
+endfunction
