@@ -3,7 +3,12 @@
 " Author:  Christian Wellenbrock <christian.wellenbrock@gmail.com>
 " License: MIT license
 
-" TODO: update docs for new settings
+" TODO: add docs for these settings:
+" g:context_presenter
+" g:context_border_char
+" g:context_highlight_normal
+" g:context_highlight_border
+" g:context_highlight_tag
 
 call context#settings#parse()
 

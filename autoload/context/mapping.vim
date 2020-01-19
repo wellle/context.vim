@@ -1,3 +1,30 @@
+" NOTE: There are still some commands which scroll the buffer (like <C-F>) and
+" others which move the cursor (like n) which we don't currently handle
+" separately.
+"
+" If we don't handle scrolling at all the context won't update immediately
+" (only on CursorHold) unless scrolling also made the cursor move.
+"
+" Both sorts of commands can move the cursor into the context popup window at
+" the top. We move the popup to the bottom instead in those cases.
+"
+" Generally we'd like to avoid that case so we can keep the context visible at
+" the top. The problem is that we need to handle scroll and move commands
+" separately to not break expectations:
+"
+" To handle scroll commands we can move the cursor down (without scrolling) so
+" that there's enough space at the top to show the context. We do that for
+" `zt` for example.
+"
+" To handle move commands we can scroll the window up so that the cursor
+" (together with the buffer) gets moved down.
+"
+" So if we'd want to never have to show the context at the bottom we would
+" need to always make sure that there's enough room for the context above the
+" cursor. On way to do that might be to have special mappings for all scroll
+" commands (so we'd move the cursor in these cases if needed). In all other
+" cases we'd assume that it was a move command and would scroll to make room.
+
 function! context#mapping#ce() abort
     if !g:context.enabled
         return "\<C-E>"
