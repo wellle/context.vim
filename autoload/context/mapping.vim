@@ -1,16 +1,20 @@
 function! context#mapping#ce() abort
+    if !g:context.enabled
+        return "\<C-E>"
+    endif
+
     let suffix = "\<C-E>:call context#update('C-E')\<CR>"
     if g:context.presenter == 'preview' || get(w:context, 'popup_offset') > 0
         return suffix
     endif
 
-    let next_top_line = line('w0') + v:count1
+    let next_top_line = w:context.top_line + v:count1
     let [lines, _, _] = context#popup#get_context(next_top_line)
     if len(lines) == 0
         return suffix
     endif
 
-    let cursor_line = line('.')
+    let cursor_line = w:context.cursor_line
     " how much do we need to go down to have enough lines above the cursor to
     " fit the context above?
     let n = len(lines) - (cursor_line - next_top_line)
@@ -33,7 +37,7 @@ function! context#mapping#zt() abort
         return 'ztzt' . suffix
     endif
 
-    let cursor_line = line('.')
+    let cursor_line = w:context.cursor_line
     let base_line = context#line#get_base_line(cursor_line)
     let lines = context#context#get(base_line)
     if len(lines) == 0
@@ -53,12 +57,16 @@ function! context#mapping#zt() abort
 endfunction
 
 function! context#mapping#k() abort
+    if !g:context.enabled
+        return 'k'
+    endif
+
     if g:context.presenter == 'preview' || get(w:context, 'popup_offset') > 0
         return 'k'
     endif
 
-    let top_line = line('w0')
-    let next_cursor_line = line('.') - v:count1
+    let top_line = w:context.top_line
+    let next_cursor_line = w:context.cursor_line - v:count1
     let n = len(w:context.lines_top) - (next_cursor_line - top_line)
     " call context#util#echof('k', len(w:context.lines_top), next_cursor_line, top_line, n)
     if n <= 0

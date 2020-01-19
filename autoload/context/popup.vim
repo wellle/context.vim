@@ -113,7 +113,7 @@ function! context#popup#redraw(winid, force) abort
     " check where to put the context, prefer top, but switch to bottom if
     " cursor is too high. abort if popup doesn't have to move and no a:force
     " is given
-    if c.cursor_offset >= len(lines) " top
+    if c.cursor_line - c.top_line >= len(lines) " top
         if !a:force && c.popup_offset == 0
             call context#util#echof('  > context#popup#redraw no force skip top')
             return

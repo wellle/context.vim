@@ -33,7 +33,11 @@ function! context#toggle() abort
     endif
 endfunction
 
-function! context#update(source) abort
+function! context#update(...) abort
+    " NOTE: this function used to have two arguments, but now it's only one
+    " for compatibility reasons we still allow multiple arguments
+    let source = a:000[-1]
+
     if 0
                 \ || !g:context.enabled
                 \ || !s:activated
@@ -53,13 +57,13 @@ function! context#update(source) abort
                     \ 'pos_x':         0,
                     \ 'size_h':        0,
                     \ 'size_w':        0,
-                    \ 'cursor_offset': 0,
                     \ 'indent':        0,
                     \ 'needs_layout':  0,
                     \ 'needs_move':    0,
                     \ 'needs_update':  0,
                     \ 'padding':       0,
                     \ 'top_line':      0,
+                    \ 'cursor_line':   0,
                     \ }
     endif
 
@@ -68,7 +72,7 @@ function! context#update(source) abort
 
     if w:context.needs_update || w:context.needs_layout || w:context.needs_move
         call context#util#echof()
-        call context#util#echof('> context#update', a:source)
+        call context#util#echof('> context#update', source)
         call context#util#log_indent(2)
 
         if g:context.presenter == 'preview'

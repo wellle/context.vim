@@ -6,8 +6,7 @@ function! context#util#update_state() abort
     endif
 
     let top_line = line('w0')
-    let last_top_line = w:context.top_line
-    if last_top_line != top_line
+    if w:context.top_line != top_line
         let w:context.top_line = top_line
         let w:context.needs_update = 1
     endif
@@ -28,11 +27,8 @@ function! context#util#update_state() abort
     endif
 
     let cursor_line = line('.')
-    " TODO: do we still need this in w:context?
-    " maybe just check if cursor has moved
-    let cursor_offset = cursor_line - top_line
-    if w:context.cursor_offset != cursor_offset
-        let w:context.cursor_offset = cursor_offset
+    if w:context.cursor_line != cursor_line
+        let w:context.cursor_line = cursor_line
         let w:context.needs_move = 1
     endif
 endfunction
