@@ -23,15 +23,13 @@ if g:context.add_mappings
     " context#update(). unfortunately this is needed because it seems like Vim
     " sometimes gets confused if the window height changes shortly after zz/zt/zb
     " have been executed.
-    " TODO: do we still need the ^L mapping?
-    nnoremap <silent> <C-L> <C-L>:call context#update('C-L')<CR>
-    nnoremap <silent> <C-Y> <C-Y>:call context#update('C-Y')<CR>
-    nnoremap <silent> zz     zzzz:call context#update('zz')<CR>
-    nnoremap <silent> zb     zbzb:call context#update('zb')<CR>
-    nnoremap <silent> <expr> <C-E> context#ce()
-    nnoremap <silent> <expr> k     context#k()
-    nnoremap <silent> <expr> zt    context#zt()
-    nnoremap <silent> <expr> H     context#h()
+    nnoremap <silent>        <C-Y> <C-Y>:call context#update('C-Y')<CR>
+    nnoremap <silent>        zz     zzzz:call context#update('zz')<CR>
+    nnoremap <silent>        zb     zbzb:call context#update('zb')<CR>
+    nnoremap <silent> <expr> <C-E>            context#mapping#ce()
+    nnoremap <silent> <expr> zt               context#mapping#zt()
+    nnoremap <silent> <expr> k                context#mapping#k()
+    nnoremap <silent> <expr> H                context#mapping#h()
 endif
 
 
