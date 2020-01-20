@@ -3,13 +3,6 @@
 " Author:  Christian Wellenbrock <christian.wellenbrock@gmail.com>
 " License: MIT license
 
-" TODO: add docs for these settings:
-" g:context_presenter
-" g:context_border_char
-" g:context_highlight_normal
-" g:context_highlight_border
-" g:context_highlight_tag
-
 call context#settings#parse()
 
 " commands
@@ -19,8 +12,6 @@ command! -bar ContextDisable  call context#disable()
 command! -bar ContextToggle   call context#toggle()
 command! -bar ContextUpdate   call context#update('command')
 
-
-" TODO update docs, as we changed the mappings and autocmds
 
 " mappings
 if g:context.add_mappings
@@ -49,9 +40,9 @@ if g:context.add_autocmds
         autocmd VimResized   * call context#update('VimResized')
         autocmd CursorHold   * call context#update('CursorHold')
         autocmd User GitGutter call context#update('GitGutter')
-
     augroup END
 endif
+
 
 " lazy loading was used
 if v:vim_did_enter
