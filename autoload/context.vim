@@ -52,7 +52,9 @@ endfunction
 
 
 function! context#update(force_resize, autocmd) abort
-    if !g:context_enabled || !s:activated
+    if !g:context_enabled ||
+    \  !s:activated ||
+    \  index(g:context_filetype_blacklist, &filetype) != -1
         " call s:echof('  disabled')
         return
     endif

@@ -136,6 +136,11 @@ let g:context_join_regex = '^\W*$'
 ```
 If we extended the context on some indent, we will join a line of this indent into the one above if the lower one matches this regular expression. So back in the C-style case where our context contains an `if (condition)` line and a `{` line below, they will be merged to `if (condition) {`. And that is because the `{` line matched this regular expression. By default we join everything which has no word characters.
 
+```vim
+let g:context_filetype_blacklist = []
+```
+By default, no filetypes will be ignored for the context buffer to appear. If you wish to blacklist a specific filetype, add the name of the filetype to this list.
+
 
 ## Commands
 

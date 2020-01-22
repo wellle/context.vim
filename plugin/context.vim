@@ -47,6 +47,10 @@ let g:context_extend_regex = get(g:, 'context_extend_regex', '^\s*\([]{})]\|end\
 " for example a `{` might be lifted to the preceeding `if` line
 let g:context_join_regex = get(g:, 'context_join_regex', '^\W*$')
 
+" If you wish to blacklist a specific filetype, add the name of the filetype to
+" this list.
+let g:context_filetype_blacklist = get(g:, 'context_filetype_blacklist', [])
+
 
 " commands
 command! -bar ContextActivate call context#activate()
