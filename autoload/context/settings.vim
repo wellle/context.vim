@@ -16,6 +16,10 @@ function! context#settings#parse() abort
     " (use :ContextEnable to enable it later)
     let enabled = get(g:, 'context_enabled', 1)
 
+    " if you wish to blacklist a specific filetype, add the name of the
+    " filetype to this list.
+    let g:context_filetype_blacklist = get(g:, 'context_filetype_blacklist', [])
+
     " set to 0 to disable default mappings and/or auto commands
     let add_mappings = get(g:, 'context_add_mappings', 1)
     let add_autocmds = get(g:, 'context_add_autocmds', 1)
