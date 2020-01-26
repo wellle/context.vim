@@ -46,12 +46,12 @@ In the bottom right corner we see the final result: The context is displayed in 
 
 ## Installation
 
-| Plugin Manager         | Command                                                                       |
-|------------------------|-------------------------------------------------------------------------------|
-| [Vim-plug][vim-plug]   | `Plug 'wellle/context.vim'`                                                   |
-| [Vundle][vundle]       | `Bundle 'wellle/context.vim'`                                                 |
-| [NeoBundle][neobundle] | `NeoBundle 'wellle/context.vim'`                                              |
-| [Dein][dein]		     | `call dein#add('wellle/context.vim')`					                     |
+| Plugin Manager         | Command                               |
+|------------------------|---------------------------------------|
+| [Vim-plug][vim-plug]   | `Plug 'wellle/context.vim'`           |
+| [Vundle][vundle]       | `Bundle 'wellle/context.vim'`         |
+| [NeoBundle][neobundle] | `NeoBundle 'wellle/context.vim'`      |
+| [Dein][dein]           | `call dein#add('wellle/context.vim')` |
 
 
 [vim-plug]:  https://github.com/junegunn/vim-plug
@@ -84,6 +84,12 @@ let g:context_add_autocmds = 1
 By default we set up some auto commands to update the context every time the buffer might have scrolled. Most notably on `CursorMoved`. Set this variable to `0` to disable that. See below on how to customize these auto commands if needed.
 
 ```vim
+let g:context_presenter = <depends>
+```
+
+This variable can be used to control how the context is presented. The default logic works like this: If you're running a Neovim version which supports floating windows, use them (`'nvim-float'`). If you're running a Vim version which supports popup windows, use them (`'vim-popup'`). Otherwise use a preview window (`'preview'`). So for example you could force the usage of preview windows by setting `g:context_presenter` to `'preview'`. It is recommended to stick to the default though (by not setting this variable) as floating/popup windows should lead to the best experience.
+
+```vim
 let g:context_max_height = 21
 ```
 If the context gets bigger than 21 lines, it will only show the first ten, then one line with ellipsis (`···`) and then the last ten context lines.
@@ -110,16 +116,20 @@ let g:context_ellipsis_char = '·'
 By default we use this character (digraph `.M`) in our ellipsis (`···`). Change this variable if this character doesn't work for you or if you don't like it.
 
 ```vim
-let g:context_resize_linewise = 0.25
+" g:context_border_char = '▬'
 ```
-As the cursor moves and the context changes we have to adjust the context window height. When the context gets bigger we need to increase it. But when the context gets smaller we have a choice of how much we decrease the context window height. In order to avoid the context window height from jumping to much up and down, we throttle the speed at which it's allowed to decrease.
 
-When scrolling line wise by using <kbd>C-Y</kbd> or <kbd>C-E</kbd> (or moving the cursor line wise with `j` or `k`) we only allow the context window to decrease by one line every four lines the buffer has scrolled.
+If your Vim/Neovim version supports popup/floating windows we draw a line to separate the context from your buffer context. This character is used to do that.
 
 ```vim
-let g:context_resize_scroll = 1.0
+let g:context_highlight_normal = 'Normal'
+let g:context_highlight_border = 'Comment'
+let g:context_highlight_tag    = 'Special'
 ```
-This setting is very similar to the one above, but is about faster scrolling. The default setting means that when you scroll the buffer by half a window height (by using <kbd>C-U</kbd> or <kbd>C-D</kbd>) the context window is allowed to decrease its height by one line. If you scroll by a full window height (<kbd>C-B</kbd> or <kbd>C-F</kbd>) it would be two lines and so on.
+
+If your Vim/Neovim version supports popup/floating windows we use these highlight groups for the popup window (`normal`), the border line (`border`) and the "tag" (`<context.vim>` at the end of the border line) (`tag`). By default the popup window uses the same background color as your buffer. For example you could change that to make it more visually distinct by setting `g:context_highlight_normal` to `'PMenu'`.
+
+If you use Vim you can define your own highlight group like `highlight MyColor ctermbg=lightblue` and set `g:context_highlight_normal` to `'MyColor'`. In Neovim this is currently not supported (see `:h 'winhl'`).
 
 ```vim
 let g:context_skip_regex = '^\s*\($\|#\|//\|/\*\|\*\($\|/s\|\/\)\)'
@@ -175,10 +185,12 @@ If you want to set up your own auto commands, here are the default ones for refe
 
 ```vim
 autocmd VimEnter     * ContextActivate
-autocmd BufAdd       * call context#update(1, 'BufAdd')
-autocmd BufEnter     * call context#update(0, 'BufEnter')
-autocmd CursorMoved  * call context#update(0, 'CursorMoved')
-autocmd User GitGutter call context#update_padding('GitGutter')
+autocmd BufAdd       * call context#update('BufAdd')
+autocmd BufEnter     * call context#update('BufEnter')
+autocmd CursorMoved  * call context#update('CursorMoved')
+autocmd VimResized   * call context#update('VimResized')
+autocmd CursorHold   * call context#update('CursorHold')
+autocmd User GitGutter call context#update('GitGutter')
 ```
 
 Note the `VimEnter` one. When Vim starts this plugin isn't active yet, even if enabled. That is because there are some issues with trying to open a preview window before Vim finished opening all windows for the provided file arguments. So if you disable auto commands you will need to call `:ContextActivate` in some way to activate this plugin.
@@ -191,12 +203,13 @@ Unfortunately there's no auto command for when the buffer has scrolled [vim#776]
 If you want to create your own mappings, here are the default ones for reference:
 
 ```vim
-nnoremap <silent> <C-L> <C-L>:call context#update(1, 0)<CR>
-nnoremap <silent> <C-E> <C-E>:call context#update(0, 0)<CR>
-nnoremap <silent> <C-Y> <C-Y>:call context#update(0, 0)<CR>
-nnoremap <silent> zz     zzzz:call context#update(0, 0)<CR>
-nnoremap <silent> zt     ztzt:call context#update(0, 0)<CR>
-nnoremap <silent> zb     zbzb:call context#update(0, 0)<CR>
+nnoremap <silent>        <C-Y> <C-Y>:call context#update('C-Y')<CR>
+nnoremap <silent>        zz     zzzz:call context#update('zz')<CR>
+nnoremap <silent>        zb     zbzb:call context#update('zb')<CR>
+nnoremap <silent> <expr> <C-E>            context#mapping#ce()
+nnoremap <silent> <expr> zt               context#mapping#zt()
+nnoremap <silent> <expr> k                context#mapping#k()
+nnoremap <silent> <expr> H                context#mapping#h()
 ```
 
 Note how `zz`, `zt`, and `zb` get called twice in the mapping before updating the context. This is because otherwise there are some cases where they don't work as expected.
