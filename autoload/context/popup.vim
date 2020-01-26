@@ -104,7 +104,11 @@ function! context#popup#redraw(winid, force) abort
         return
     endif
 
-    let c = getwinvar(a:winid, 'context')
+    let c = getwinvar(a:winid, 'context', {})
+    if c == {}
+        return
+    endif
+
     let lines = c.lines_top
     if len(lines) == 0
         return
@@ -150,7 +154,6 @@ function! context#popup#redraw(winid, force) abort
 endfunction
 
 function! context#popup#clear() abort
-
     for key in keys(s:popups)
         call s:close(s:popups[key])
     endfor

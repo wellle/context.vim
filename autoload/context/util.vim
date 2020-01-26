@@ -34,7 +34,10 @@ function! context#util#update_state() abort
 endfunction
 
 function! context#util#update_window_state(winid) abort
-    let c = getwinvar(a:winid, 'context')
+    let c = getwinvar(a:winid, 'context', {})
+    if c == {}
+        return
+    endif
 
     let size = [winheight(a:winid), winwidth(a:winid)]
     if [c.size_h, c.size_w] != size
