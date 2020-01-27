@@ -88,9 +88,6 @@ function! s:show(lines, hidden_indent) abort
         return
     endif
 
-    silent 0put =a:lines " paste lines
-    1                    " and jump to first line
-
     let statusline = '%=' . s:context_buffer_name . ' ' " trailing space for padding
     if a:hidden_indent >= 0
         let statusline = repeat(' ', padding + a:hidden_indent) . g:context.ellipsis . statusline
@@ -112,6 +109,9 @@ function! s:show(lines, hidden_indent) abort
     execute 'setlocal statusline=' . escape(statusline, ' ')
 
     let b:airline_disable_statusline=1
+
+    silent 0put =a:lines " paste lines
+    1                    " and jump to first line
 
     execute 'resize' len(a:lines)
 
