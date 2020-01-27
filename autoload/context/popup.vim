@@ -209,8 +209,8 @@ function! s:open() abort
 
     let border = ' *' .g:context.char_border . '* ' . s:context_buffer_name . ' '
     let tag = s:context_buffer_name
-    let m = matchadd(g:context.highlight_border, border, 10, -1, {'window': popup})
-    let m = matchadd(g:context.highlight_tag,    tag,    10, -1, {'window': popup})
+    call matchadd(g:context.highlight_border, border, 10, -1, {'window': popup})
+    call matchadd(g:context.highlight_tag,    tag,    10, -1, {'window': popup})
 
     let buf = winbufnr(popup)
     call setbufvar(buf, '&syntax', &syntax)

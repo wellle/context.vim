@@ -12,8 +12,10 @@ function! context#popup#nvim#open() abort
                 \ 'style':     'minimal',
                 \ })
 
-	call setwinvar(popup, '&winhighlight', 'Normal:' . g:context.highlight_normal)
     call setwinvar(popup, '&wrap', 0)
+    call setwinvar(popup, '&foldenable', 0)
+    call setwinvar(popup, '&winhighlight',
+                \ 'FoldColumn:Normal,Normal:' . g:context.highlight_normal)
 
     return popup
 endfunction

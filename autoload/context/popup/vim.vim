@@ -7,8 +7,9 @@ function! context#popup#vim#open() abort
                 \ 'wrap':     v:false,
                 \ })
 
-	call setwinvar(popup, '&wincolor', g:context.highlight_normal)
+    call setwinvar(popup, '&wincolor', g:context.highlight_normal)
     call setwinvar(popup, '&tabstop', &tabstop)
+    call win_execute(popup, 'highlight! link FoldColumn Normal')
 
     return popup
 endfunction
@@ -26,7 +27,7 @@ function! context#popup#vim#redraw(winid, popup, lines) abort
                 \ 'maxwidth': c.size_w,
                 \ })
 
-	call win_execute(a:popup, 'set foldcolumn=' . c.padding)
+    call win_execute(a:popup, 'set foldcolumn=' . c.padding)
 endfunction
 
 function! context#popup#vim#close(popup) abort
