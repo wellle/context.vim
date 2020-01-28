@@ -39,12 +39,11 @@ function! context#update(...) abort
     let source = a:000[-1]
 
     if 0
-                \ || !g:context.enabled
                 \ || !s:activated
                 \ || s:ignore_update
                 \ || &previewwindow
                 \ || mode() != 'n'
-                \ || get(g:context.filetype_blacklist, &filetype)
+                \ || !context#util#active()
         return
     endif
 

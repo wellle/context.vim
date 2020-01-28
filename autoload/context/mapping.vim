@@ -26,7 +26,7 @@
 " cases we'd assume that it was a move command and would scroll to make room.
 
 function! context#mapping#ce() abort
-    if !g:context.enabled
+    if !context#util#active()
         return "\<C-E>"
     endif
 
@@ -54,7 +54,7 @@ function! context#mapping#ce() abort
 endfunction
 
 function! context#mapping#zt() abort
-    if !g:context.enabled
+    if !context#util#active()
         return 'zt'
     endif
 
@@ -84,7 +84,7 @@ function! context#mapping#zt() abort
 endfunction
 
 function! context#mapping#k() abort
-    if !g:context.enabled
+    if !context#util#active()
         return 'k'
     endif
 
@@ -119,7 +119,7 @@ function! context#mapping#k() abort
 endfunction
 
 function! context#mapping#h() abort
-    if !g:context.enabled
+    if !context#util#active()
         return 'H'
     endif
 
