@@ -44,7 +44,7 @@ function! context#update(...) abort
                 \ || s:ignore_update
                 \ || &previewwindow
                 \ || mode() != 'n'
-                \ || index(g:context_filetype_blacklist, &filetype) != -1
+                \ || get(g:context.filetype_blacklist, &filetype)
         return
     endif
 

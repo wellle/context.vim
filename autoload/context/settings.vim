@@ -18,7 +18,7 @@ function! context#settings#parse() abort
 
     " if you wish to blacklist a specific filetype, add the name of the
     " filetype to this list.
-    let g:context_filetype_blacklist = get(g:, 'context_filetype_blacklist', [])
+    let filetype_blacklist = get(g:, 'context_filetype_blacklist', [])
 
     " set to 0 to disable default mappings and/or auto commands
     let add_mappings = get(g:, 'context_add_mappings', 1)
@@ -61,9 +61,16 @@ function! context#settings#parse() abort
 
     let logfile = get(g:, 'context_logfile', '')
 
+    " transform list to lookup dictionary
+    let blacklist = {}
+    for filetype in filetype_blacklist
+        let blacklist[filetype] = 1
+    endfor
+
     let g:context = {
                 \ 'presenter':           presenter,
                 \ 'enabled':             enabled,
+                \ 'filetype_blacklist':  blacklist,
                 \ 'add_mappings':        add_mappings,
                 \ 'add_autocmds':        add_autocmds,
                 \ 'max_height':          max_height,
