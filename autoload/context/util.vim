@@ -1,3 +1,9 @@
+function! context#util#active() abort
+    return 1
+                \ && g:context.enabled
+                \ && !get(g:context.filetype_blacklist, &filetype)
+endfunction
+
 function! context#util#update_state() abort
     let wincount = winnr('$')
     if get(s:, 'wincount') != wincount

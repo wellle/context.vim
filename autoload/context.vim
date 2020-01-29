@@ -39,11 +39,11 @@ function! context#update(...) abort
     let source = a:000[-1]
 
     if 0
-                \ || !g:context.enabled
                 \ || !s:activated
                 \ || s:ignore_update
                 \ || &previewwindow
                 \ || mode() != 'n'
+                \ || !context#util#active()
         return
     endif
 
