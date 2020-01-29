@@ -3,6 +3,14 @@
 " Author:  Christian Wellenbrock <christian.wellenbrock@gmail.com>
 " License: MIT license
 
+if !has('patch-7.4.1557')
+    " here are some known features we use that impact what versions we can
+    " support out of the box. for now we just bail out for earlier versions
+    "     win_getid()     | neovim: +v0.1.5 | vim: +v7.4.1557
+    "     v:vim_did_enter | neovim: +v0.1.7 | vim: +v7.4.1658
+    finish
+endif
+
 call context#settings#parse()
 
 " commands
