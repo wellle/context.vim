@@ -14,6 +14,7 @@ function! context#popup#nvim#open() abort
 
     call setwinvar(popup, '&wrap', 0)
     call setwinvar(popup, '&foldenable', 0)
+    call setwinvar(popup, '&list', &list)
     call setwinvar(popup, '&winhighlight',
                 \ 'FoldColumn:Normal,Normal:' . g:context.highlight_normal)
 
