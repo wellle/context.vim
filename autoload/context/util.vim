@@ -19,6 +19,12 @@ function! context#util#update_state() abort
 
     " padding can only be checked for the current window
     let padding = wincol() - virtcol('.')
+    " NOTE: if 'list' is set and the cursor is on a Tab character the cursor
+    " is positioned differently (at the beginning of the Tab character instead
+    " of at the end). we recognize that case and fix the padding accordingly
+    if &list && getline('.')[getcurpos()[2]-1] == "\t"
+        let padding += &tabstop - 1
+    endif
     if padding < 0
         " padding can be negative if cursor was on the wrapped part of a
         " wrapped line in that case don't take the new value
