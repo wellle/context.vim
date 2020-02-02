@@ -13,6 +13,7 @@ endfunction
 function! context#enable() abort
     let g:context.enabled = 1
     call context#update('enable')
+    echom 'context.vim: enabled'
 endfunction
 
 function! context#disable() abort
@@ -23,6 +24,8 @@ function! context#disable() abort
     else
         call context#popup#clear()
     endif
+
+    echom 'context.vim: disabled'
 endfunction
 
 function! context#toggle() abort
