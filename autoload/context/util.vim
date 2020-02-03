@@ -1,6 +1,7 @@
 function! context#util#active() abort
     return 1
                 \ && g:context.enabled
+                \ && w:context.enabled
                 \ && !get(g:context.filetype_blacklist, &filetype)
 endfunction
 

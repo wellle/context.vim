@@ -12,35 +12,56 @@ function! context#activate() abort
     call context#update('activate')
 endfunction
 
-function! context#enable() abort
-    let g:context.enabled = 1
+function! context#enable(arg) abort
+    if a:arg == 'window'
+        let w:context.enabled = 1
+    else
+        let g:context.enabled = 1
+    endif
+
     unlet! w:context " clear stale cache
     call context#update('enable')
 endfunction
 
-function! context#disable() abort
-    let g:context.enabled = 0
+function! context#disable(arg) abort
+    if a:arg == 'window'
+        let w:context.enabled = 0
+    else
+        let g:context.enabled = 0
+    endif
 
     if g:context.presenter == 'preview'
         call context#preview#close()
     else
-        call context#popup#clear()
+        if a:arg == 'window'
+            call context#popup#close()
+        else
+            call context#popup#clear()
+        endif
     endif
 endfunction
 
-function! context#toggle() abort
-    if g:context.enabled
-        call context#disable()
-        echom 'context.vim: disabled'
+function! context#toggle(arg) abort
+    if a:arg == 'window'
+        let arg = 'window'
+        let enabled = w:context.enabled
     else
-        call context#enable()
-        echom 'context.vim: enabled'
+        let arg = 'all'
+        let enabled = g:context.enabled
+    endif
+
+    if enabled
+        call context#disable(arg)
+        echom 'context.vim: disabled' arg
+    else
+        call context#enable(arg)
+        echom 'context.vim: enabled' arg
     endif
 endfunction
 
 function! context#peek() abort
     " enable and set the peek flag (to disable on next update)
-    call context#enable()
+    call context#enable('window')
     let s:peek = 1
 endfunction
 
@@ -56,12 +77,13 @@ function! context#update(...) abort
         " if peek was used disable on next update
         " (but ignore CursorHold and GitGutter)
         let s:peek = 0
-        call context#disable()
+        call context#disable('window')
         return
     endif
 
     if !exists('w:context')
         let w:context = {
+                    \ 'enabled':       1,
                     \ 'lines_top':     [],
                     \ 'lines_bottom':  [],
                     \ 'pos_y':         0,
@@ -79,6 +101,7 @@ function! context#update(...) abort
     endif
 
     let winid = win_getid()
+
     call context#util#update_state()
     call context#util#update_window_state(winid)
 

@@ -13,13 +13,15 @@ endif
 
 call context#settings#parse()
 
+" TODO: update docs
+
 " commands
-command! -bar ContextActivate call context#activate()
-command! -bar ContextEnable   call context#enable()
-command! -bar ContextDisable  call context#disable()
-command! -bar ContextToggle   call context#toggle()
-command! -bar ContextPeek     call context#peek()
-command! -bar ContextUpdate   call context#update('command')
+command!          -bar ContextActivate call context#activate()
+command! -nargs=? -bar ContextEnable   call context#enable('<args>')
+command! -nargs=? -bar ContextDisable  call context#disable('<args>')
+command! -nargs=? -bar ContextToggle   call context#toggle('<args>')
+command!          -bar ContextPeek     call context#peek()
+command!          -bar ContextUpdate   call context#update('command')
 
 
 " mappings
