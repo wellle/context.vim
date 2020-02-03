@@ -12,6 +12,7 @@ endfunction
 
 function! context#enable() abort
     let g:context.enabled = 1
+    unlet! w:context " clear stale cache
     call context#update('enable')
     echom 'context.vim: enabled'
 endfunction

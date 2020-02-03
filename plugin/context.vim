@@ -54,6 +54,6 @@ endif
 
 " lazy loading was used
 if v:vim_did_enter
-    let g:context_enabled = 0 " plugin was effectively disabled before load
+    let g:context.enabled = 0 " plugin was effectively disabled before load
     ContextActivate
 endif
