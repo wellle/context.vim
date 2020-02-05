@@ -24,7 +24,7 @@ function! context#popup#get_context(base_line) abort
     while 1
         let line_offset += 1
         let line_number = a:base_line + line_offset
-        let indent = indent(line_number) "    -1 for invalid lines
+        let indent = g:context.Indent_function(line_number) "    -1 for invalid lines
         let line = getline(line_number)  " empty for invalid lines
         let base_line = context#line#make(line_number, indent, line)
 

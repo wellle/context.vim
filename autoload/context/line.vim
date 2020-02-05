@@ -12,7 +12,7 @@ let s:nil_line = context#line#make(0, 0, '')
 function! context#line#get_base_line(line) abort
     let current_line = a:line
     while 1
-        let indent = indent(current_line)
+        let indent = g:context.Indent_function(current_line)
         if indent < 0 " invalid line
             return s:nil_line
         endif
