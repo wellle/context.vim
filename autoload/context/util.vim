@@ -14,10 +14,28 @@ function! context#util#update_state() abort
         let w:context.needs_layout = 1
     endif
 
-    let top_line = line('w0')
+    let top_line    = line('w0')
+    let cursor_line = line('.')
+
+    let winid = win_getid()
+    " TODO: continue here. based on the numbers (what changed, does new cursor
+    " line equal top line, etc.) decide whether the last motion was scroll or
+    " move, then fix cursor position my move or scroll accordingly.
+    " then we won't need custom mappings anymore \o/
+    if w:context.top_line == 0
+        call context#util#echof('xxx', winid, 'new: scroll', top_line, cursor_line)
+    elseif w:context.top_line != top_line || w:context.cursor_line != cursor_line
+        call context#util#echof('xxx', winid, 'top', w:context.top_line, top_line, 'cursor', w:context.cursor_line, cursor_line)
+    endif
+
     if w:context.top_line != top_line
         let w:context.top_line = top_line
         let w:context.needs_update = 1
+    endif
+
+    if w:context.cursor_line != cursor_line
+        let w:context.cursor_line = cursor_line
+        let w:context.needs_move = 1
     endif
 
     " padding can only be checked for the current window
@@ -39,12 +57,6 @@ function! context#util#update_state() abort
     elseif w:context.padding != padding
         let w:context.padding = padding
         let w:context.needs_update = 1
-    endif
-
-    let cursor_line = line('.')
-    if w:context.cursor_line != cursor_line
-        let w:context.cursor_line = cursor_line
-        let w:context.needs_move = 1
     endif
 endfunction
 
