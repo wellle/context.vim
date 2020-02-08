@@ -40,7 +40,7 @@ function! context#settings#parse() abort
     let char_border = get(g:, 'context_border_char', '▬')
 
     " Indent function
-    let Indent_function = get(g:, 'Context_indent_function',  {line -> indent(line)})
+    let Indent_function = get(g:, 'Context_indent_function',  function('s:default_indent'))
 
     " lines matching this regex will be ignored for the context
     " match whitespace only lines to show the full context
@@ -92,4 +92,9 @@ function! context#settings#parse() abort
                 \ 'ellipsis5':           repeat(char_ellipsis, 5),
                 \ 'Indent_function':     Indent_function,
                 \ }
+endfunction
+
+function s:default_indent(line)
+  let indent = indent(a:line)
+  return {'indent':indent, 'border_line': repeat(' ', indent)}
 endfunction

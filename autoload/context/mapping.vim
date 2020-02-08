@@ -36,7 +36,7 @@ function! context#mapping#ce() abort
     endif
 
     let next_top_line = w:context.top_line + v:count1
-    let [lines, _, _] = context#popup#get_context(next_top_line)
+    let [lines, _, _, _] = context#popup#get_context(next_top_line)
     if len(lines) == 0
         return suffix
     endif

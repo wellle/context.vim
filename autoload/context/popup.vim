@@ -1,11 +1,12 @@
 let s:context_buffer_name = '<context.vim>'
 
 function! context#popup#update_context() abort
-    let [lines_top, lines_bottom, indent] = context#popup#get_context(w:context.top_line)
+    let [lines_top, lines_bottom, indent, border_line] = context#popup#get_context(w:context.top_line)
     call context#util#echof('> context#popup#update_context', len(lines_top))
     let w:context.lines_top    = lines_top
     let w:context.lines_bottom = lines_bottom
     let w:context.indent       = indent
+    let w:context.border_line       = border_line
     call s:show()
 endfunction
 
@@ -24,7 +25,9 @@ function! context#popup#get_context(base_line) abort
     while 1
         let line_offset += 1
         let line_number = a:base_line + line_offset
-        let indent = g:context.Indent_function(line_number) "    -1 for invalid lines
+        let context = g:context.Indent_function(line_number)
+        let indent = context.indent
+        let border_line = context.border_line
         let line = getline(line_number)  " empty for invalid lines
         let base_line = context#line#make(line_number, indent, line)
 
@@ -48,7 +51,7 @@ function! context#popup#get_context(base_line) abort
 
         if line_count == 0 && context_count == 0
             " if we get an empty context on the first non skipped line
-            return [[], [], 0]
+            return [[], [], 0, '']
         endif
         let context_count += 1
 
@@ -69,7 +72,7 @@ function! context#popup#get_context(base_line) abort
     endwhile
 
     call add(lines, '') " will be replaced with border line
-    return [lines, lines_bottom, base_line.indent]
+    return [lines, lines_bottom, base_line.indent, border_line]
 endfunction
 
 function! context#popup#layout() abort
@@ -229,11 +232,11 @@ endfunction
 
 function! s:get_border_line(winid, indent) abort
     let c = getwinvar(a:winid, 'context')
-    let indent  = a:indent ? c.indent : 0
+    let indent  = len(c.border_line)
 
     let line_len = c.size_w - indent - len(s:context_buffer_name) - 2 - c.padding
     return ''
-                \ . repeat(' ', indent)
+                \ . c.border_line
                 \ . repeat(g:context.char_border, line_len)
                 \ . ' '
                 \ . s:context_buffer_name
