@@ -74,6 +74,7 @@ function! context#update(...) abort
                     \ 'needs_update':  0,
                     \ 'padding':       0,
                     \ 'top_line':      0,
+                    \ 'bottom_line':   0,
                     \ 'cursor_line':   0,
                     \ 'peek':          0,
                     \ }

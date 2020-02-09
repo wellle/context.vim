@@ -15,6 +15,7 @@ function! context#util#update_state() abort
     endif
 
     let top_line    = line('w0')
+    let bottom_line = line('w$')
     let cursor_line = line('.')
 
     let winid = win_getid()
@@ -22,15 +23,70 @@ function! context#util#update_state() abort
     " line equal top line, etc.) decide whether the last motion was scroll or
     " move, then fix cursor position my move or scroll accordingly.
     " then we won't need custom mappings anymore \o/
-    if w:context.top_line == 0
-        call context#util#echof('xxx', winid, 'new: scroll', top_line, cursor_line)
-    elseif w:context.top_line != top_line || w:context.cursor_line != cursor_line
-        call context#util#echof('xxx', winid, 'top', w:context.top_line, top_line, 'cursor', w:context.cursor_line, cursor_line)
+
+    let old_top_line = w:context.top_line
+    let old_bottom_line = w:context.bottom_line
+    let old_cursor_line = w:context.cursor_line
+
+    let top_diff = old_top_line - top_line
+    let bottom_diff = old_bottom_line - bottom_line
+    let cursor_diff = old_cursor_line - cursor_line
+
+    let top_line_changed = top_diff != 0
+    let bottom_line_changed = bottom_diff != 0
+    let cursor_line_changed = cursor_diff != 0
+
+    if top_line_changed || bottom_line_changed || cursor_line_changed
+        call context#util#echof('xxx 1', winid, '|', old_top_line, top_line, '|', old_cursor_line, cursor_line, '|', old_bottom_line, bottom_line)
+        if old_top_line == 0
+            call context#util#echof('xxx 2 new: scroll')
+        elseif cursor_line_changed && top_line_changed
+            if cursor_line == top_line
+                if cursor_line < old_cursor_line
+                    " NOTE: this is also sometimes wrong
+                    " try alternating <C-F> and <C-B>
+                    call context#util#echof('xxx 3 moved')
+                else
+                    call context#util#echof('xxx 4 scrolled')
+                endif
+            elseif cursor_line == bottom_line
+                if cursor_line > old_cursor_line
+                    " NOTE: this is also sometimes wrong
+                    " try alternating <C-F> and <C-B>
+                    call context#util#echof('xxx 5 moved')
+                else
+                    call context#util#echof('xxx 6 scrolled')
+                endif
+            else
+                " NOTE: this sometimes has false positives when searching.
+                " sometimes it shows the next match in the middle of the
+                " screen, which leads to this case. so it says scrolled even
+                " though it was moved
+                " TODO: we could try to catch that by comparing some diffs.
+                " like cursor_diff != top_diff
+                call context#util#echof('xxx 7 scrolled')
+            endif
+        elseif !cursor_line_changed && top_line_changed
+            call context#util#echof('xxx 8 scrolled')
+        elseif !cursor_line_changed && top_diff != bottom_diff
+            " TODO: avoid this case, happens when scrolling too with wrap
+            call context#util#echof('xxx 9 resized: scroll')
+        elseif !top_line_changed && cursor_line_changed
+            call context#util#echof('xxx 10 moved')
+        else
+            " TODO: is this a possible case still
+            call context#util#echof('xxx 11 TODO')
+        endif
+        " TODO: are there any more cases missing?
     endif
 
     if w:context.top_line != top_line
         let w:context.top_line = top_line
         let w:context.needs_update = 1
+    endif
+
+    if w:context.bottom_line != bottom_line
+        let w:context.bottom_line = bottom_line
     endif
 
     if w:context.cursor_line != cursor_line
