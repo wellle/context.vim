@@ -207,7 +207,8 @@ function! s:open() abort
         let popup = context#popup#vim#open()
     endif
 
-    let border = ' *' .g:context.char_border . '* ' . s:context_buffer_name . ' '
+    " NOTE: we use a non breaking space here again before the buffer name
+    let border = ' *' .g:context.char_border . '* ' . s:context_buffer_name . ' '
     let tag = s:context_buffer_name
     call matchadd(g:context.highlight_border, border, 10, -1, {'window': popup})
     call matchadd(g:context.highlight_tag,    tag,    10, -1, {'window': popup})
@@ -232,10 +233,12 @@ function! s:get_border_line(winid, indent) abort
     let indent = a:indent ? c.indent : 0
 
     let line_len = c.size_w - indent - len(s:context_buffer_name) - 2 - c.padding
+    " NOTE: we use a non breaking space before the buffer name because there
+    " can be some display issues in the Kitty terminal with a normal space
     return ''
                 \ . repeat(' ', indent)
                 \ . repeat(g:context.char_border, line_len)
-                \ . ' '
+                \ . ' '
                 \ . s:context_buffer_name
                 \ . ' '
 endfunction
