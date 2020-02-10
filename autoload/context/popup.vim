@@ -229,7 +229,7 @@ endfunction
 
 function! s:get_border_line(winid, indent) abort
     let c = getwinvar(a:winid, 'context')
-    let indent  = a:indent ? c.indent : 0
+    let indent = a:indent ? c.indent : 0
 
     let line_len = c.size_w - indent - len(s:context_buffer_name) - 2 - c.padding
     return ''
