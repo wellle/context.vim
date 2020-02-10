@@ -108,8 +108,7 @@ function! s:get_context_line(line) abort
 endfunction
 
 function! s:join(lines) abort
-    " only works with at least 3 parts, so disable otherwise
-    if g:context.max_join_parts < 3
+    if g:context.max_join_parts < 1
         return a:lines
     endif
 
@@ -141,13 +140,20 @@ function! s:join_pending(base, pending) abort
         return a:base
     endif
 
+    let joined = a:base
+    if g:context.max_join_parts < 3
+        if g:context.max_join_parts == 2
+            let joined.text .= ' ' . g:context.ellipsis
+        endif
+        return joined
+    endif
+
     let max = g:context.max_join_parts
     if len(a:pending) > max-1
         call remove(a:pending, (max-1)/2-1, -max/2-1)
         call insert(a:pending, s:nil_line, (max-1)/2-1) " middle marker
     endif
 
-    let joined = a:base
     for line in a:pending
         let joined.text .= ' '
         if line.number == 0

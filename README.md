@@ -113,7 +113,7 @@ If we extend the context on some indent we try to join them. By default we join 
 
 In complex cases there can be a big number of such context lines which we will join together. By default we only show up to 5 such parts.
 
-Note: This can happen if you have long lists of struct literals, so in the context it would look like `{ ··· }, { ··· }, { ··· }`
+Note: This can happen if you have long lists of struct literals, so in the context it would look like `{ ··· }, { ··· }, { ··· }`. Set `g:context_max_join_parts` to 2 or 1 to shorten this to `{ ···` or just `{` respectively.
 
 ```vim
 let g:context_ellipsis_char = '·'
