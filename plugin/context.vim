@@ -31,11 +31,13 @@ if g:context.add_mappings
     " context#update(). unfortunately this is needed because it seems like Vim
     " sometimes gets confused if the window height changes shortly after zz/zt/zb
     " have been executed.
-    " nnoremap <silent>        <C-Y> <C-Y>:call context#update('C-Y')<CR>
-    " nnoremap <silent>        <C-E> <C-E>:call context#update('C-E')<CR>
-    " nnoremap <silent>        zz     zzzz:call context#update('zz')<CR>
-    " nnoremap <silent>        zt     ztzt:call context#update('zt')<CR>
-    " nnoremap <silent>        zb     zbzb:call context#update('zb')<CR>
+    " TODO: add <C-F> and <C-B> too?
+    " <C-U> and <C-D> shouldn't be needed as they always trigger cursor move
+    nnoremap <silent>        <C-Y> <C-Y>:call context#update('C-Y')<CR>
+    nnoremap <silent>        <C-E> <C-E>:call context#update('C-E')<CR>
+    nnoremap <silent>        zz       zz:call context#update('zz')<CR>
+    nnoremap <silent>        zt       zt:call context#update('zt')<CR>
+    nnoremap <silent>        zb       zb:call context#update('zb')<CR>
     " nnoremap <silent> <expr> <C-E>            context#mapping#ce()
     " nnoremap <silent> <expr> zt               context#mapping#zt()
     " nnoremap <silent> <expr> k                context#mapping#k()

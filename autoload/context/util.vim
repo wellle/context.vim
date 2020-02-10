@@ -19,7 +19,7 @@ function! context#util#update_state() abort
     let cursor_line = line('.')
 
     let winid = win_getid()
-    " TODO: continue here. based on the numbers (what changed, does new cursor
+    " TODO (done): continue here. based on the numbers (what changed, does new cursor
     " line equal top line, etc.) decide whether the last motion was scroll or
     " move, then fix cursor position my move or scroll accordingly.
     " then we won't need custom mappings anymore \o/
@@ -36,48 +36,72 @@ function! context#util#update_state() abort
     let bottom_line_changed = bottom_diff != 0
     let cursor_line_changed = cursor_diff != 0
 
+    " TODO: next step: set a var here based on the case.
+    " then at the end of context#update or wherevere we called this from:
+    " check if cursor is behind popup. if so fix it based on the flag by
+    " - either move the cursor down
+    " - ore scroll the cursor down
     if top_line_changed || bottom_line_changed || cursor_line_changed
-        call context#util#echof('xxx 1', winid, '|', old_top_line, top_line, '|', old_cursor_line, cursor_line, '|', old_bottom_line, bottom_line)
+        call context#util#echof('xxx  ', winid, '|', old_top_line, top_line, '|', old_cursor_line, cursor_line, '|', old_bottom_line, bottom_line)
         if old_top_line == 0
+            " TODO: do we need this special case? maybe not, check later
+            " we don't really need it. if we remove it we will run into case 7
+            " below (cursor line and top line changed), which is considered a
+            " move, so we would scroll to fix anyway
             call context#util#echof('xxx 2 new: scroll')
-        elseif cursor_line_changed && top_line_changed
-            if cursor_line == top_line
-                if cursor_line < old_cursor_line
-                    " NOTE: this is also sometimes wrong
-                    " try alternating <C-F> and <C-B>
-                    call context#util#echof('xxx 3 moved')
-                else
-                    call context#util#echof('xxx 4 scrolled')
+        elseif cursor_line_changed
+            if top_line_changed
+                if cursor_line == top_line
+                    if cursor_line < old_cursor_line
+                        " move cursor up out of sight
+                        " NOTE: this is also sometimes wrong
+                        " try L<C-F>
+                        " we should be able to detect that! (cursor moves one line up)
+                        " might be fine though, check later
+                        call context#util#echof('xxx 3 moved')
+                    else
+                        " scroll down while cursor is on top line
+                        call context#util#echof('xxx 4 scrolled')
+                    endif
+                elseif cursor_line == bottom_line
+                    if cursor_line > old_cursor_line
+                        " move cursor down out of sight
+                        " NOTE: this is also sometimes wrong
+                        " try H<C-B>
+                        " we should be able to detect that! (cursor moves one line down)
+                        " might be fine though, check later
+                        call context#util#echof('xxx 5 moved')
+                    else
+                        " scroll up while cursor is on bottom line
+                        call context#util#echof('xxx 6 scrolled')
+                    endif
+                else " cursor in middle of screen
+                    " this case is kinda weird, wouldn't expect to happen, but
+                    " happens while searching. if vim decides to move cursor
+                    " to top. then both corsor has changed and screen has
+                    " scrolled
+                    " so maybe we should switch it to be consider a cursor
+                    " move...? probably
+                    " or is there any other way to trigger this?
+                    " probably not. if scrolled then either the cursor doesn't
+                    " move or is at top/bottom line because it was forced
+                    " there
+                    call context#util#echof('xxx 7 moved')
                 endif
-            elseif cursor_line == bottom_line
-                if cursor_line > old_cursor_line
-                    " NOTE: this is also sometimes wrong
-                    " try alternating <C-F> and <C-B>
-                    call context#util#echof('xxx 5 moved')
-                else
-                    call context#util#echof('xxx 6 scrolled')
-                endif
-            else
-                " NOTE: this sometimes has false positives when searching.
-                " sometimes it shows the next match in the middle of the
-                " screen, which leads to this case. so it says scrolled even
-                " though it was moved
-                " TODO: we could try to catch that by comparing some diffs.
-                " like cursor_diff != top_diff
-                call context#util#echof('xxx 7 scrolled')
+            else " !top_line_changed
+                call context#util#echof('xxx 8 moved')
             endif
-        elseif !cursor_line_changed && top_line_changed
-            call context#util#echof('xxx 8 scrolled')
-        elseif !cursor_line_changed && top_diff != bottom_diff
-            " TODO: avoid this case, happens when scrolling too with wrap
-            call context#util#echof('xxx 9 resized: scroll')
-        elseif !top_line_changed && cursor_line_changed
-            call context#util#echof('xxx 10 moved')
-        else
-            " TODO: is this a possible case still
-            call context#util#echof('xxx 11 TODO')
+        else " !cursor_line_changed
+            if top_line_changed
+                call context#util#echof('xxx 9 scrolled')
+            elseif bottom_line_changed
+                " TODO: avoid this case, happens when scrolling too with wrap
+                call context#util#echof('xxx 10 resized: scroll')
+            else " nothing changed
+                " TODO: can we trigger this case?
+                call context#util#echof('xxx 11 TODO')
+            endif
         endif
-        " TODO: are there any more cases missing?
     endif
 
     if w:context.top_line != top_line
