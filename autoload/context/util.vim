@@ -37,7 +37,7 @@ function! context#util#update_state() abort
     let cursor_line_changed = cursor_diff != 0
 
     " TODO: next step: set a var here based on the case.
-    " then at the end of context#update or wherevere we called this from:
+    " then at the end of context#update or wherever we called this from:
     " check if cursor is behind popup. if so fix it based on the flag by
     " - either move the cursor down
     " - ore scroll the cursor down
@@ -49,6 +49,7 @@ function! context#util#update_state() abort
             " below (cursor line and top line changed), which is considered a
             " move, so we would scroll to fix anyway
             call context#util#echof('xxx 2 new: scroll')
+            let w:context_temp = 'scroll'
         elseif cursor_line_changed
             if top_line_changed
                 if cursor_line == top_line
@@ -59,9 +60,11 @@ function! context#util#update_state() abort
                         " we should be able to detect that! (cursor moves one line up)
                         " might be fine though, check later
                         call context#util#echof('xxx 3 moved')
+                        let w:context_temp = 'scroll'
                     else
                         " scroll down while cursor is on top line
                         call context#util#echof('xxx 4 scrolled')
+                        let w:context_temp = 'move'
                     endif
                 elseif cursor_line == bottom_line
                     if cursor_line > old_cursor_line
@@ -71,9 +74,11 @@ function! context#util#update_state() abort
                         " we should be able to detect that! (cursor moves one line down)
                         " might be fine though, check later
                         call context#util#echof('xxx 5 moved')
+                        let w:context_temp = 'scroll'
                     else
                         " scroll up while cursor is on bottom line
                         call context#util#echof('xxx 6 scrolled')
+                        let w:context_temp = 'move'
                     endif
                 else " cursor in middle of screen
                     " this case is kinda weird, wouldn't expect to happen, but
@@ -87,19 +92,25 @@ function! context#util#update_state() abort
                     " move or is at top/bottom line because it was forced
                     " there
                     call context#util#echof('xxx 7 moved')
+                    let w:context_temp = 'scroll'
                 endif
             else " !top_line_changed
                 call context#util#echof('xxx 8 moved')
+                let w:context_temp = 'scroll'
             endif
         else " !cursor_line_changed
             if top_line_changed
                 call context#util#echof('xxx 9 scrolled')
+                let w:context_temp = 'move'
             elseif bottom_line_changed
                 " TODO: avoid this case, happens when scrolling too with wrap
                 call context#util#echof('xxx 10 resized: scroll')
+                let w:context_temp = 'move'
             else " nothing changed
-                " TODO: can we trigger this case?
+                " TODO: can we trigger this case? probably not and we can set
+                " the var to whatever
                 call context#util#echof('xxx 11 TODO')
+                let w:context_temp = 'scroll'
             endif
         endif
     endif
