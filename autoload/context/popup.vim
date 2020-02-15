@@ -75,8 +75,8 @@ endfunction
 function! context#popup#layout() abort
     call context#util#echof('> context#popup#layout')
 
-    for winid in keys(s:popups)
-        let popup = s:popups[winid]
+    for winid in keys(g:context.popups)
+        let popup = g:context.popups[winid]
         let winbuf = winbufnr(winid)
         let popupbuf = winbufnr(popup)
 
@@ -84,7 +84,7 @@ function! context#popup#layout() abort
             if popupbuf != -1
                 call s:close(popup)
             endif
-            call remove(s:popups, winid)
+            call remove(g:context.popups, winid)
             continue
         endif
 
@@ -99,7 +99,7 @@ function! context#popup#layout() abort
 endfunction
 
 function! context#popup#redraw(winid, force) abort
-    let popup = get(s:popups, a:winid)
+    let popup = get(g:context.popups, a:winid)
     if popup == 0
         return
     endif
@@ -154,23 +154,21 @@ function! context#popup#redraw(winid, force) abort
 endfunction
 
 function! context#popup#clear() abort
-    for key in keys(s:popups)
-        call s:close(s:popups[key])
+    for key in keys(g:context.popups)
+        call s:close(g:context.popups[key])
     endfor
-    let s:popups = {}
+    let g:context.popups = {}
 endfunction
-
-let s:popups = {}
 
 " popup related
 function! s:show() abort
     let winid = win_getid()
-    let popup = get(s:popups, winid)
+    let popup = get(g:context.popups, winid)
     let popupbuf = winbufnr(popup)
 
     if popup > 0 && popupbuf == -1
         let popup = 0
-        call remove(s:popups, winid)
+        call remove(g:context.popups, winid)
     endif
 
     if len(w:context.lines_top) == 0
@@ -182,14 +180,14 @@ function! s:show() abort
 
         if popup > 0
             call s:close(popup)
-            call remove(s:popups, winid)
+            call remove(g:context.popups, winid)
         endif
         return
     endif
 
     if popup == 0
         let popup = s:open()
-        let s:popups[winid] = popup
+        let g:context.popups[winid] = popup
     endif
 
     call context#popup#redraw(winid, 1)
