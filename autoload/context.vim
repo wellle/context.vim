@@ -1,5 +1,6 @@
 let s:activated     = 0
 let s:ignore_update = 0
+let s:peek          = 0
 
 " call this on VimEnter to activate the plugin
 function! context#activate() abort
@@ -36,10 +37,23 @@ function! context#toggle() abort
     endif
 endfunction
 
+function! context#peek() abort
+    " enable and set the peek flag (to disable on next update)
+    call context#enable()
+    let s:peek = 1
+endfunction
+
 function! context#update(...) abort
     " NOTE: this function used to have two arguments, but now it's only one
     " for compatibility reasons we still allow multiple arguments
     let source = a:000[-1]
+
+    if s:peek && source != 'CursorHold'
+        " if peek was used disable on next update (but ignore CursorHold)
+        let s:peek = 0
+        call context#disable()
+        return
+    endif
 
     if 0
                 \ || !s:activated
