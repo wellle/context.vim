@@ -233,7 +233,7 @@ function! s:get_border_line(winid, indent) abort
 
     let prefix = ''
     if a:indent
-        let indent = indent(c.base_line)
+        let indent = g:context.Border_indent(c.base_line)
         let prefix = repeat(' ', indent)
     endif
 
