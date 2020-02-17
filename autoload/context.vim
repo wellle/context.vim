@@ -48,8 +48,12 @@ function! context#update(...) abort
     " for compatibility reasons we still allow multiple arguments
     let source = a:000[-1]
 
-    if s:peek && source != 'CursorHold'
-        " if peek was used disable on next update (but ignore CursorHold)
+    if 1
+                \ && s:peek
+                \ && source != 'CursorHold'
+                \ && source != 'GitGutter'
+        " if peek was used disable on next update
+        " (but ignore CursorHold and GitGutter)
         let s:peek = 0
         call context#disable()
         return
