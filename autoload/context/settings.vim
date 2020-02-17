@@ -39,8 +39,8 @@ function! context#settings#parse() abort
 
     let char_border = get(g:, 'context_border_char', '▬')
 
-    " Indent function
-    let Indent_function = get(g:, 'Context_indent_function',  {line -> indent(line)})
+    " indent function used to create the context
+    let Indent_function = get(g:, 'Context_indent_function', function('indent'))
 
     " lines matching this regex will be ignored for the context
     " match whitespace only lines to show the full context

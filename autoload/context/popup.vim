@@ -1,15 +1,15 @@
 let s:context_buffer_name = '<context.vim>'
 
 function! context#popup#update_context() abort
-    let [lines_top, lines_bottom, indent] = context#popup#get_context(w:context.top_line)
+    let [lines_top, lines_bottom, base_line] = context#popup#get_context(w:context.top_line)
     call context#util#echof('> context#popup#update_context', len(lines_top))
     let w:context.lines_top    = lines_top
     let w:context.lines_bottom = lines_bottom
-    let w:context.indent       = indent
+    let w:context.base_line    = base_line
     call s:show()
 endfunction
 
-" returns [lines_top, lines_bottom, indent]
+" returns [lines_top, lines_bottom, base_line_nr]
 function! context#popup#get_context(base_line) abort
     " NOTE: there's a problem if some of the hidden lines
     " (behind the popup) are wrapped. then our calculations are off
@@ -25,7 +25,7 @@ function! context#popup#get_context(base_line) abort
         let line_offset += 1
         let line_number = a:base_line + line_offset
         let indent = g:context.Indent_function(line_number) "    -1 for invalid lines
-        let line = getline(line_number)  " empty for invalid lines
+        let line = getline(line_number)                     " empty for invalid lines
         let base_line = context#line#make(line_number, indent, line)
 
         if base_line.indent < 0
@@ -69,7 +69,7 @@ function! context#popup#get_context(base_line) abort
     endwhile
 
     call add(lines, '') " will be replaced with border line
-    return [lines, lines_bottom, base_line.indent]
+    return [lines, lines_bottom, base_line.number]
 endfunction
 
 function! context#popup#layout() abort
@@ -230,13 +230,18 @@ endfunction
 
 function! s:get_border_line(winid, indent) abort
     let c = getwinvar(a:winid, 'context')
-    let indent = a:indent ? c.indent : 0
 
-    let line_len = c.size_w - indent - len(s:context_buffer_name) - 2 - c.padding
+    let prefix = ''
+    if a:indent
+        let indent = indent(c.base_line)
+        let prefix = repeat(' ', indent)
+    endif
+
+    let line_len = c.size_w - len(prefix) - len(s:context_buffer_name) - 2 - c.padding
     " NOTE: we use a non breaking space before the buffer name because there
     " can be some display issues in the Kitty terminal with a normal space
     return ''
-                \ . repeat(' ', indent)
+                \ . prefix
                 \ . repeat(g:context.char_border, line_len)
                 \ . ' '
                 \ . s:context_buffer_name
