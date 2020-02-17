@@ -1,6 +1,5 @@
 let s:activated     = 0
 let s:ignore_update = 0
-let s:peek          = 0
 
 " call this on VimEnter to activate the plugin
 function! context#activate() abort
@@ -52,24 +51,13 @@ endfunction
 function! context#peek() abort
     " enable and set the peek flag (to disable on next update)
     call context#enable('window')
-    let s:peek = 1
+    let w:context.peek = 1
 endfunction
 
 function! context#update(...) abort
     " NOTE: this function used to have two arguments, but now it's only one
     " for compatibility reasons we still allow multiple arguments
     let source = a:000[-1]
-
-    if 1
-                \ && s:peek
-                \ && source != 'CursorHold'
-                \ && source != 'GitGutter'
-        " if peek was used disable on next update
-        " (but ignore CursorHold and GitGutter)
-        let s:peek = 0
-        call context#disable('window')
-        return
-    endif
 
     if !exists('w:context')
         let w:context = {
@@ -87,11 +75,23 @@ function! context#update(...) abort
                     \ 'padding':       0,
                     \ 'top_line':      0,
                     \ 'cursor_line':   0,
+                    \ 'peek':          0,
                     \ }
     endif
 
-    let winid = win_getid()
+    if 1
+                \ && w:context.peek
+                \ && source != 'CursorHold'
+                \ && source != 'GitGutter'
+        " if peek was used disable on next update
+        " (but ignore CursorHold and GitGutter)
+        let w:context.peek = 0
+        call context#util#echof('> context#update unpeek', source)
+        call context#disable('window')
+        return
+    endif
 
+    let winid = win_getid()
     call context#util#update_state()
     call context#util#update_window_state(winid)
 

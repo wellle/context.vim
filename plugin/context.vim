@@ -16,6 +16,7 @@ call context#settings#parse()
 " TODO: update docs
 
 " commands
+" TODO: actually add new commands like ContextEnableWindow instead of adding nargs?
 command!          -bar ContextActivate call context#activate()
 command! -nargs=? -bar ContextEnable   call context#enable('<args>')
 command! -nargs=? -bar ContextDisable  call context#disable('<args>')
