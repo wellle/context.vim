@@ -136,7 +136,7 @@ function! s:get_hidden_indent(base_line, lines) abort
             continue
         endif
 
-        return g:context.Indent_function(current_line)
+        return g:context.Indent(current_line)
     endwhile
 
     return -1

@@ -65,7 +65,7 @@ function! s:get_context_line(line) abort
     let skipped = get(b:context.skips, a:line.number, -1)
     if skipped != -1
         " call context#util#echof('  skipped', a:line.number, '->', skipped)
-        return context#line#make(skipped, g:context.Indent_function(skipped), getline(skipped))
+        return context#line#make(skipped, g:context.Indent(skipped), getline(skipped))
     endif
 
     " if line starts with closing brace or similar: jump to matching
@@ -89,7 +89,7 @@ function! s:get_context_line(line) abort
             return s:nil_line
         endif
 
-        let indent = g:context.Indent_function(current_line)
+        let indent = g:context.Indent(current_line)
         if indent > max_indent
             " use skip if we have, next line otherwise
             let skipped = get(b:context.skips, current_line, current_line-1)
