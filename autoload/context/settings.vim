@@ -39,6 +39,10 @@ function! context#settings#parse() abort
 
     let char_border = get(g:, 'context_border_char', '▬')
 
+    " indent function used to create the context
+    let Indent        = get(g:, 'Context_indent',        function('indent'))
+    let Border_indent = get(g:, 'Context_border_indent', function('indent'))
+
     " lines matching this regex will be ignored for the context
     " match whitespace only lines to show the full context
     " also by default excludes comment lines etc.
@@ -87,5 +91,8 @@ function! context#settings#parse() abort
                 \ 'logfile':             logfile,
                 \ 'ellipsis':            repeat(char_ellipsis, 3),
                 \ 'ellipsis5':           repeat(char_ellipsis, 5),
+                \ 'Indent':              Indent,
+                \ 'Border_indent':       Border_indent,
+                \ 'popups':              {},
                 \ }
 endfunction

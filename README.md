@@ -22,7 +22,7 @@ Here's an screenshot showing parts of `eval.c` in the Vim source code:
 
 [example.png]: https://raw.githubusercontent.com/wellle/images/master/context-example.png
 
-At the bottom you see the actual buffer. At the top you see a preview window used by **context.vim** to show the context of that code. So here we are looking at some code within the `echo_string` function. And within that function we are currently handling the case where `tv->v_type` is `VAR_LIST` and so on.
+At the bottom you see the actual buffer. At the top you see a popup window used by **context.vim** to show the context of that code. So here we are looking at some code within the `echo_string` function. And within that function we are currently handling the case where `tv->v_type` is `VAR_LIST` and so on.
 
 In the animation above you can see how the context changes as we scroll through this function.
 
@@ -151,6 +151,23 @@ let g:context_join_regex = '^\W*$'
 ```
 If we extended the context on some indent, we will join a line of this indent into the one above if the lower one matches this regular expression. So back in the C-style case where our context contains an `if (condition)` line and a `{` line below, they will be merged to `if (condition) {`. And that is because the `{` line matched this regular expression. By default we join everything which has no word characters.
 
+```vim
+let g:Context_indent = function('indent')
+```
+By default we create the context based on the indentation of the context lines. As we scan through the buffer lines we add lines to the context if they have less indent than the last context line. To get the indentation of a given buffer line we use the `indent()` function. You can use this setting to use your own function instead. That way you can customize what goes into your context.
+
+The function takes a line number and is supposed to return a number which you could consider a virtual indent. Smaller indent number means bigger scope, just like indentation. Make sure to return -1 if an invalid line number gets passed in, like `indent()` does.
+
+Here's an example that considers Markdown headers for the context: [#45][indent-example] (Note that you need to change `g:context_skip_regex` too to make this work)
+
+```vim
+let g:Context_border_indent = function('indent')
+```
+When using popup windows we indent the border line to be aligned with the context base line. You can use this setting to use a different function to control that indent. Similar to `g:Context_indent` this function also takes a line number and returns an indentation number. For example you can disable that indentation at all to always show a full width border line like this: `let g:Context_border_indent = { -> 0 }`
+
+
+[indent-example]: https://github.com/wellle/context.vim/pull/45#issuecomment-582654810
+
 
 ## Commands
 
@@ -169,7 +186,7 @@ If you `let g:context_enabled = 0` to disable it by default or have disabled it 
 ```vim
 :ContextDisable
 ```
-Use this command to disable the plugin. This also hides the preview window. Use `:ContextEnable` to enable it again later.
+Use this command to disable the plugin. This also hides the context window. Use `:ContextEnable` to enable it again later.
 
 ```vim
 :ContextToggle
