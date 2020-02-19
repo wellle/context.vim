@@ -13,8 +13,6 @@ endif
 
 call context#settings#parse()
 
-" TODO: update docs
-
 " commands
 command! -bar ContextActivate      call context#activate()
 command! -bar ContextEnable        call context#enable(1)
