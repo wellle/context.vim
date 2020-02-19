@@ -194,6 +194,21 @@ Use this command to disable the plugin. This also hides the context window. Use 
 Use this command to toggle between enabling and disabling this plugin. This is useful in mappings.
 
 ```vim
+:ContextEnableWindow
+```
+Similar to `:ContextEnable`, but only affects the current window.
+
+```vim
+:ContextDisableWindow
+```
+Similar to `:ContextDisable`, but only affects the current window.
+
+```vim
+:ContextToggleWindow
+```
+Similar to `:ContextToggle`, but only affects the current window.
+
+```vim
 :ContextPeek
 ```
 Use this command to temporarily show the current context, but hide it again on the next cursor movement.

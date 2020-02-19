@@ -1,6 +1,5 @@
 let s:activated     = 0
 let s:ignore_update = 0
-let s:peek          = 0
 
 " call this on VimEnter to activate the plugin
 function! context#activate() abort
@@ -12,36 +11,47 @@ function! context#activate() abort
     call context#update('activate')
 endfunction
 
-function! context#enable() abort
-    let g:context.enabled = 1
-    unlet! w:context " clear stale cache
+function! context#enable(all) abort
+    call s:set_enabled(a:all, 1)
     call context#update('enable')
 endfunction
 
-function! context#disable() abort
-    let g:context.enabled = 0
+function! context#disable(all) abort
+    call s:set_enabled(a:all, 0)
 
     if g:context.presenter == 'preview'
         call context#preview#close()
     else
-        call context#popup#clear()
+        if a:all
+            call context#popup#clear()
+        else
+            call context#popup#close()
+        endif
     endif
 endfunction
 
-function! context#toggle() abort
-    if g:context.enabled
-        call context#disable()
-        echom 'context.vim: disabled'
+function! context#toggle(all) abort
+    if a:all
+        let scope = 'all'
+        let enabled = g:context.enabled
     else
-        call context#enable()
-        echom 'context.vim: enabled'
+        let scope = 'window'
+        let enabled = w:context.enabled
+    endif
+
+    if enabled
+        call context#disable(a:all)
+        echom 'context.vim: disabled' scope
+    else
+        call context#enable(a:all)
+        echom 'context.vim: enabled' scope
     endif
 endfunction
 
 function! context#peek() abort
     " enable and set the peek flag (to disable on next update)
-    call context#enable()
-    let s:peek = 1
+    call context#enable('window')
+    let w:context.peek = 1
 endfunction
 
 function! context#update(...) abort
@@ -49,19 +59,9 @@ function! context#update(...) abort
     " for compatibility reasons we still allow multiple arguments
     let source = a:000[-1]
 
-    if 1
-                \ && s:peek
-                \ && source != 'CursorHold'
-                \ && source != 'GitGutter'
-        " if peek was used disable on next update
-        " (but ignore CursorHold and GitGutter)
-        let s:peek = 0
-        call context#disable()
-        return
-    endif
-
     if !exists('w:context')
         let w:context = {
+                    \ 'enabled':       g:context.enabled,
                     \ 'lines_top':     [],
                     \ 'lines_bottom':  [],
                     \ 'pos_y':         0,
@@ -75,7 +75,20 @@ function! context#update(...) abort
                     \ 'padding':       0,
                     \ 'top_line':      0,
                     \ 'cursor_line':   0,
+                    \ 'peek':          0,
                     \ }
+    endif
+
+    if 1
+                \ && w:context.peek
+                \ && source != 'CursorHold'
+                \ && source != 'GitGutter'
+        " if peek was used disable on next update
+        " (but ignore CursorHold and GitGutter)
+        let w:context.peek = 0
+        call context#util#echof('> context#update unpeek', source)
+        call context#disable('window')
+        return
     endif
 
     let winid = win_getid()
@@ -133,4 +146,19 @@ function! context#update(...) abort
     endif
 
     call context#util#log_indent(-2)
+endfunction
+
+function! s:set_enabled(arg, enabled) abort
+    if a:arg == 'window'
+        let winids = [winnr()] " only current window
+    else
+        let winids = range(1, winnr('$')) " all windows
+        let g:context.enabled = a:enabled
+    endif
+
+    for winid in winids
+        let c = getwinvar(win_getid(winid), 'context', {})
+        let c.enabled = a:enabled
+        let c.top_line = 0 " don't rely on old cache
+    endfor
 endfunction

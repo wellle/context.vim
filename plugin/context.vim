@@ -14,12 +14,15 @@ endif
 call context#settings#parse()
 
 " commands
-command! -bar ContextActivate call context#activate()
-command! -bar ContextEnable   call context#enable()
-command! -bar ContextDisable  call context#disable()
-command! -bar ContextToggle   call context#toggle()
-command! -bar ContextPeek     call context#peek()
-command! -bar ContextUpdate   call context#update('command')
+command! -bar ContextActivate      call context#activate()
+command! -bar ContextEnable        call context#enable(1)
+command! -bar ContextDisable       call context#disable(1)
+command! -bar ContextToggle        call context#toggle(1)
+command! -bar ContextEnableWindow  call context#enable(0)
+command! -bar ContextDisableWindow call context#disable(0)
+command! -bar ContextToggleWindow  call context#toggle(0)
+command! -bar ContextPeek          call context#peek()
+command! -bar ContextUpdate        call context#update('command')
 
 
 " mappings

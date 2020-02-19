@@ -153,11 +153,24 @@ function! context#popup#redraw(winid, force) abort
     endif
 endfunction
 
+" close all popups
 function! context#popup#clear() abort
     for key in keys(g:context.popups)
         call s:close(g:context.popups[key])
     endfor
     let g:context.popups = {}
+endfunction
+
+" close current popup
+function! context#popup#close() abort
+    let winid = win_getid()
+    let popup = get(g:context.popups, winid)
+    if popup == 0
+        return
+    endif
+
+    call s:close(popup)
+    call remove(g:context.popups, winid)
 endfunction
 
 " popup related
