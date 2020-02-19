@@ -16,13 +16,15 @@ call context#settings#parse()
 " TODO: update docs
 
 " commands
-" TODO: actually add new commands like ContextEnableWindow instead of adding nargs?
-command!          -bar ContextActivate call context#activate()
-command! -nargs=? -bar ContextEnable   call context#enable('<args>')
-command! -nargs=? -bar ContextDisable  call context#disable('<args>')
-command! -nargs=? -bar ContextToggle   call context#toggle('<args>')
-command!          -bar ContextPeek     call context#peek()
-command!          -bar ContextUpdate   call context#update('command')
+command! -bar ContextActivate      call context#activate()
+command! -bar ContextEnable        call context#enable(1)
+command! -bar ContextDisable       call context#disable(1)
+command! -bar ContextToggle        call context#toggle(1)
+command! -bar ContextEnableWindow  call context#enable(0)
+command! -bar ContextDisableWindow call context#disable(0)
+command! -bar ContextToggleWindow  call context#toggle(0)
+command! -bar ContextPeek          call context#peek()
+command! -bar ContextUpdate        call context#update('command')
 
 
 " mappings

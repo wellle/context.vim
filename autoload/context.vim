@@ -11,40 +11,40 @@ function! context#activate() abort
     call context#update('activate')
 endfunction
 
-function! context#enable(arg) abort
-    call s:set_enabled(a:arg, 1)
+function! context#enable(all) abort
+    call s:set_enabled(a:all, 1)
     call context#update('enable')
 endfunction
 
-function! context#disable(arg) abort
-    call s:set_enabled(a:arg, 0)
+function! context#disable(all) abort
+    call s:set_enabled(a:all, 0)
 
     if g:context.presenter == 'preview'
         call context#preview#close()
     else
-        if a:arg == 'window'
-            call context#popup#close()
-        else
+        if a:all
             call context#popup#clear()
+        else
+            call context#popup#close()
         endif
     endif
 endfunction
 
-function! context#toggle(arg) abort
-    if a:arg == 'window'
-        let arg = 'window'
-        let enabled = w:context.enabled
-    else
-        let arg = 'all'
+function! context#toggle(all) abort
+    if a:all
+        let scope = 'all'
         let enabled = g:context.enabled
+    else
+        let scope = 'window'
+        let enabled = w:context.enabled
     endif
 
     if enabled
-        call context#disable(arg)
-        echom 'context.vim: disabled' arg
+        call context#disable(a:all)
+        echom 'context.vim: disabled' scope
     else
-        call context#enable(arg)
-        echom 'context.vim: enabled' arg
+        call context#enable(a:all)
+        echom 'context.vim: enabled' scope
     endif
 endfunction
 
