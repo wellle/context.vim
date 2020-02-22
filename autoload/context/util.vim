@@ -5,9 +5,12 @@ function! context#util#active() abort
 endfunction
 
 function! context#util#update_state() abort
-    let wincount = winnr('$')
-    if get(s:, 'wincount') != wincount
-        let s:wincount = wincount
+    let windows = {}
+    for i in range(1, winnr('$'))
+        let windows[i] = win_getid(i)
+    endfor
+    if g:context.windows != windows
+        let g:context.windows = windows
         let w:context.needs_layout = 1
     endif
 

@@ -94,5 +94,6 @@ function! context#settings#parse() abort
                 \ 'Indent':              Indent,
                 \ 'Border_indent':       Border_indent,
                 \ 'popups':              {},
+                \ 'windows':             {},
                 \ }
 endfunction
