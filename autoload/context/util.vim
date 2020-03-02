@@ -36,6 +36,8 @@ function! context#util#update_state() abort
     let bottom_line_changed = bottom_diff != 0
     let cursor_line_changed = cursor_diff != 0
 
+    " TODO: actually try to behave differently for H and zt, try to recognize them
+    " worst case, just keep mapping them to set move/scroll?
     " TODO: next step: set a var here based on the case.
     " then at the end of context#update or wherever we called this from:
     " check if cursor is behind popup. if so fix it based on the flag by
@@ -126,7 +128,8 @@ function! context#util#update_state() abort
 
     if w:context.cursor_line != cursor_line
         let w:context.cursor_line = cursor_line
-        let w:context.needs_move = 1
+        " let w:context.needs_move = 1
+        let w:context.needs_update = 1
     endif
 
     " padding can only be checked for the current window

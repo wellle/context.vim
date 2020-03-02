@@ -1,11 +1,31 @@
 let s:context_buffer_name = '<context.vim>'
 
 function! context#popup#update_context() abort
+    " TODO!: update within this function to get the proper context, depending
+    " on cursor line and scroll/move
     let [lines_top, lines_bottom, base_line] = context#popup#get_context(w:context.top_line)
     call context#util#echof('> context#popup#update_context', len(lines_top))
     let w:context.lines_top    = lines_top
     let w:context.lines_bottom = lines_bottom
     let w:context.indent       = g:context.Border_indent(base_line)
+
+    let n = len(w:context.lines_top) - (w:context.cursor_line - w:context.top_line)
+    " echom 'x' w:context.top_line w:context.cursor_line len(w:context.lines_top) n
+    " TODO: need silent?
+    if n > 0
+        if w:context_temp == 'move'
+            echom 'move'
+            execute 'normal! ' . n . 'j'
+        else
+            echom 'scroll'
+            execute 'normal! ' . n . "\<C-Y>"
+        endif
+        call context#util#update_state()
+    endif
+    " TODO: need to update state again here in order to not get confused on
+    " next update
+    " at least update top_line and cursor_line, anything else?
+
     call s:show()
 endfunction
 
@@ -117,7 +137,7 @@ function! context#popup#redraw(winid, force) abort
     " check where to put the context, prefer top, but switch to bottom if
     " cursor is too high. abort if popup doesn't have to move and no a:force
     " is given
-    if c.cursor_line - c.top_line >= len(lines) " top
+    if c.cursor_line - c.top_line >= len(lines) || 1 " top
         if !a:force && c.popup_offset == 0
             call context#util#echof('  > context#popup#redraw no force skip top')
             return
