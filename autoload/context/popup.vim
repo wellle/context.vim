@@ -20,7 +20,7 @@ function! context#popup#update_context() abort
             echom 'scroll'
             execute 'normal! ' . n . "\<C-Y>"
         endif
-        call context#util#update_state()
+        call context#util#update_line_state()
     endif
     " TODO: need to update state again here in order to not get confused on
     " next update
@@ -36,14 +36,20 @@ function! context#popup#get_context(base_line) abort
     " TODO: fix that?
 
     " a skipped line has the same context as the next unskipped one below
-    let skipped = 0
-    let context_count = 0 " how many contexts did we check?
-    let line_offset = -1 " first iteration starts with zero
-    let lines_bottom = []
+    let skipped       =  0
+    let context_count =  0 " how many contexts did we check?
+    let line_offset   = -1 " first iteration starts with zero
+    let lines_bottom  = []
 
     while 1
         let line_offset += 1
         let line_number = a:base_line + line_offset
+
+        if w:context_temp == 'scroll' && line_number == w:context.cursor_line
+            " TODO: add comment
+            break
+        endif
+
         let indent = g:context.Indent(line_number) "    -1 for invalid lines
         let line = getline(line_number)            " empty for invalid lines
         let base_line = context#line#make(line_number, indent, line)
@@ -55,6 +61,7 @@ function! context#popup#get_context(base_line) abort
             continue
         else
             let lines = context#context#get(base_line)
+            " call context#util#echof('context#get', base_line.number, len(lines))
             if len(lines_bottom) == 0
                 let lines_bottom = copy(lines)
                 call map(lines_bottom, function('context#line#display'))
@@ -64,7 +71,7 @@ function! context#popup#get_context(base_line) abort
         endif
 
         let line_count = len(lines)
-        " call context#util#echof('  got', line_offset, line_offset, line_count, skipped)
+        call context#util#echof('got', line_offset, line_count, skipped)
 
         if line_count == 0 && context_count == 0
             " if we get an empty context on the first non skipped line
@@ -72,13 +79,51 @@ function! context#popup#get_context(base_line) abort
         endif
         let context_count += 1
 
+        " this context fits, use it
         if line_count < line_offset
             break
         endif
 
+        " TODO: what about the case where the cursor is on an empty line?
+        " if w:context_temp == 'scroll' && base_line.number 
+
         " try again on next line if this context doesn't fit
         let skipped = 0
     endwhile
+
+    if context_count == 0
+        " we got here because we ran into the cursor line before we found any
+        " context. now we need to scan upwards (from above top line) until we
+        " find a line with a context and use that one.
+
+        let skipped     = 0
+        let line_offset = 0 " first iteration starts with -1
+
+        " TODO! this might be the right direction, but there's a lot of
+        " weirdness now. can we save this?
+        while 1
+            let line_offset -= 1
+            let line_number = a:base_line + line_offset
+            let indent = g:context.Indent(line_number) "    -1 for invalid lines
+            let line = getline(line_number)            " empty for invalid lines
+            let base_line = context#line#make(line_number, indent, line)
+
+            call context#util#echof('checking above', line_offset, line_number)
+
+            if base_line.indent < 0
+                let lines = []
+                call context#util#echof('reached nan')
+            elseif context#line#should_skip(line)
+                let skipped += 1
+                continue
+            else
+                let lines = context#context#get(base_line)
+                call context#util#echof('got', len(lines))
+            endif
+
+            break
+        endwhile
+    endif
 
     " NOTE: this overwrites lines, from here on out it's just a list of string
     call map(lines, function('context#line#display'))
@@ -89,7 +134,7 @@ function! context#popup#get_context(base_line) abort
     endwhile
 
     call add(lines, '') " will be replaced with border line
-    return [lines, lines_bottom, base_line.number]
+    return [lines, lines_bottom, line_number]
 endfunction
 
 function! context#popup#layout() abort

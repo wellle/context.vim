@@ -154,6 +154,12 @@ function! context#util#update_state() abort
     endif
 endfunction
 
+function! context#util#update_line_state() abort
+    let w:context.top_line    = line('w0')
+    let w:context.bottom_line = line('w$')
+    let w:context.cursor_line = line('.')
+endfunction
+
 function! context#util#update_window_state(winid) abort
     let c = getwinvar(a:winid, 'context', {})
     if c == {}
