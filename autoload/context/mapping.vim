@@ -71,7 +71,11 @@ function! context#mapping#zt() abort
         return 'zt' . suffix
     endif
 
-    let n = cursor_line - w:context.top_line - len(lines) - 1 - &scrolloff
+    if &scrolloff > len(lines)
+        let n = cursor_line - w:context.top_line - &scrolloff
+    else
+        let n = cursor_line - w:context.top_line - len(lines) - 1
+    endif
     " call context#util#echof('zt', w:context.top_line, cursor_line, len(lines), n)
 
     if n == 0
