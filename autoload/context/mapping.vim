@@ -98,8 +98,8 @@ function! context#mapping#k() abort
 
     let top_line = w:context.top_line
     let next_cursor_line = w:context.cursor_line - v:count1
-    let n = len(w:context.lines_top) - (next_cursor_line - top_line)
-    " call context#util#echof('k', len(w:context.lines_top), next_cursor_line, top_line, n)
+    let n = len(w:context.lines) - (next_cursor_line - top_line)
+    " call context#util#echof('k', len(w:context.lines), next_cursor_line, top_line, n)
     if n <= 0
         " current context still fits
         return 'k'
@@ -135,7 +135,7 @@ function! context#mapping#h() abort
         return 'H'
     endif
 
-    let lines = w:context.lines_top
+    let lines = w:context.lines
     if len(lines) == 0
         return 'H'
     endif

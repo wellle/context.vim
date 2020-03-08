@@ -62,8 +62,7 @@ function! context#update(...) abort
     if !exists('w:context')
         let w:context = {
                     \ 'enabled':       g:context.enabled,
-                    \ 'lines_top':     [],
-                    \ 'lines_bottom':  [],
+                    \ 'lines':         [],
                     \ 'pos_y':         0,
                     \ 'pos_x':         0,
                     \ 'size_h':        0,

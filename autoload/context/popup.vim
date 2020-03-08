@@ -3,14 +3,13 @@ let s:context_buffer_name = '<context.vim>'
 function! context#popup#update_context() abort
     " TODO!: update within this function to get the proper context, depending
     " on cursor line and scroll/move
-    let [lines_top, lines_bottom, base_line] = context#popup#get_context(w:context.top_line)
-    call context#util#echof('> context#popup#update_context', len(lines_top))
-    let w:context.lines_top    = lines_top
-    let w:context.lines_bottom = lines_bottom
-    let w:context.indent       = g:context.Border_indent(base_line)
+    let [lines, base_line] = context#popup#get_context(w:context.top_line)
+    call context#util#echof('> context#popup#update_context', len(lines))
+    let w:context.lines  = lines
+    let w:context.indent = g:context.Border_indent(base_line)
 
-    let n = len(w:context.lines_top) - (w:context.cursor_line - w:context.top_line)
-    " echom 'x' w:context.top_line w:context.cursor_line len(w:context.lines_top) n
+    let n = len(w:context.lines) - (w:context.cursor_line - w:context.top_line)
+    " echom 'x' w:context.top_line w:context.cursor_line len(w:context.lines) n
     " TODO: need silent?
     if n > 0
         if w:context_temp == 'move'
@@ -29,7 +28,7 @@ function! context#popup#update_context() abort
     call s:show()
 endfunction
 
-" returns [lines_top, lines_bottom, base_line_nr]
+" returns [lines, base_line_nr]
 function! context#popup#get_context(base_line) abort
     " NOTE: there's a problem if some of the hidden lines
     " (behind the popup) are wrapped. then our calculations are off
@@ -39,7 +38,6 @@ function! context#popup#get_context(base_line) abort
     let skipped       =  0
     let context_count =  0 " how many contexts did we check?
     let line_offset   = -1 " first iteration starts with zero
-    let lines_bottom  = []
 
     while 1
         let line_offset += 1
@@ -62,12 +60,6 @@ function! context#popup#get_context(base_line) abort
         else
             let lines = context#context#get(base_line)
             " call context#util#echof('context#get', base_line.number, len(lines))
-            if len(lines_bottom) == 0
-                let lines_bottom = copy(lines)
-                call map(lines_bottom, function('context#line#display'))
-                call insert(lines_bottom, '') " will be replaced with border line
-                let lines_bottom = lines_bottom
-            endif
         endif
 
         let line_count = len(lines)
@@ -75,7 +67,7 @@ function! context#popup#get_context(base_line) abort
 
         if line_count == 0 && context_count == 0
             " if we get an empty context on the first non skipped line
-            return [[], [], 0]
+            return [[], 0]
         endif
         let context_count += 1
 
@@ -134,7 +126,7 @@ function! context#popup#get_context(base_line) abort
     endwhile
 
     call add(lines, '') " will be replaced with border line
-    return [lines, lines_bottom, line_number]
+    return [lines, line_number]
 endfunction
 
 function! context#popup#layout() abort
@@ -174,7 +166,7 @@ function! context#popup#redraw(winid, force) abort
         return
     endif
 
-    let lines = c.lines_top
+    let lines = c.lines
     if len(lines) == 0
         return
     endif
@@ -182,33 +174,18 @@ function! context#popup#redraw(winid, force) abort
     " check where to put the context, prefer top, but switch to bottom if
     " cursor is too high. abort if popup doesn't have to move and no a:force
     " is given
-    if c.cursor_line - c.top_line >= len(lines) || 1 " top
-        if !a:force && c.popup_offset == 0
-            call context#util#echof('  > context#popup#redraw no force skip top')
-            return
-        endif
-
-        let lines = c.lines_top
-        if len(lines) > 0
-            let lines[-1] = s:get_border_line(a:winid, 1)
-            let c.lines_top = lines
-        endif
-
-        let c.popup_offset = 0
-    else " bottom
-        if !a:force && c.popup_offset > 0
-            call context#util#echof('  > context#popup#redraw no force skip bottom')
-            return
-        endif
-
-        let lines = c.lines_bottom
-        if len(lines) > 0
-            let lines[0] = s:get_border_line(a:winid, 0)
-            let c.lines_bottom = lines
-        endif
-
-        let c.popup_offset = winheight(a:winid) - len(lines)
+    if !a:force && c.popup_offset == 0
+        call context#util#echof('  > context#popup#redraw no force skip top')
+        return
     endif
+
+    let lines = c.lines
+    if len(lines) > 0
+        let lines[-1] = s:get_border_line(a:winid, 1)
+        let c.lines = lines
+    endif
+
+    let c.popup_offset = 0
 
     call context#util#echof('  > context#popup#redraw', len(lines))
     if g:context.presenter == 'nvim-float'
@@ -249,7 +226,7 @@ function! s:show() abort
         call remove(g:context.popups, winid)
     endif
 
-    if len(w:context.lines_top) == 0
+    if len(w:context.lines) == 0
         call context#util#echof('  no lines')
 
         " if there are no lines, we reset popup_offset here so we'll try to
