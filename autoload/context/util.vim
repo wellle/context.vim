@@ -97,21 +97,32 @@ function! context#util#update_state() abort
                     let w:context_temp = 'scroll'
                 endif
             else " !top_line_changed
-                call context#util#echof('xxx 8 moved')
-                let w:context_temp = 'scroll'
+                if cursor_line == top_line
+                    " TODO: make work with 'scrolloff' too
+                    call context#util#echof('xxx 8 H')
+                    let w:context_temp = 'move'
+                else
+                    call context#util#echof('xxx 9 moved')
+                    let w:context_temp = 'scroll'
+                endif
             endif
         else " !cursor_line_changed
             if top_line_changed
-                call context#util#echof('xxx 9 scrolled')
-                let w:context_temp = 'move'
+                if cursor_line == top_line
+                    call context#util#echof('xxx 10 zt')
+                    let w:context_temp = 'scroll'
+                else
+                    call context#util#echof('xxx 11 scrolled')
+                    let w:context_temp = 'move'
+                endif
             elseif bottom_line_changed
                 " TODO: avoid this case, happens when scrolling too with wrap
-                call context#util#echof('xxx 10 resized: scroll')
+                call context#util#echof('xxx 12 resized: scroll')
                 let w:context_temp = 'move'
             else " nothing changed
                 " TODO: can we trigger this case? probably not and we can set
                 " the var to whatever
-                call context#util#echof('xxx 11 TODO')
+                call context#util#echof('xxx 13 TODO')
                 let w:context_temp = 'scroll'
             endif
         endif
