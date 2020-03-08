@@ -97,14 +97,19 @@ function! context#util#update_state() abort
                     let w:context_temp = 'scroll'
                 endif
             else " !top_line_changed
-                if cursor_line == top_line
-                    " TODO: make work with 'scrolloff' too
-                    call context#util#echof('xxx 8 H')
-                    let w:context_temp = 'move'
-                else
-                    call context#util#echof('xxx 9 moved')
-                    let w:context_temp = 'scroll'
-                endif
+                " TODO!: this doesn't really work. for example if `{` moves to
+                " the top line, we will recognize it as H and switch to move,
+                " which moves the cursor down. so { no longer works
+                " let's probably keep a custom mapping for H, but make it
+                " simple. so it just injects to 'move' instead of 'scroll'
+                " if cursor_line == top_line
+                "     " TODO: make work with 'scrolloff' too
+                "     call context#util#echof('xxx 8 H')
+                "     let w:context_temp = 'move'
+                " else
+                call context#util#echof('xxx 9 moved')
+                let w:context_temp = 'scroll'
+                " endif
             endif
         else " !cursor_line_changed
             if top_line_changed

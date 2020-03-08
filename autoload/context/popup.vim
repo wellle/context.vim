@@ -13,10 +13,10 @@ function! context#popup#update_context() abort
     " TODO: need silent?
     if n > 0
         if w:context_temp == 'move'
-            echom 'move'
+            " echom 'move'
             execute 'normal! ' . n . 'j'
         else
-            echom 'scroll'
+            " echom 'scroll'
             execute 'normal! ' . n . "\<C-Y>"
         endif
         call context#util#update_line_state()
@@ -43,11 +43,6 @@ function! context#popup#get_context(base_line) abort
         let line_offset += 1
         let line_number = a:base_line + line_offset
 
-        if w:context_temp == 'scroll' && line_number == w:context.cursor_line
-            " TODO: add comment
-            break
-        endif
-
         let indent = g:context.Indent(line_number) "    -1 for invalid lines
         let line = getline(line_number)            " empty for invalid lines
         let base_line = context#line#make(line_number, indent, line)
@@ -73,6 +68,12 @@ function! context#popup#get_context(base_line) abort
 
         " this context fits, use it
         if line_count < line_offset
+            break
+        endif
+
+        if w:context_temp == 'scroll' && line_number >= w:context.cursor_line
+            " TODO: add comment
+            call context#util#echof('skip cursor line')
             break
         endif
 
