@@ -95,6 +95,16 @@ function! context#update(...) abort
     call context#util#update_state()
     call context#util#update_window_state(winid)
 
+    if g:context.force_temp != ''
+        " from H
+        " TODO: maybe make this more specific now that we only need to handle
+        " the H case?
+        let w:context_temp = g:context.force_temp
+        let g:context.force_temp = ''
+    elseif source == 'zt'
+        let w:context_temp = 'scroll'
+    endif
+
     if 0
                 \ || !s:activated
                 \ || s:ignore_update

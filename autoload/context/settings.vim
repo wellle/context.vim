@@ -93,6 +93,7 @@ function! context#settings#parse() abort
                 \ 'ellipsis5':           repeat(char_ellipsis, 5),
                 \ 'Indent':              Indent,
                 \ 'Border_indent':       Border_indent,
+                \ 'force_temp':          '',
                 \ 'popups':              {},
                 \ 'windows':             {},
                 \ }

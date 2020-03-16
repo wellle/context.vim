@@ -54,6 +54,9 @@ function! context#mapping#ce() abort
 endfunction
 
 function! context#mapping#zt() abort
+    let g:context.force_temp = 'scroll'
+    return 'zt'
+
     if !context#util#active()
         return 'zt'
     endif
@@ -122,7 +125,12 @@ function! context#mapping#k() abort
     return "\<Esc>" . n . "\<C-Y>" . v:count1. 'k'
 endfunction
 
+" TODO: move somewhere else if we only need this single function?
 function! context#mapping#h() abort
+    " TODO: handle count? (and scrolloff?)
+    let g:context.force_temp = 'move'
+    return 'H'
+
     if !context#util#active()
         return 'H'
     endif

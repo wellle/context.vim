@@ -36,12 +36,16 @@ if g:context.add_mappings
     nnoremap <silent>        <C-Y> <C-Y>:call context#update('C-Y')<CR>
     nnoremap <silent>        <C-E> <C-E>:call context#update('C-E')<CR>
     nnoremap <silent>        zz       zz:call context#update('zz')<CR>
+    " TODO!: there's some weirdness now, try {zt{ on a big file: vim/eval.c
+    " hmm, tried again, can't reproduce anymore
     nnoremap <silent>        zt       zt:call context#update('zt')<CR>
     nnoremap <silent>        zb       zb:call context#update('zb')<CR>
     " nnoremap <silent> <expr> <C-E>            context#mapping#ce()
     " nnoremap <silent> <expr> zt               context#mapping#zt()
     " nnoremap <silent> <expr> k                context#mapping#k()
-    " nnoremap <silent> <expr> H                context#mapping#h()
+    " NOTE: this needs a mapping because H triggers CursorHold and we want to
+    " inject force_temp beforehand
+    nnoremap <silent> <expr> H                context#mapping#h()
 endif
 
 

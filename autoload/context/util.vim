@@ -113,13 +113,15 @@ function! context#util#update_state() abort
             endif
         else " !cursor_line_changed
             if top_line_changed
-                if cursor_line == top_line
-                    call context#util#echof('xxx 10 zt')
-                    let w:context_temp = 'scroll'
-                else
+                " if cursor_line == top_line
+                "     " TODO: does this have an issue too?
+                "     " yes, n<C-E> can get it confused
+                "     call context#util#echof('xxx 10 zt')
+                "     let w:context_temp = 'scroll'
+                " else
                     call context#util#echof('xxx 11 scrolled')
                     let w:context_temp = 'move'
-                endif
+                " endif
             elseif bottom_line_changed
                 " TODO: avoid this case, happens when scrolling too with wrap
                 call context#util#echof('xxx 12 resized: scroll')

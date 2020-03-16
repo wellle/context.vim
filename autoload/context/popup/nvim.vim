@@ -31,9 +31,9 @@ function! context#popup#nvim#redraw(winid, popup, lines) abort
     call nvim_win_set_config(a:popup, {
                 \ 'relative': 'editor',
                 \ 'row':      c.pos_y - 1 + c.popup_offset,
-                \ 'col':      c.pos_x - 1 + 20,
+                \ 'col':      c.pos_x - 1,
                 \ 'height':   len(a:lines),
-                \ 'width':    c.size_w - 20,
+                \ 'width':    c.size_w,
                 \ })
 
     call setwinvar(a:popup, '&foldcolumn', c.padding)
