@@ -25,10 +25,6 @@ function! context#util#update_state() abort
     let cursor_line = line('.')
 
     let winid = win_getid()
-    " TODO (done): continue here. based on the numbers (what changed, does new cursor
-    " line equal top line, etc.) decide whether the last motion was scroll or
-    " move, then fix cursor position my move or scroll accordingly.
-    " then we won't need custom mappings anymore \o/
 
     let old_top_line = w:context.top_line
     let old_bottom_line = w:context.bottom_line
@@ -42,13 +38,6 @@ function! context#util#update_state() abort
     let bottom_line_changed = bottom_diff != 0
     let cursor_line_changed = cursor_diff != 0
 
-    " TODO: actually try to behave differently for H and zt, try to recognize them
-    " worst case, just keep mapping them to set move/scroll?
-    " TODO: next step: set a var here based on the case.
-    " then at the end of context#update or wherever we called this from:
-    " check if cursor is behind popup. if so fix it based on the flag by
-    " - either move the cursor down
-    " - ore scroll the cursor down
     if top_line_changed || bottom_line_changed || cursor_line_changed
         call context#util#echof('xxx  ', winid, '|', old_top_line, top_line, '|', old_cursor_line, cursor_line, '|', old_bottom_line, bottom_line)
         if old_top_line == 0
@@ -57,6 +46,7 @@ function! context#util#update_state() abort
             " below (cursor line and top line changed), which is considered a
             " move, so we would scroll to fix anyway
             call context#util#echof('xxx 2 new: scroll')
+            " TODO: rename context_temp
             let w:context_temp = 'scroll'
         elseif cursor_line_changed
             if top_line_changed
@@ -66,7 +56,7 @@ function! context#util#update_state() abort
                         " NOTE: this is also sometimes wrong
                         " try L<C-F>
                         " we should be able to detect that! (cursor moves one line up)
-                        " might be fine though, check later
+                        " might be fine though, TODO check later
                         call context#util#echof('xxx 3 moved')
                         let w:context_temp = 'scroll'
                     else
@@ -80,7 +70,7 @@ function! context#util#update_state() abort
                         " NOTE: this is also sometimes wrong
                         " try H<C-B>
                         " we should be able to detect that! (cursor moves one line down)
-                        " might be fine though, check later
+                        " might be fine though, TODO check later
                         call context#util#echof('xxx 5 moved')
                         let w:context_temp = 'scroll'
                     else
@@ -89,7 +79,7 @@ function! context#util#update_state() abort
                         let w:context_temp = 'move'
                     endif
                 else " cursor in middle of screen
-                    " this case is kinda weird, wouldn't expect to happen, but
+                    " TODO: this case is kinda weird, wouldn't expect to happen, but
                     " happens while searching. if vim decides to move cursor
                     " to top. then both corsor has changed and screen has
                     " scrolled
@@ -103,31 +93,13 @@ function! context#util#update_state() abort
                     let w:context_temp = 'scroll'
                 endif
             else " !top_line_changed
-                " TODO!: this doesn't really work. for example if `{` moves to
-                " the top line, we will recognize it as H and switch to move,
-                " which moves the cursor down. so { no longer works
-                " let's probably keep a custom mapping for H, but make it
-                " simple. so it just injects to 'move' instead of 'scroll'
-                " if cursor_line == top_line
-                "     " TODO: make work with 'scrolloff' too
-                "     call context#util#echof('xxx 8 H')
-                "     let w:context_temp = 'move'
-                " else
                 call context#util#echof('xxx 9 moved')
                 let w:context_temp = 'scroll'
-                " endif
             endif
         else " !cursor_line_changed
             if top_line_changed
-                " if cursor_line == top_line
-                "     " TODO: does this have an issue too?
-                "     " yes, n<C-E> can get it confused
-                "     call context#util#echof('xxx 10 zt')
-                "     let w:context_temp = 'scroll'
-                " else
-                    call context#util#echof('xxx 11 scrolled')
-                    let w:context_temp = 'move'
-                " endif
+                call context#util#echof('xxx 11 scrolled')
+                let w:context_temp = 'move'
             elseif bottom_line_changed
                 " TODO: avoid this case, happens when scrolling too with wrap
                 call context#util#echof('xxx 12 resized: scroll')

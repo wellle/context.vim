@@ -1,8 +1,6 @@
 let s:context_buffer_name = '<context.vim>'
 
 function! context#popup#update_context() abort
-    " TODO!: update within this function to get the proper context, depending
-    " on cursor line and scroll/move
     let [lines, base_line] = context#popup#get_context(w:context.top_line)
     call context#util#echof('> context#popup#update_context', len(lines))
     let w:context.lines  = lines
@@ -92,8 +90,6 @@ function! context#popup#get_context(base_line) abort
         let skipped     = 0
         let line_offset = 0 " first iteration starts with -1
 
-        " TODO! this might be the right direction, but there's a lot of
-        " weirdness now. can we save this?
         while 1
             let line_offset -= 1
             let line_number = a:base_line + line_offset
