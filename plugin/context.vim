@@ -27,25 +27,13 @@ command! -bar ContextUpdate        call context#update('command')
 
 " mappings
 if g:context.add_mappings
-    " NOTE: in the zz/zt/zb mappings we invoke zz/zt/zb twice before calling
-    " context#update(). unfortunately this is needed because it seems like Vim
-    " sometimes gets confused if the window height changes shortly after zz/zt/zb
-    " have been executed.
-    " TODO: add <C-F> and <C-B> too?
-    " <C-U> and <C-D> shouldn't be needed as they always trigger cursor move
-    nnoremap <silent>        <C-Y> <C-Y>:call context#update('C-Y')<CR>
-    nnoremap <silent>        <C-E> <C-E>:call context#update('C-E')<CR>
-    nnoremap <silent>        zz       zz:call context#update('zz')<CR>
-    " TODO!: there's some weirdness now, try {zt{ on a big file: vim/eval.c
-    " hmm, tried again, can't reproduce anymore
-    nnoremap <silent>        zt       zt:call context#update('zt')<CR>
-    nnoremap <silent>        zb       zb:call context#update('zb')<CR>
-    " nnoremap <silent> <expr> <C-E>            context#mapping#ce()
-    " nnoremap <silent> <expr> zt               context#mapping#zt()
-    " nnoremap <silent> <expr> k                context#mapping#k()
-    " NOTE: this needs a mapping because H triggers CursorHold and we want to
-    " inject force_temp beforehand
-    nnoremap <silent> <expr> H                context#mapping#h()
+    " TODO: update docs
+    nnoremap <silent> <C-Y> <C-Y>:call context#update('C-Y')<CR>
+    nnoremap <silent> <C-E> <C-E>:call context#update('C-E')<CR>
+    nnoremap <silent> zz       zz:call context#update('zz')<CR>
+    nnoremap <silent> zt       zt:call context#update('zt')<CR>
+    nnoremap <silent> zb       zb:call context#update('zb')<CR>
+    nnoremap <silent> <expr> H context#util#map_H()
 endif
 
 

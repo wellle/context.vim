@@ -97,8 +97,6 @@ function! context#update(...) abort
 
     if g:context.force_temp != ''
         " from H
-        " TODO: maybe make this more specific now that we only need to handle
-        " the H case?
         let w:context_temp = g:context.force_temp
         let g:context.force_temp = ''
     elseif source == 'zt'

@@ -4,6 +4,12 @@ function! context#util#active() abort
                 \ && !get(g:context.filetype_blacklist, &filetype)
 endfunction
 
+function! context#util#map_H() abort
+    " TODO: handle count and scrolloff
+    let g:context.force_temp = 'move'
+    return 'H'
+endfunction
+
 function! context#util#update_state() abort
     let windows = {}
     for i in range(1, winnr('$'))
