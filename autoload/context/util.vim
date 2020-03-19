@@ -10,6 +10,11 @@ function! context#util#map_H() abort
     return 'H'
 endfunction
 
+function! context#util#map_zt() abort
+    let g:context.force_temp = 'scroll'
+    return "zt:call context#update('zt')\<CR>"
+endfunction
+
 function! context#util#update_state() abort
     let windows = {}
     for i in range(1, winnr('$'))
@@ -111,6 +116,11 @@ function! context#util#update_state() abort
                 let w:context_temp = 'scroll'
             endif
         endif
+    endif
+
+    if g:context.force_temp != ''
+        let w:context_temp = g:context.force_temp
+        let g:context.force_temp = ''
     endif
 
     if w:context.top_line != top_line
