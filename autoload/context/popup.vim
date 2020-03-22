@@ -54,7 +54,7 @@ function! context#popup#get_context(base_line) abort
             break
         endif
 
-        if w:context_temp == 'scroll' && line_number >= w:context.cursor_line
+        if w:context.fix_strategy == 'scroll' && line_number >= w:context.cursor_line
             " if we want to show the cursor by scrolling and we reached the
             " cursor line, we don't need to check lower lines because the
             " cursor line will be visible, so this is the proper context

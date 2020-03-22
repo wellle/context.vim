@@ -6,12 +6,12 @@ endfunction
 
 function! context#util#map_H() abort
     " TODO: handle count and scrolloff
-    let g:context.force_temp = 'move'
+    let w:context.force_fix_strategy = 'move'
     return 'H'
 endfunction
 
 function! context#util#map_zt() abort
-    let g:context.force_temp = 'scroll'
+    let w:context.force_fix_strategy = 'scroll'
     return "zt:call context#update('zt')\<CR>"
 endfunction
 
@@ -51,8 +51,7 @@ function! context#util#update_state() abort
             " below (cursor line and top line changed), which is considered a
             " move, so we would scroll to fix anyway
             call context#util#echof('xxx 2 new: scroll')
-            " TODO: rename context_temp
-            let w:context_temp = 'scroll'
+            let w:context.fix_strategy = 'scroll'
         elseif cursor_line_changed
             if top_line_changed
                 if cursor_line == top_line
@@ -63,11 +62,11 @@ function! context#util#update_state() abort
                         " we should be able to detect that! (cursor moves one line up)
                         " might be fine though, TODO check later
                         call context#util#echof('xxx 3 moved')
-                        let w:context_temp = 'scroll'
+                        let w:context.fix_strategy = 'scroll'
                     else
                         " scroll down while cursor is on top line
                         call context#util#echof('xxx 4 scrolled')
-                        let w:context_temp = 'move'
+                        let w:context.fix_strategy = 'move'
                     endif
                 elseif cursor_line == bottom_line
                     if cursor_line > old_cursor_line
@@ -77,11 +76,11 @@ function! context#util#update_state() abort
                         " we should be able to detect that! (cursor moves one line down)
                         " might be fine though, TODO check later
                         call context#util#echof('xxx 5 moved')
-                        let w:context_temp = 'scroll'
+                        let w:context.fix_strategy = 'scroll'
                     else
                         " scroll up while cursor is on bottom line
                         call context#util#echof('xxx 6 scrolled')
-                        let w:context_temp = 'move'
+                        let w:context.fix_strategy = 'move'
                     endif
                 else " cursor in middle of screen
                     " TODO: this case is kinda weird, wouldn't expect to happen, but
@@ -95,32 +94,32 @@ function! context#util#update_state() abort
                     " move or is at top/bottom line because it was forced
                     " there
                     call context#util#echof('xxx 7 moved')
-                    let w:context_temp = 'scroll'
+                    let w:context.fix_strategy = 'scroll'
                 endif
             else " !top_line_changed
                 call context#util#echof('xxx 9 moved')
-                let w:context_temp = 'scroll'
+                let w:context.fix_strategy = 'scroll'
             endif
         else " !cursor_line_changed
             if top_line_changed
                 call context#util#echof('xxx 11 scrolled')
-                let w:context_temp = 'move'
+                let w:context.fix_strategy = 'move'
             elseif bottom_line_changed
                 " TODO: avoid this case, happens when scrolling too with wrap
                 call context#util#echof('xxx 12 resized: scroll')
-                let w:context_temp = 'move'
+                let w:context.fix_strategy = 'move'
             else " nothing changed
                 " TODO: can we trigger this case? probably not and we can set
                 " the var to whatever
                 call context#util#echof('xxx 13 TODO')
-                let w:context_temp = 'scroll'
+                let w:context.fix_strategy = 'scroll'
             endif
         endif
     endif
 
-    if g:context.force_temp != ''
-        let w:context_temp = g:context.force_temp
-        let g:context.force_temp = ''
+    if w:context.force_fix_strategy != ''
+        let w:context.fix_strategy = w:context.force_fix_strategy
+        let w:context.force_fix_strategy = ''
     endif
 
     if w:context.top_line != top_line
@@ -198,7 +197,7 @@ function! context#util#show_cursor() abort
     end
 
     " otherwise we have to either move or scroll the cursor accordingly
-    let key = (w:context_temp == 'move') ? 'j' : "\<C-Y>"
+    let key = (w:context.fix_strategy == 'move') ? 'j' : "\<C-Y>"
     execute 'normal! ' . n . key
     call context#util#update_line_state()
 endfunction

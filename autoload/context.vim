@@ -61,21 +61,22 @@ function! context#update(...) abort
 
     if !exists('w:context')
         let w:context = {
-                    \ 'enabled':       g:context.enabled,
-                    \ 'lines':         [],
-                    \ 'pos_y':         0,
-                    \ 'pos_x':         0,
-                    \ 'size_h':        0,
-                    \ 'size_w':        0,
-                    \ 'indent':        0,
-                    \ 'needs_layout':  0,
-                    \ 'needs_move':    0,
-                    \ 'needs_update':  0,
-                    \ 'padding':       0,
-                    \ 'top_line':      0,
-                    \ 'bottom_line':   0,
-                    \ 'cursor_line':   0,
-                    \ 'peek':          0,
+                    \ 'enabled':            g:context.enabled,
+                    \ 'lines':              [],
+                    \ 'pos_y':              0,
+                    \ 'pos_x':              0,
+                    \ 'size_h':             0,
+                    \ 'size_w':             0,
+                    \ 'indent':             0,
+                    \ 'needs_layout':       0,
+                    \ 'needs_move':         0,
+                    \ 'needs_update':       0,
+                    \ 'padding':            0,
+                    \ 'top_line':           0,
+                    \ 'bottom_line':        0,
+                    \ 'cursor_line':        0,
+                    \ 'peek':               0,
+                    \ 'force_fix_strategy': '',
                     \ }
     endif
 
