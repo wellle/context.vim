@@ -133,7 +133,6 @@ function! context#util#update_state() abort
 
     if w:context.cursor_line != cursor_line
         let w:context.cursor_line = cursor_line
-        " let w:context.needs_move = 1
         let w:context.needs_update = 1
     endif
 

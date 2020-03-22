@@ -69,7 +69,6 @@ function! context#update(...) abort
                     \ 'size_w':             0,
                     \ 'indent':             0,
                     \ 'needs_layout':       0,
-                    \ 'needs_move':         0,
                     \ 'needs_update':       0,
                     \ 'padding':            0,
                     \ 'top_line':           0,
@@ -103,7 +102,6 @@ function! context#update(...) abort
                 \ || mode() != 'n'
                 \ || !context#util#active()
         let w:context.needs_update = 0
-        let w:context.needs_move   = 0
         " NOTE: we still consider needs_layout even if this buffer is disabled
     endif
 
@@ -111,7 +109,7 @@ function! context#update(...) abort
         let w:context.needs_layout = 0
     endif
 
-    if !w:context.needs_update && !w:context.needs_layout && !w:context.needs_move
+    if !w:context.needs_update && !w:context.needs_layout
         return
     endif
 
@@ -138,11 +136,6 @@ function! context#update(...) abort
         if w:context.needs_layout
             let w:context.needs_layout = 0
             call context#popup#layout()
-        endif
-
-        if w:context.needs_move
-            let w:context.needs_move = 0
-            call context#popup#redraw(winid, 0)
         endif
     endif
 
