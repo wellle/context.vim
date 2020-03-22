@@ -189,6 +189,20 @@ endfunction
 
 let s:log_indent = 0
 
+function! context#util#show_cursor() abort
+    " compare height of context to cursor line on screen
+    let n = len(w:context.lines) - (w:context.cursor_line - w:context.top_line)
+    if n <= 0
+        " if cursor is low enough, nothing to do
+        return
+    end
+
+    " otherwise we have to either move or scroll the cursor accordingly
+    let key = (w:context_temp == 'move') ? 'j' : "\<C-Y>"
+    execute 'normal! ' . n . key
+    call context#util#update_line_state()
+endfunction
+
 function! context#util#log_indent(amount) abort
     let s:log_indent += a:amount
 endfunction

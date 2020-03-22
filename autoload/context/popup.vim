@@ -3,26 +3,11 @@ let s:context_buffer_name = '<context.vim>'
 function! context#popup#update_context() abort
     let [lines, base_line] = context#popup#get_context(w:context.top_line)
     call context#util#echof('> context#popup#update_context', len(lines))
+
     let w:context.lines  = lines
     let w:context.indent = g:context.Border_indent(base_line)
 
-    let n = len(w:context.lines) - (w:context.cursor_line - w:context.top_line)
-    " echom 'x' w:context.top_line w:context.cursor_line len(w:context.lines) n
-    " TODO: need silent?
-    if n > 0
-        if w:context_temp == 'move'
-            " echom 'move'
-            execute 'normal! ' . n . 'j'
-        else
-            " echom 'scroll'
-            execute 'normal! ' . n . "\<C-Y>"
-        endif
-        call context#util#update_line_state()
-    endif
-    " TODO: need to update state again here in order to not get confused on
-    " next update
-    " at least update top_line and cursor_line, anything else?
-
+    call context#util#show_cursor()
     call s:show()
 endfunction
 
@@ -70,13 +55,12 @@ function! context#popup#get_context(base_line) abort
         endif
 
         if w:context_temp == 'scroll' && line_number >= w:context.cursor_line
-            " TODO: add comment
+            " if we want to show the cursor by scrolling and we reached the
+            " cursor line, we don't need to check lower lines because the
+            " cursor line will be visible, so this is the proper context
             call context#util#echof('skip cursor line')
             break
         endif
-
-        " TODO: what about the case where the cursor is on an empty line?
-        " if w:context_temp == 'scroll' && base_line.number 
 
         " try again on next line if this context doesn't fit
         let skipped = 0
