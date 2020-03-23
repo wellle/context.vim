@@ -41,7 +41,7 @@ function! context#popup#get_context(base_line) abort
         endif
 
         let line_count = len(lines)
-        call context#util#echof('got', line_offset, line_count, skipped)
+        " call context#util#echof('got', line_offset, line_count, skipped)
 
         if line_count == 0 && context_count == 0
             " if we get an empty context on the first non skipped line

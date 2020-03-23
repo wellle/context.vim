@@ -25,116 +25,53 @@ function! context#util#update_state() abort
         let w:context.needs_layout = 1
     endif
 
-    let top_line    = line('w0')
-    let bottom_line = line('w$')
-    let cursor_line = line('.')
+    let top_line            = line('w0')
+    let cursor_line         = line('.')
+    let bottom_line         = line('w$')
+    let old_top_line        = w:context.top_line
+    let old_cursor_line     = w:context.cursor_line
+    let top_line_changed    = old_top_line != top_line
+    let cursor_line_changed = old_cursor_line != cursor_line
 
-    let winid = win_getid()
+    let c = printf('W %d T %4d%s%-4d C %4d%s%-4d B %4d', win_getid(),
+                \ old_top_line,    top_line_changed    ? '->' : '  ', top_line,
+                \ old_cursor_line, cursor_line_changed ? '->' : '  ', cursor_line,
+                \ bottom_line,
+                \ ) " context for debug logs
 
-    let old_top_line = w:context.top_line
-    let old_bottom_line = w:context.bottom_line
-    let old_cursor_line = w:context.cursor_line
-
-    let top_diff = old_top_line - top_line
-    let bottom_diff = old_bottom_line - bottom_line
-    let cursor_diff = old_cursor_line - cursor_line
-
-    let top_line_changed = top_diff != 0
-    let bottom_line_changed = bottom_diff != 0
-    let cursor_line_changed = cursor_diff != 0
-
-    if top_line_changed || bottom_line_changed || cursor_line_changed
-        call context#util#echof('xxx  ', winid, '|', old_top_line, top_line, '|', old_cursor_line, cursor_line, '|', old_bottom_line, bottom_line)
-        if old_top_line == 0
-            " TODO: do we need this special case? maybe not, check later
-            " we don't really need it. if we remove it we will run into case 7
-            " below (cursor line and top line changed), which is considered a
-            " move, so we would scroll to fix anyway
-            call context#util#echof('xxx 2 new: scroll')
-            let w:context.fix_strategy = 'scroll'
-        elseif cursor_line_changed
-            if top_line_changed
-                if cursor_line == top_line
-                    if cursor_line < old_cursor_line
-                        " move cursor up out of sight
-                        " NOTE: this is also sometimes wrong
-                        " try L<C-F>
-                        " we should be able to detect that! (cursor moves one line up)
-                        " might be fine though, TODO check later
-                        call context#util#echof('xxx 3 moved')
-                        let w:context.fix_strategy = 'scroll'
-                    else
-                        " scroll down while cursor is on top line
-                        call context#util#echof('xxx 4 scrolled')
-                        let w:context.fix_strategy = 'move'
-                    endif
-                elseif cursor_line == bottom_line
-                    if cursor_line > old_cursor_line
-                        " move cursor down out of sight
-                        " NOTE: this is also sometimes wrong
-                        " try H<C-B>
-                        " we should be able to detect that! (cursor moves one line down)
-                        " might be fine though, TODO check later
-                        call context#util#echof('xxx 5 moved')
-                        let w:context.fix_strategy = 'scroll'
-                    else
-                        " scroll up while cursor is on bottom line
-                        call context#util#echof('xxx 6 scrolled')
-                        let w:context.fix_strategy = 'move'
-                    endif
-                else " cursor in middle of screen
-                    " TODO: this case is kinda weird, wouldn't expect to happen, but
-                    " happens while searching. if vim decides to move cursor
-                    " to top. then both corsor has changed and screen has
-                    " scrolled
-                    " so maybe we should switch it to be consider a cursor
-                    " move...? probably
-                    " or is there any other way to trigger this?
-                    " probably not. if scrolled then either the cursor doesn't
-                    " move or is at top/bottom line because it was forced
-                    " there
-                    call context#util#echof('xxx 7 moved')
-                    let w:context.fix_strategy = 'scroll'
-                endif
-            else " !top_line_changed
-                call context#util#echof('xxx 9 moved')
-                let w:context.fix_strategy = 'scroll'
-            endif
-        else " !cursor_line_changed
-            if top_line_changed
-                call context#util#echof('xxx 11 scrolled')
-                let w:context.fix_strategy = 'move'
-            elseif bottom_line_changed
-                " TODO: avoid this case, happens when scrolling too with wrap
-                call context#util#echof('xxx 12 resized: scroll')
-                let w:context.fix_strategy = 'move'
-            else " nothing changed
-                " TODO: can we trigger this case? probably not and we can set
-                " the var to whatever
-                call context#util#echof('xxx 13 TODO')
-                let w:context.fix_strategy = 'scroll'
-            endif
-        endif
-    endif
-
-    if w:context.force_fix_strategy != ''
-        let w:context.fix_strategy = w:context.force_fix_strategy
+    " set fix_strategy
+    if !cursor_line_changed && !top_line_changed
+        " nothing to do
+    elseif w:context.force_fix_strategy != ''
+        call s:set_fix_strategy(c, '1 forced', w:context.force_fix_strategy)
         let w:context.force_fix_strategy = ''
+    elseif !cursor_line_changed
+        call s:set_fix_strategy(c, '2 scrolled', 'move')
+    elseif !top_line_changed
+        call s:set_fix_strategy(c, '3 moved', 'scroll')
+    elseif cursor_line == top_line
+        if cursor_line < old_cursor_line
+            " NOTE: this is sometimes wrong, try L<C-F>
+            " (could add mapping to fix if needed)
+            call s:set_fix_strategy(c, '4 moved out top', 'scroll')
+        else
+            call s:set_fix_strategy(c, '5 scrolled cursor top', 'move')
+        endif
+    elseif cursor_line == bottom_line
+        if cursor_line > old_cursor_line
+            " NOTE: this is sometimes wrong, try H<C-B>
+            " (could add mapping to fix if needed)
+            call s:set_fix_strategy(c, '6 moved out bottom', 'scroll')
+        else
+            call s:set_fix_strategy(c, '7 scrolled cursor bottom', 'move')
+        endif
+    else " scrolled and moved with cursor in middle of screen
+        " NOTE: this can happen while searching (after long jump)
+        call s:set_fix_strategy(c, '8 moved middle', 'scroll')
     endif
 
-    if w:context.top_line != top_line
-        let w:context.top_line = top_line
-        let w:context.needs_update = 1
-    endif
-
-    if w:context.bottom_line != bottom_line
-        let w:context.bottom_line = bottom_line
-    endif
-
-    if w:context.cursor_line != cursor_line
-        let w:context.cursor_line = cursor_line
-        let w:context.needs_update = 1
-    endif
+    let w:context.top_line = top_line
+    let w:context.cursor_line = cursor_line
 
     " padding can only be checked for the current window
     let padding = wincol() - virtcol('.')
@@ -160,7 +97,6 @@ endfunction
 
 function! context#util#update_line_state() abort
     let w:context.top_line    = line('w0')
-    let w:context.bottom_line = line('w$')
     let w:context.cursor_line = line('.')
 endfunction
 
@@ -217,4 +153,10 @@ function! context#util#echof(...) abort
     let args = substitute(args, '#', '+', 'g')
     let message = repeat(' ', s:log_indent) . args
     execute "silent! !echo '" . message . "' >>" g:context.logfile
+endfunction
+
+function! s:set_fix_strategy(context, message, strategy) abort
+    " call context#util#echof(printf('set_fix_strategy(%s)  %s -> %s', a:context, a:message, a:strategy))
+    let w:context.fix_strategy = a:strategy
+    let w:context.needs_update = 1
 endfunction
