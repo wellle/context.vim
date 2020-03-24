@@ -63,6 +63,9 @@ function! context#settings#parse() abort
     let highlight_border = get(g:, 'context_highlight_border', 'Comment')
     let highlight_tag    = get(g:, 'context_highlight_tag',    'Special')
 
+    " hopefully temporary: disable nvim redraw to avoid flicker, see popup/nvim.vim
+    let nvim_no_redraw = get(g:, 'context_nvim_no_redraw', 0)
+
     let logfile = get(g:, 'context_logfile', '')
 
     " transform list to lookup dictionary
@@ -88,6 +91,7 @@ function! context#settings#parse() abort
                 \ 'highlight_normal':    highlight_normal,
                 \ 'highlight_border':    highlight_border,
                 \ 'highlight_tag':       highlight_tag,
+                \ 'nvim_no_redraw':      nvim_no_redraw,
                 \ 'logfile':             logfile,
                 \ 'ellipsis':            repeat(char_ellipsis, 3),
                 \ 'ellipsis5':           repeat(char_ellipsis, 5),
