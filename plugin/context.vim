@@ -27,17 +27,12 @@ command! -bar ContextUpdate        call context#update('command')
 
 " mappings
 if g:context.add_mappings
-    " NOTE: in the zz/zt/zb mappings we invoke zz/zt/zb twice before calling
-    " context#update(). unfortunately this is needed because it seems like Vim
-    " sometimes gets confused if the window height changes shortly after zz/zt/zb
-    " have been executed.
-    nnoremap <silent>        <C-Y> <C-Y>:call context#update('C-Y')<CR>
-    nnoremap <silent>        zz     zzzz:call context#update('zz')<CR>
-    nnoremap <silent>        zb     zbzb:call context#update('zb')<CR>
-    nnoremap <silent> <expr> <C-E>            context#mapping#ce()
-    nnoremap <silent> <expr> zt               context#mapping#zt()
-    nnoremap <silent> <expr> k                context#mapping#k()
-    nnoremap <silent> <expr> H                context#mapping#h()
+    nnoremap <silent> <C-Y> <C-Y>:call context#update('C-Y')<CR>
+    nnoremap <silent> <C-E> <C-E>:call context#update('C-E')<CR>
+    nnoremap <silent> zz       zz:call context#update('zz')<CR>
+    nnoremap <silent> zb       zb:call context#update('zb')<CR>
+    nnoremap <silent> <expr> zt context#util#map_zt()
+    nnoremap <silent> <expr> H  context#util#map_H()
 endif
 
 
