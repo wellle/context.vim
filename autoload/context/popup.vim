@@ -266,13 +266,21 @@ function! s:get_border_line(winid, indent) abort
     let c = getwinvar(a:winid, 'context')
     let indent = a:indent ? c.indent : 0
 
-    let line_len = c.size_w - indent - len(s:context_buffer_name) - 2 - c.padding
+    let line_len = c.size_w - c.padding - indent - 1
+    if g:context.show_tag
+        let line_len -= len(s:context_buffer_name) + 1
+    endif
+
     " NOTE: we use a non breaking space before the buffer name because there
     " can be some display issues in the Kitty terminal with a normal space
-    return ''
+    let border_line = ''
                 \ . repeat(' ', indent)
                 \ . repeat(g:context.char_border, line_len)
                 \ . ' '
-                \ . s:context_buffer_name
-                \ . ' '
+    if g:context.show_tag
+        let border_line .= ''
+                    \ . s:context_buffer_name
+                    \ . ' '
+    endif
+    return border_line
 endfunction
