@@ -245,13 +245,12 @@ Unfortunately there's no auto command for when the buffer has scrolled [vim#776]
 If you want to create your own mappings, here are the default ones for reference:
 
 ```vim
-nnoremap <silent>        <C-Y> <C-Y>:call context#update('C-Y')<CR>
-nnoremap <silent>        zz     zzzz:call context#update('zz')<CR>
-nnoremap <silent>        zb     zbzb:call context#update('zb')<CR>
-nnoremap <silent> <expr> <C-E>            context#mapping#ce()
-nnoremap <silent> <expr> zt               context#mapping#zt()
-nnoremap <silent> <expr> k                context#mapping#k()
-nnoremap <silent> <expr> H                context#mapping#h()
+nnoremap <silent> <C-Y> <C-Y>:call context#update('C-Y')<CR>
+nnoremap <silent> <C-E> <C-E>:call context#update('C-E')<CR>
+nnoremap <silent> zz       zz:call context#update('zz')<CR>
+nnoremap <silent> zb       zb:call context#update('zb')<CR>
+nnoremap <silent> <expr> zt context#util#map_zt()
+nnoremap <silent> <expr> H  context#util#map_H()
 ```
 
 Note how `zz`, `zt`, and `zb` get called twice in the mapping before updating the context. This is because otherwise there are some cases where they don't work as expected.

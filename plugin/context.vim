@@ -27,7 +27,6 @@ command! -bar ContextUpdate        call context#update('command')
 
 " mappings
 if g:context.add_mappings
-    " TODO: update docs
     nnoremap <silent> <C-Y> <C-Y>:call context#update('C-Y')<CR>
     nnoremap <silent> <C-E> <C-E>:call context#update('C-E')<CR>
     nnoremap <silent> zz       zz:call context#update('zz')<CR>
