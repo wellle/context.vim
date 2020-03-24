@@ -44,6 +44,10 @@ function! context#popup#nvim#close(popup) abort
 endfunction
 
 function! context#popup#nvim#redraw_screen() abort
+    if g:context.nvim_no_redraw
+        return
+    endif
+
     " NOTE: this redraws the screen. this is needed because there's
     " a redraw issue: https://github.com/neovim/neovim/issues/11597
     " TODO: remove this once that issue has been resolved

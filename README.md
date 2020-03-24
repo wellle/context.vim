@@ -165,8 +165,14 @@ let g:Context_border_indent = function('indent')
 ```
 When using popup windows we indent the border line to be aligned with the context base line. You can use this setting to use a different function to control that indent. Similar to `g:Context_indent` this function also takes a line number and returns an indentation number. For example you can disable that indentation at all to always show a full width border line like this: `let g:Context_border_indent = { -> 0 }`
 
+```vim
+let g:context_nvim_no_redraw = 0
+```
+There's an issue in Neovim which leads to some artefacts. To avoid those we manually refresh the screen after every context update. This can lead to screen flickering, see [#23][#23]. You disable those redraws (at the cost of visual artefacts) like this: `let g:context_nvim_no_redraw = 0`
+
 
 [indent-example]: https://github.com/wellle/context.vim/pull/45#issuecomment-582654810
+[#23]: https://github.com/wellle/context.vim/pull/23
 
 
 ## Commands
