@@ -21,6 +21,7 @@ function! context#popup#get_context(base_line) abort
     let skipped       =  0
     let context_count =  0 " how many contexts did we check?
     let line_offset   = -1 " first iteration starts with zero
+    let border_height = g:context.show_border
 
     while 1
         let line_offset += 1
@@ -49,8 +50,8 @@ function! context#popup#get_context(base_line) abort
         endif
         let context_count += 1
 
-        " this context fits, use it
-        if line_count < line_offset
+        if line_count + border_height <= line_offset
+            " this context fits, use it
             break
         endif
 
@@ -101,12 +102,16 @@ function! context#popup#get_context(base_line) abort
     " NOTE: this overwrites lines, from here on out it's just a list of string
     call map(lines, function('context#line#display'))
 
-    " success, we found a fitting context
-    while len(lines) < line_offset - skipped - 1
+    if g:context.show_border
+        call add(lines, '') " add line for border, will be replaced later
+    endif
+
+    " fill context until it reaches the skipped lines
+    " (to hide lines whose context didn't fit)
+    while len(lines) + skipped < line_offset
         call add(lines, '')
     endwhile
 
-    call add(lines, '') " will be replaced with border line
     return [lines, line_number]
 endfunction
 
@@ -161,7 +166,7 @@ function! context#popup#redraw(winid, force) abort
     endif
 
     let lines = c.lines
-    if len(lines) > 0
+    if g:context.show_border && len(lines) > 0
         let lines[-1] = s:get_border_line(a:winid, 1)
         let c.lines = lines
     endif
