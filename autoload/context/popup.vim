@@ -247,7 +247,7 @@ function! s:open() abort
     endif
 
     " NOTE: we use a non breaking space here again before the buffer name
-    let border = ' *' .g:context.char_border . '* ' . s:context_buffer_name . ' '
+    let border = ' *' .g:context.char_border . '* '
     let tag = s:context_buffer_name
     call matchadd(g:context.highlight_border, border, 10, -1, {'window': popup})
     call matchadd(g:context.highlight_tag,    tag,    10, -1, {'window': popup})
