@@ -136,6 +136,8 @@ If your Vim/Neovim version supports popup/floating windows we use these highligh
 
 If you use Vim you can define your own highlight group like `highlight MyColor ctermbg=lightblue` and set `g:context_highlight_normal` to `'MyColor'`. In Neovim this is currently not supported (see `:h 'winhl'`).
 
+Note: These highlight settings can also be used to hide the tag (`let g:context_highlight_tag = '<hide>'`) or the full border line (`let g:context_highlight_border = '<hide>'`).
+
 ```vim
 let g:context_skip_regex = '^\s*\($\|#\|//\|/\*\|\*\($\|/s\|\/\)\)'
 ```

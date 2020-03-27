@@ -59,9 +59,23 @@ function! context#settings#parse() abort
     " for example a `{` might be lifted to the preceeding `if` line
     let regex_join = get(g:, 'context_join_regex', '^\W*$')
 
+    let default_highlight_border = 'Comment'
+    let default_highlight_tag    = 'Special'
+
     let highlight_normal = get(g:, 'context_highlight_normal', 'Normal')
-    let highlight_border = get(g:, 'context_highlight_border', 'Comment')
-    let highlight_tag    = get(g:, 'context_highlight_tag',    'Special')
+    let highlight_border = get(g:, 'context_highlight_border', default_highlight_border)
+    let highlight_tag    = get(g:, 'context_highlight_tag',    default_highlight_tag)
+    let show_border = 1
+    let show_tag    = 1
+
+    if highlight_border == '<hide>'
+        let highlight_border = default_highlight_border
+        let show_border = 0
+    endif
+    if highlight_tag == '<hide>'
+        let highlight_tag = default_highlight_tag
+        let show_tag = 0
+    endif
 
     " hopefully temporary: disable nvim redraw to avoid flicker, see popup/nvim.vim
     let nvim_no_redraw = get(g:, 'context_nvim_no_redraw', 0)
@@ -91,6 +105,8 @@ function! context#settings#parse() abort
                 \ 'highlight_normal':    highlight_normal,
                 \ 'highlight_border':    highlight_border,
                 \ 'highlight_tag':       highlight_tag,
+                \ 'show_border':         show_border,
+                \ 'show_tag':            show_tag,
                 \ 'nvim_no_redraw':      nvim_no_redraw,
                 \ 'logfile':             logfile,
                 \ 'ellipsis':            repeat(char_ellipsis, 3),
