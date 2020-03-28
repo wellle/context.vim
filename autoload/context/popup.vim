@@ -1,7 +1,7 @@
 let s:context_buffer_name = '<context.vim>'
 
 function! context#popup#update_context() abort
-    let [lines, base_line] = context#popup#get_context(w:context.top_line)
+    let [lines, base_line] = context#popup#get_context(w:context.cursor_line)
     call context#util#echof('> context#popup#update_context', len(lines))
 
     let w:context.lines  = lines

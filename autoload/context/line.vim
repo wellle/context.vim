@@ -28,7 +28,7 @@ function! context#line#get_base_line(line) abort
 endfunction
 
 function! context#line#display(index, line) abort
-    return a:line.text
+    " return a:line.text
 
     " NOTE: comment out the line above to include this debug info
     let n = &columns - 25 - strchars(context#line#trim(a:line.text)) - a:line.indent
