@@ -27,14 +27,15 @@ function! context#line#get_base_line(line) abort
     endwhile
 endfunction
 
-function! context#line#display(index, lines) abort
+" TODO: want index?
+function! context#line#display(lines) abort
     let line = a:lines[0]
     let text = s:join(a:lines)
     " return text
 
     " NOTE: comment out the line above to include this debug info
     let n = &columns - 30 - strchars(context#line#trim(text)) - line.indent
-    return printf('%s%s // %2d %2d n:%5d i:%2d', text, repeat(' ', n), len(a:lines), a:index+1, line.number, line.indent)
+    return printf('%s%s // %2d n:%5d i:%2d', text, repeat(' ', n), len(a:lines), line.number, line.indent)
 endfunction
 
 " TODO: clean up, move down?

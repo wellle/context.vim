@@ -42,7 +42,10 @@ function! context#popup#get_context(base_line) abort
         endif
 
         let line_count = len(lines)
-        " call context#util#echof('got', line_offset, line_count, skipped)
+        " TODO!: there are some hidden assumptions here about the base line
+        " being the top line. that's not true if it's the cursor line, so we
+        " abort at some point too early/late. fix that
+        call context#util#echof('got', line_offset, line_count, skipped)
 
         if line_count == 0 && context_count == 0
             " if we get an empty context on the first non skipped line
@@ -55,13 +58,13 @@ function! context#popup#get_context(base_line) abort
             break
         endif
 
-        if w:context.fix_strategy == 'scroll' && line_number >= w:context.cursor_line
-            " if we want to show the cursor by scrolling and we reached the
-            " cursor line, we don't need to check lower lines because the
-            " cursor line will be visible, so this is the proper context
-            call context#util#echof('skip cursor line')
-            break
-        endif
+        " if w:context.fix_strategy == 'scroll' && line_number >= w:context.cursor_line
+        "     " if we want to show the cursor by scrolling and we reached the
+        "     " cursor line, we don't need to check lower lines because the
+        "     " cursor line will be visible, so this is the proper context
+        "     call context#util#echof('skip cursor line')
+        "     break
+        " endif
 
         " try again on next line if this context doesn't fit
         let skipped = 0
@@ -99,20 +102,39 @@ function! context#popup#get_context(base_line) abort
         endwhile
     endif
 
+    " TODO: fix border line indentation, make more stable
+    " TODO: there's an issue where context lines are hidden when scrolling
+    " with <C-E>
+
     " NOTE: this overwrites lines, from here on out it's just a list of string
-    call map(lines, function('context#line#display'))
+    " call map(lines, function('context#line#display'))
+    let out = []
+    for batch in lines
+        " TODO: merge this check into display() once it works
+        " TODO: make work with borderline=<hide>
+        " TODO!: there's a case where batch is not a list, but a single line,
+        " figure out how that can happen. can be reproduced in util.vim
+        " (gg^D^D^E...)
+        " echom 'batch' string(batch)
+        if batch[0].number > w:context.top_line + len(out) + 1
+            " TODO: this is the first visible context line (highlight it?)
+            " echom 'out:' batch[0].number
+            break
+        endif
+        call add(out, context#line#display(batch))
+    endfor
 
     if g:context.show_border
-        call add(lines, '') " add line for border, will be replaced later
+        call add(out, '') " add line for border, will be replaced later
     endif
 
     " fill context until it reaches the skipped lines
     " (to hide lines whose context didn't fit)
-    while len(lines) + skipped < line_offset
-        call add(lines, '')
+    while len(out) + skipped < line_offset
+        call add(out, '')
     endwhile
 
-    return [lines, line_number]
+    return [out, line_number]
 endfunction
 
 function! context#popup#layout() abort

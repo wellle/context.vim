@@ -39,10 +39,13 @@ function! context#context#get(base_line) abort
     endwhile
 
     " join, limit and get context lines
+    " NOTE: at this stage lines changes from list to list of lists
     let lines = []
     for indent in sort(keys(context), 'N')
         let context[indent] = s:join(context[indent])
-        let context[indent] = s:limit(context[indent], indent)
+        " TODO: do we need to apply this limit much later? or ignore?
+        " TODO: implement limit somewhere else
+        " let context[indent] = s:limit(context[indent], indent)
         call extend(lines, context[indent])
     endfor
 
@@ -52,7 +55,8 @@ function! context#context#get(base_line) abort
         let indent1 = lines[max/2].indent
         let indent2 = lines[-(max-1)/2].indent
         let ellipsis = repeat(g:context.char_ellipsis, max([indent2 - indent1, 3]))
-        let ellipsis_line = context#line#make(0, indent1, repeat(' ', indent1) . ellipsis)
+        " TODO: test this
+        let ellipsis_line = [context#line#make(0, indent1, repeat(' ', indent1) . ellipsis)]
         call remove(lines, max/2, -(max+1)/2)
         call insert(lines, ellipsis_line, max/2)
     endif
@@ -109,6 +113,7 @@ endfunction
 
 function! s:join(lines) abort
     if g:context.max_join_parts < 1
+        " TODO: test this
         return a:lines
     endif
 
@@ -136,43 +141,12 @@ endfunction
 
 function! s:join_pending(base, pending) abort
     return insert(a:pending, a:base, 0) " TODO: simplify this
-
-    " call context#util#echof('> join_pending', len(a:pending))
-    if len(a:pending) == 0
-        return a:base
-    endif
-
-    let joined = a:base
-    if g:context.max_join_parts < 3
-        if g:context.max_join_parts == 2
-            let joined.text .= ' ' . g:context.ellipsis
-        endif
-        return joined
-    endif
-
-    let max = g:context.max_join_parts
-    if len(a:pending) > max-1
-        call remove(a:pending, (max-1)/2-1, -max/2-1)
-        call insert(a:pending, s:nil_line, (max-1)/2-1) " middle marker
-    endif
-
-    for line in a:pending
-        let joined.text .= ' '
-        if line.number == 0
-            " this is the middle marker, use long ellipsis
-            let joined.text .= g:context.ellipsis5
-        elseif joined.number != 0 && line.number != joined.number + 1
-            " not after middle marker and there are lines in between: show ellipsis
-            let joined.text .= g:context.ellipsis . ' '
-        endif
-
-        let joined.text .= context#line#trim(line.text)
-        let joined.number = line.number
-    endfor
-
-    return joined
 endfunction
 
+" TODO: limit later somehow?
+" currently there's an issue where the full context is long enough so that the
+" limit hits at one indent, but because some of the context lines are visible
+" belowe the context we wouldn't have to limit in the first place
 function! s:limit(lines, indent) abort
     " call context#util#echof('> limit', a:indent, len(a:lines))
 
@@ -184,7 +158,8 @@ function! s:limit(lines, indent) abort
     let diff = len(a:lines) - max
 
     let limited = a:lines[: max/2-1]
-    call add(limited, context#line#make(0, a:indent, repeat(' ', a:indent) . g:context.ellipsis))
+    let ellipsis_line = [context#line#make(0, a:indent, repeat(' ', a:indent) . g:context.ellipsis)]
+    call add(limited, ellipsis_line)
     call extend(limited, a:lines[-(max-1)/2 :])
     return limited
 endif
