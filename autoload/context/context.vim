@@ -135,6 +135,8 @@ function! s:join(lines) abort
 endfunction
 
 function! s:join_pending(base, pending) abort
+    return insert(a:pending, a:base, 0) " TODO: simplify this
+
     " call context#util#echof('> join_pending', len(a:pending))
     if len(a:pending) == 0
         return a:base
