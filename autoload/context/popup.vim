@@ -46,6 +46,12 @@ function! context#popup#get_context(base_line) abort
         " being the top line. that's not true if it's the cursor line, so we
         " abort at some point too early/late. fix that
         call context#util#echof('got', line_offset, line_count, skipped)
+        " TODO! there's an issue with scrolling (and H)
+        " probably don't break here in that case. is that enough?
+        " needs some refinement to avoid empty lines in context
+        if w:context.fix_strategy == 'scroll' " && line_number >= w:context.cursor_line
+            break
+        endif
 
         if line_count == 0 && context_count == 0
             " if we get an empty context on the first non skipped line
@@ -70,7 +76,7 @@ function! context#popup#get_context(base_line) abort
         let skipped = 0
     endwhile
 
-    if context_count == 0
+    if context_count == 0 && 0
         " we got here because we ran into the cursor line before we found any
         " context. now we need to scan upwards (from above top line) until we
         " find a line with a context and use that one.
@@ -110,7 +116,8 @@ function! context#popup#get_context(base_line) abort
     " call map(lines, function('context#line#display'))
     let out = []
     for batch in lines
-        " TODO: merge this check into display() once it works
+        " TODO: merge this check into display() once it works. actually
+        " probably not
         " TODO: make work with borderline=<hide>
         " TODO!: there's a case where batch is not a list, but a single line,
         " figure out how that can happen. can be reproduced in util.vim
@@ -121,8 +128,20 @@ function! context#popup#get_context(base_line) abort
             " echom 'out:' batch[0].number
             break
         endif
+        for i in range(1, len(batch)-1)
+            if batch[i].number > w:context.top_line + len(out) + 1
+                call remove(batch, i, -1)
+                break
+            endif
+        endfor
         call add(out, context#line#display(batch))
+        " TODO: context can actually be empty at this point, handle that
+        " (don't show border line)
     endfor
+
+    if len(out) == 0
+        return [[], 0]
+    endif
 
     if g:context.show_border
         call add(out, '') " add line for border, will be replaced later
@@ -292,6 +311,7 @@ endfunction
 function! s:get_border_line(winid, indent) abort
     let c = getwinvar(a:winid, 'context')
     let indent = a:indent ? c.indent : 0
+    let indent = 0
 
     let line_len = c.size_w - c.padding - indent - 1
     if g:context.show_tag
