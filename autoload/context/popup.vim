@@ -20,12 +20,12 @@ function! context#popup#get_context(base_line) abort
     " a skipped line has the same context as the next unskipped one below
     let skipped       =  0
     let context_count =  0 " how many contexts did we check?
-    let line_offset   = -1 " first iteration starts with zero
+    let line_number   = a:base_line " first iteration starts with base_line
+    let top_line      = w:context.top_line
     let border_height = g:context.show_border
 
     while 1
-        let line_offset += 1
-        let line_number = a:base_line + line_offset
+        let line_number += 1
 
         let indent = g:context.Indent(line_number) "    -1 for invalid lines
         let line = getline(line_number)            " empty for invalid lines
@@ -45,7 +45,7 @@ function! context#popup#get_context(base_line) abort
         " TODO!: there are some hidden assumptions here about the base line
         " being the top line. that's not true if it's the cursor line, so we
         " abort at some point too early/late. fix that
-        call context#util#echof('got', line_offset, line_count, skipped)
+        call context#util#echof('got', top_line, line_number, line_count, border_height, skipped)
         " TODO! there's an issue with scrolling (and H)
         " probably don't break here in that case. is that enough?
         " needs some refinement to avoid empty lines in context
@@ -59,7 +59,7 @@ function! context#popup#get_context(base_line) abort
         endif
         let context_count += 1
 
-        if line_count + border_height <= line_offset
+        if top_line + line_count + border_height <= line_number
             " this context fits, use it
             break
         endif
@@ -147,11 +147,17 @@ function! context#popup#get_context(base_line) abort
         call add(out, '') " add line for border, will be replaced later
     endif
 
+    " TODO! continue here. recently disabled the filling below, check if
+    " needed. make it depending on line numbers and context height instead of
+    " the line_offset, fully remove line_offset as it's confusing for cursor
+    " line based contexts
+    " TODO: now zt doesn't work, try on for line
     " fill context until it reaches the skipped lines
     " (to hide lines whose context didn't fit)
-    while len(out) + skipped < line_offset
-        call add(out, '')
-    endwhile
+    " TODO: test this again? in what case is that really needed?
+    " while len(out) + skipped < line_offset
+    "     call add(out, '')
+    " endwhile
 
     return [out, line_number]
 endfunction
