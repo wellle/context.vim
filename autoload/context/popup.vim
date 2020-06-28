@@ -13,6 +13,7 @@ endfunction
 
 " returns [lines, base_line_nr]
 function! context#popup#get_context(base_line) abort
+    call context#util#echof('context#popup#get_context', a:base_line)
     " NOTE: there's a problem if some of the hidden lines
     " (behind the popup) are wrapped. then our calculations are off
     " TODO: fix that?
@@ -20,7 +21,7 @@ function! context#popup#get_context(base_line) abort
     " a skipped line has the same context as the next unskipped one below
     let skipped       =  0
     let context_count =  0 " how many contexts did we check?
-    let line_number   = a:base_line " first iteration starts with base_line
+    let line_number   = a:base_line - 1 " first iteration starts with base_line
     let top_line      = w:context.top_line
     let border_height = g:context.show_border
 
@@ -32,32 +33,35 @@ function! context#popup#get_context(base_line) abort
         let base_line = context#line#make(line_number, indent, line)
 
         if base_line.indent < 0
+            call context#util#echof('negative indent', base_line.number)
             let lines = []
         elseif context#line#should_skip(line)
             let skipped += 1
+            call context#util#echof('skip', base_line.number)
             continue
         else
             let lines = context#context#get(base_line)
-            " call context#util#echof('context#get', base_line.number, len(lines))
+            call context#util#echof('context#get', base_line.number, len(lines))
         endif
 
         let line_count = len(lines)
         " TODO!: there are some hidden assumptions here about the base line
         " being the top line. that's not true if it's the cursor line, so we
         " abort at some point too early/late. fix that
-        call context#util#echof('got', top_line, line_number, line_count, border_height, skipped)
-        " TODO! there's an issue with scrolling (and H)
-        " probably don't break here in that case. is that enough?
-        " needs some refinement to avoid empty lines in context
-        if w:context.fix_strategy == 'scroll' " && line_number >= w:context.cursor_line
-            break
-        endif
-
+        call context#util#echof('got', top_line, line_number, line_count, border_height, skipped, lines)
         if line_count == 0 && context_count == 0
             " if we get an empty context on the first non skipped line
             return [[], 0]
         endif
         let context_count += 1
+
+        " TODO! there's an issue with scrolling (and H)
+        " probably don't break here in that case. is that enough?
+        " needs some refinement to avoid empty lines in context
+        if w:context.fix_strategy == 'scroll' " && line_number >= w:context.cursor_line
+            call context#util#echof('scroll: done')
+            break
+        endif
 
         if top_line + line_count + border_height <= line_number
             " this context fits, use it
@@ -76,7 +80,7 @@ function! context#popup#get_context(base_line) abort
         let skipped = 0
     endwhile
 
-    if context_count == 0 && 0
+    if context_count == 0
         " we got here because we ran into the cursor line before we found any
         " context. now we need to scan upwards (from above top line) until we
         " find a line with a context and use that one.
