@@ -48,7 +48,7 @@ function! context#popup#get_context(base_line) abort
         " TODO!: there are some hidden assumptions here about the base line
         " being the top line. that's not true if it's the cursor line, so we
         " abort at some point too early/late. fix that
-        call context#util#echof('got', top_line, line_number, line_count, border_height, skipped, lines)
+        call context#util#echof('got', top_line, line_number, line_count, border_height, skipped)
         if line_count == 0 && context_count == 0
             " if we get an empty context on the first non skipped line
             return [[], 0]
@@ -58,6 +58,16 @@ function! context#popup#get_context(base_line) abort
         " TODO! there's an issue with scrolling (and H)
         " probably don't break here in that case. is that enough?
         " needs some refinement to avoid empty lines in context
+        " TODO: as for H, we probably need to change behavior. before this
+        " branch we the context would be indepedent of the cursor position
+        " within the buffer, so H would not change it. now that it depends on
+        " the cursor position H is misleading for now, as it currently picks
+        " the highest visible line which can be selected so that the context
+        " still fits. but that might not be the highest visible bufferline
+        " (below the context) before. I think the expectation would be that H
+        " jumps to the highest visible line and if the context gets bigger by
+        " that, then the line would need to be scrolled down until the full
+        " context fits. or maybe not?
         if w:context.fix_strategy == 'scroll' " && line_number >= w:context.cursor_line
             call context#util#echof('scroll: done')
             break
@@ -127,18 +137,22 @@ function! context#popup#get_context(base_line) abort
         " figure out how that can happen. can be reproduced in util.vim
         " (gg^D^D^E...)
         " echom 'batch' string(batch)
-        if batch[0].number > w:context.top_line + len(out) + 1
+        " call context#util#echof('batch first', batch[0].number, w:context.top_line, len(out))
+        if batch[0].number > w:context.top_line + len(out)
             " TODO: this is the first visible context line (highlight it?)
             " echom 'out:' batch[0].number
             break
         endif
         for i in range(1, len(batch)-1)
+            " call context#util#echof('batch ', i, batch[0].number, w:context.top_line, len(out))
             if batch[i].number > w:context.top_line + len(out) + 1
                 call remove(batch, i, -1)
                 break
             endif
         endfor
-        call add(out, context#line#display(batch))
+        let l = context#line#display(batch)
+        " call context#util#echof('adding', l)
+        call add(out, l)
         " TODO: context can actually be empty at this point, handle that
         " (don't show border line)
     endfor

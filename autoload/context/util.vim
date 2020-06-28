@@ -132,6 +132,7 @@ function! context#util#show_cursor() abort
     end
 
     " otherwise we have to either move or scroll the cursor accordingly
+    " call context#util#echof('show_cursor', w:context.fix_strategy, n)
     let key = (w:context.fix_strategy == 'move') ? 'j' : "\<C-Y>"
     execute 'normal! ' . n . key
     call context#util#update_line_state()
