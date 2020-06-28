@@ -45,11 +45,14 @@ function! context#context#get(base_line) abort
         let context[indent] = s:join(context[indent])
         " TODO: do we need to apply this limit much later? or ignore?
         " TODO: implement limit somewhere else
+        " NOTE: this used to limit per indent, add again?
         " let context[indent] = s:limit(context[indent], indent)
         call extend(lines, context[indent])
     endfor
 
     " limit total context
+    " NOTE!: this used to limit total context height, but is broken, needs
+    " fixing
     let max = g:context.max_height
     if len(lines) > max
         let indent1 = lines[max/2].indent

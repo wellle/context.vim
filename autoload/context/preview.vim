@@ -1,5 +1,7 @@
 let s:context_buffer_name = '<context.vim>'
 
+" TODO: test this again
+
 function! context#preview#update_context() abort
     let min_height = 0
 

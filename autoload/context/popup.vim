@@ -73,6 +73,7 @@ function! context#popup#get_context(base_line) abort
             break
         endif
 
+        " call context#util#echof('fit?', top_line, line_count, border_height, line_number)
         if top_line + line_count + border_height <= line_number
             " this context fits, use it
             break
@@ -138,7 +139,8 @@ function! context#popup#get_context(base_line) abort
         " (gg^D^D^E...)
         " echom 'batch' string(batch)
         " call context#util#echof('batch first', batch[0].number, w:context.top_line, len(out))
-        if batch[0].number > w:context.top_line + len(out)
+        let border_line = len(out) > 0
+        if batch[0].number >= w:context.top_line + len(out) + border_line
             " TODO: this is the first visible context line (highlight it?)
             " echom 'out:' batch[0].number
             break
