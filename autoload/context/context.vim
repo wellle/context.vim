@@ -42,6 +42,8 @@ function! context#context#get(base_line) abort
     " NOTE: at this stage lines changes from list to list of lists
     let lines = []
     for indent in sort(keys(context), 'N')
+        " NOTE: s:join switches from list to list of lists, grouping lines
+        " that are allowed to be joined on the caller side
         let context[indent] = s:join(context[indent])
         " TODO: do we need to apply this limit much later? or ignore?
         " TODO: implement limit somewhere else
@@ -49,20 +51,6 @@ function! context#context#get(base_line) abort
         " let context[indent] = s:limit(context[indent], indent)
         call extend(lines, context[indent])
     endfor
-
-    " limit total context
-    " NOTE!: this used to limit total context height, but is broken, needs
-    " fixing
-    let max = g:context.max_height
-    if len(lines) > max
-        let indent1 = lines[max/2].indent
-        let indent2 = lines[-(max-1)/2].indent
-        let ellipsis = repeat(g:context.char_ellipsis, max([indent2 - indent1, 3]))
-        " TODO: test this
-        let ellipsis_line = [context#line#make(0, indent1, repeat(' ', indent1) . ellipsis)]
-        call remove(lines, max/2, -(max+1)/2)
-        call insert(lines, ellipsis_line, max/2)
-    endif
 
     return lines
 endfunction

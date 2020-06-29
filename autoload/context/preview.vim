@@ -1,6 +1,7 @@
 let s:context_buffer_name = '<context.vim>'
 
 " TODO: test this again
+" TODO: apply total limit below (has been pushed out of context#context#get())
 
 function! context#preview#update_context() abort
     let min_height = 0

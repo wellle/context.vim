@@ -127,8 +127,11 @@ function! context#popup#get_context(base_line) abort
     " TODO: there's an issue where context lines are hidden when scrolling
     " with <C-E>
 
+    " TODO! apply total limit in the block below
+
     " NOTE: this overwrites lines, from here on out it's just a list of string
     " call map(lines, function('context#line#display'))
+    let max = g:context.max_height
     let out = []
     for batch in lines
         " TODO: merge this check into display() once it works. actually
@@ -139,15 +142,19 @@ function! context#popup#get_context(base_line) abort
         " (gg^D^D^E...)
         " echom 'batch' string(batch)
         " call context#util#echof('batch first', batch[0].number, w:context.top_line, len(out))
-        let border_line = len(out) > 0
-        if batch[0].number >= w:context.top_line + len(out) + border_line
+        let height = len(out)
+        if height > max
+            let height = max
+        endif
+        let border_line = height > 0
+        if batch[0].number >= w:context.top_line + height + border_line
             " TODO: this is the first visible context line (highlight it?)
             " echom 'out:' batch[0].number
             break
         endif
         for i in range(1, len(batch)-1)
             " call context#util#echof('batch ', i, batch[0].number, w:context.top_line, len(out))
-            if batch[i].number > w:context.top_line + len(out) + 1
+            if batch[i].number > w:context.top_line + height + 1
                 call remove(batch, i, -1)
                 break
             endif
@@ -163,8 +170,18 @@ function! context#popup#get_context(base_line) abort
         return [[], 0]
     endif
 
+    if len(out) > max
+        let indent1 = out[max/2].indent
+        let indent2 = out[-(max-1)/2].indent
+        let ellipsis = repeat(g:context.char_ellipsis, max([indent2 - indent1, 3]))
+        " TODO: test this
+        let ellipsis_line = context#line#make(0, indent1, repeat(' ', indent1) . ellipsis)
+        call remove(out, max/2, -(max+1)/2)
+        call insert(out, ellipsis_line, max/2)
+    endif
+
     if g:context.show_border
-        call add(out, '') " add line for border, will be replaced later
+        call add(out, context#line#make(0, 0, '')) " add line for border, will be replaced later
     endif
 
     " TODO! continue here. recently disabled the filling below, check if
@@ -178,6 +195,8 @@ function! context#popup#get_context(base_line) abort
     " while len(out) + skipped < line_offset
     "     call add(out, '')
     " endwhile
+
+    call map(out, function('context#line#text'))
 
     return [out, line_number]
 endfunction
