@@ -139,7 +139,6 @@ function! context#popup#get_context(base_line) abort
     for per_indent in context
         " TODO: merge this check into display() once it works. actually
         " probably not
-        " TODO: make work with borderline=<hide>
         " TODO!: there's a case where per_indent is not a list, but a single line,
         " figure out how that can happen. can be reproduced in util.vim
         " (gg^D^D^E...)
@@ -162,8 +161,7 @@ function! context#popup#get_context(base_line) abort
 
             let line = context#line#display(joined)
             " call context#util#echof('adding', line)
-            if height == 0
-                " TODO: only do this if border line is set up to be visible
+            if height == 0 && g:context.show_border
                 let height += 2 " adding border line
             elseif height < max_height && len(inner_out) < max_height_per_indent
                 let height += 1
