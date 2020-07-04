@@ -27,7 +27,6 @@ function! context#line#get_base_line(line) abort
     endwhile
 endfunction
 
-" TODO: want index? for calling from map() in preview probably, test that
 " TODO: rename to #merge/join()?
 function! context#line#display(lines) abort
     let line = a:lines[0]

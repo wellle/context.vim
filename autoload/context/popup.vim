@@ -90,6 +90,7 @@ function! context#popup#get_context(base_line) abort
         let skipped = 0
     endwhile
 
+    " TODO: test this again, looks like it would be broken now
     if context_count == 0
         " we got here because we ran into the cursor line before we found any
         " context. now we need to scan upwards (from above top line) until we
@@ -128,12 +129,10 @@ function! context#popup#get_context(base_line) abort
     " TODO! apply total limit in the block below
 
     " TODO: extract this big thing as a function?
-    " NOTE: this overwrites lines, from here on out it's just a list of string
-    " call map(lines, function('context#line#display'))
     let max_height = g:context.max_height
     let max_height_per_indent = g:context.max_per_indent
 
-    let out = []
+    let out = [] " TODO: rename to lines eventually?
     let height = 0
     let done = 0
     for per_indent in context

@@ -3,23 +3,34 @@ let s:context_buffer_name = '<context.vim>'
 " TODO: test this again
 " TODO: apply total limit below (has been pushed out of context#context#get())
 
+" TODO!: update this to also show the filtered context of the cursor line
+" instead of the full context of the top line
+" TODO: try to avoid empty context lines here too?
 function! context#preview#update_context() abort
     let min_height = 0
 
     while 1
         let base_line = context#line#get_base_line(w:context.top_line)
-        let lines = context#context#get(base_line)
-        let hidden_indent = s:get_hidden_indent(base_line, lines)
+        let [context, _] = context#context#get(base_line)
+        let hidden_indent = s:get_hidden_indent(base_line, context)
 
-        call context#util#echof('> context#preview#update_context', len(lines))
+        call context#util#echof('> context#preview#update_context', len(context))
 
-        " NOTE: this overwrites lines, from here on out it's just a list of string
-        call map(lines, function('context#line#display'))
+        let lines = []
+        for per_indent in context
+            for joined in per_indent
+                let line = context#line#display(joined)
+                call context#util#echof('display', joined, line)
+                call add(lines, line)
+            endfor
+        endfor
 
         while len(lines) < min_height
-            call add(lines, '')
+            call add(lines, context#line#make(0, 0, ''))
         endwhile
         let min_height = len(lines)
+
+        call map(lines, function('context#line#text'))
 
         call s:show(lines, hidden_indent)
 
@@ -130,7 +141,7 @@ function! s:get_hidden_indent(base_line, lines) abort
         return -1
     endif
 
-    let max_line = a:lines[-1].number
+    let max_line = a:lines[-1][-1][0].number " last indent, last join group, first join part
     let current_line = a:base_line.number - 1 " first hidden line
     while current_line > max_line
         let line = getline(current_line)
