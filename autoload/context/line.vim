@@ -97,5 +97,9 @@ function! context#line#should_skip(line) abort
 endfunction
 
 function! context#line#should_join(line) abort
+    if g:context.max_join_parts < 1
+        return 0
+    endif
+
     return a:line =~ g:context.regex_join
 endfunction

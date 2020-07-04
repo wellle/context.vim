@@ -112,11 +112,6 @@ function! s:get_context_line(line) abort
 endfunction
 
 function! s:join(lines) abort
-    if g:context.max_join_parts < 1
-        " TODO: test this! it's probably not working anymore
-        return a:lines
-    endif
-
     " call context#util#echof('> join', len(a:lines))
     let joined = [a:lines[:0]] " start with first line
     for line in a:lines[1:]
