@@ -113,32 +113,21 @@ endfunction
 
 function! s:join(lines) abort
     if g:context.max_join_parts < 1
-        " TODO: test this
+        " TODO: test this! it's probably not working anymore
         return a:lines
     endif
 
     " call context#util#echof('> join', len(a:lines))
-    let pending = [] " lines which might be joined with previous
-    let joined = a:lines[:0] " start with first line
+    let joined = [a:lines[:0]] " start with first line
     for line in a:lines[1:]
         if context#line#should_join(line.text)
-            " add lines without word characters to pending list
-            call add(pending, line)
-            continue
+            " add to previous group
+            call add(joined[-1], line)
+        else
+            " create new group
+            call add(joined, [line])
         endif
-
-        " don't join lines with word characters
-        " but first join pending lines to previous output line
-        let joined[-1] = s:join_pending(joined[-1], pending)
-        let pending = []
-        call add(joined, line)
     endfor
 
-    " join remaining pending lines to last
-    let joined[-1] = s:join_pending(joined[-1], pending)
     return joined
-endfunction
-
-function! s:join_pending(base, pending) abort
-    return insert(a:pending, a:base, 0) " TODO: simplify this
 endfunction
