@@ -122,7 +122,6 @@ function! context#popup#get_context(base_line) abort
         endwhile
     endif
 
-    " TODO: fix border line indentation, make more stable
     " TODO: there's an issue where context lines are hidden when scrolling
     " with <C-E>
 
@@ -136,6 +135,7 @@ function! context#popup#get_context(base_line) abort
 
     let out = []
     let height = 0
+    let done = 0
     for per_indent in context
         " TODO: merge this check into display() once it works. actually
         " probably not
@@ -144,18 +144,29 @@ function! context#popup#get_context(base_line) abort
         " (gg^D^D^E...)
         " call context#util#echof('per_indent first', per_indent[0].number, w:context.top_line, len(out))
 
+        if done
+            break
+        endif
+
         let inner_out = []
         for joined in per_indent
+            if done
+                break
+            endif
+
             if joined[0].number >= w:context.top_line + height
-                " TODO: this is the first visible context line (highlight it?)
+                let line_number = joined[0].number
+                let done = 1
                 break
             endif
 
             for i in range(1, len(joined)-1)
                 " call context#util#echof('joined ', i, joined[0].number, w:context.top_line, len(out))
                 if joined[i].number > w:context.top_line + height + 1
+                    let line_number = joined[i].number
+                    let done = 1
                     call remove(joined, i, -1)
-                    break
+                    break " inner loop
                 endif
             endfor
 
@@ -382,7 +393,7 @@ endfunction
 function! s:get_border_line(winid, indent) abort
     let c = getwinvar(a:winid, 'context')
     let indent = a:indent ? c.indent : 0
-    let indent = 0
+    " let indent = 0
 
     let line_len = c.size_w - c.padding - indent - 1
     if g:context.show_tag
