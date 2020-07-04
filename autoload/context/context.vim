@@ -1,13 +1,23 @@
 let s:nil_line = context#line#make(0, 0, '')
 
 " collect all context lines
+" returns [context, line_count]
+" context has this structure:
+" [
+"   [ // lines in this list have the same indentation (used for max height per indent)
+"     [ // line in this list are allowed to be joined
+"       {line},
+"       {line}
+"     ]
+"   ]
+" ]
 function! context#context#get(base_line) abort
     let base_line = a:base_line
     if base_line.number == 0
-        return []
+        return [[], 0]
     endif
 
-    let context = {}
+    let context_map = {}
 
     if !exists('b:context') || b:context.tick != b:changedtick
         " skips is a dictionary that maps a line to its next context line so
@@ -28,31 +38,30 @@ function! context#context#get(base_line) abort
         endif
 
         let indent = context_line.indent
-        if !has_key(context, indent)
-            let context[indent] = []
+        if !has_key(context_map, indent)
+            let context_map[indent] = []
         endif
 
-        call insert(context[indent], context_line, 0)
+        call insert(context_map[indent], context_line, 0)
 
         " for next iteration
         let base_line = context_line
     endwhile
 
+
+    let context_list = []
+    let line_count = 0
     " join, limit and get context lines
     " NOTE: at this stage lines changes from list to list of lists
-    let lines = []
-    for indent in sort(keys(context), 'N')
+    for indent in sort(keys(context_map), 'N')
         " NOTE: s:join switches from list to list of lists, grouping lines
         " that are allowed to be joined on the caller side
-        let context[indent] = s:join(context[indent])
-        " TODO: do we need to apply this limit much later? or ignore?
-        " TODO: implement limit somewhere else
-        " NOTE: this used to limit per indent, add again?
-        " let context[indent] = s:limit(context[indent], indent)
-        call extend(lines, context[indent])
+        let joined = s:join(context_map[indent])
+        call add(context_list, joined)
+        let line_count += len(joined)
     endfor
 
-    return lines
+    return [context_list, line_count]
 endfunction
 
 function! s:get_context_line(line) abort
@@ -132,26 +141,4 @@ endfunction
 
 function! s:join_pending(base, pending) abort
     return insert(a:pending, a:base, 0) " TODO: simplify this
-endfunction
-
-" TODO: limit later somehow?
-" currently there's an issue where the full context is long enough so that the
-" limit hits at one indent, but because some of the context lines are visible
-" belowe the context we wouldn't have to limit in the first place
-function! s:limit(lines, indent) abort
-    " call context#util#echof('> limit', a:indent, len(a:lines))
-
-    let max = g:context.max_per_indent
-    if len(a:lines) <= max
-        return a:lines
-    endif
-
-    let diff = len(a:lines) - max
-
-    let limited = a:lines[: max/2-1]
-    let ellipsis_line = [context#line#make(0, a:indent, repeat(' ', a:indent) . g:context.ellipsis)]
-    call add(limited, ellipsis_line)
-    call extend(limited, a:lines[-(max-1)/2 :])
-    return limited
-endif
 endfunction

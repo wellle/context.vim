@@ -34,17 +34,16 @@ function! context#popup#get_context(base_line) abort
 
         if base_line.indent < 0
             call context#util#echof('negative indent', base_line.number)
-            let lines = []
+            return [[], 0]
         elseif context#line#should_skip(line)
             let skipped += 1
             call context#util#echof('skip', base_line.number)
             continue
         else
-            let lines = context#context#get(base_line)
-            call context#util#echof('context#get', base_line.number, len(lines))
+            let [context, line_count] = context#context#get(base_line)
+            call context#util#echof('context#get', base_line.number, len(context))
         endif
 
-        let line_count = len(lines)
         " TODO!: there are some hidden assumptions here about the base line
         " being the top line. that's not true if it's the cursor line, so we
         " abort at some point too early/late. fix that
@@ -129,39 +128,67 @@ function! context#popup#get_context(base_line) abort
 
     " TODO! apply total limit in the block below
 
+    " TODO: extract this big thing as a function?
     " NOTE: this overwrites lines, from here on out it's just a list of string
     " call map(lines, function('context#line#display'))
-    let max = g:context.max_height
+    let max_height = g:context.max_height
+    let max_height_per_indent = g:context.max_per_indent
+
     let out = []
-    for batch in lines
+    let height = 0
+    for per_indent in context
         " TODO: merge this check into display() once it works. actually
         " probably not
         " TODO: make work with borderline=<hide>
-        " TODO!: there's a case where batch is not a list, but a single line,
+        " TODO!: there's a case where per_indent is not a list, but a single line,
         " figure out how that can happen. can be reproduced in util.vim
         " (gg^D^D^E...)
-        " echom 'batch' string(batch)
-        " call context#util#echof('batch first', batch[0].number, w:context.top_line, len(out))
-        let height = len(out)
-        if height > max
-            let height = max
-        endif
-        let border_line = height > 0
-        if batch[0].number >= w:context.top_line + height + border_line
-            " TODO: this is the first visible context line (highlight it?)
-            " echom 'out:' batch[0].number
-            break
-        endif
-        for i in range(1, len(batch)-1)
-            " call context#util#echof('batch ', i, batch[0].number, w:context.top_line, len(out))
-            if batch[i].number > w:context.top_line + height + 1
-                call remove(batch, i, -1)
+        " call context#util#echof('per_indent first', per_indent[0].number, w:context.top_line, len(out))
+
+        let inner_out = []
+        for joined in per_indent
+            if joined[0].number >= w:context.top_line + height
+                " TODO: this is the first visible context line (highlight it?)
                 break
             endif
+
+            for i in range(1, len(joined)-1)
+                " call context#util#echof('joined ', i, joined[0].number, w:context.top_line, len(out))
+                if joined[i].number > w:context.top_line + height + 1
+                    call remove(joined, i, -1)
+                    break
+                endif
+            endfor
+
+            let line = context#line#display(joined)
+            " call context#util#echof('adding', line)
+            if height == 0
+                " TODO: only do this if border line is set up to be visible
+                let height += 2 " adding border line
+            elseif height < max_height && len(inner_out) < max_height_per_indent
+                let height += 1
+            endif
+            call add(inner_out, line)
         endfor
-        let l = context#line#display(batch)
-        " call context#util#echof('adding', l)
-        call add(out, l)
+
+        " TODO: need another break in this loop if inner for loop break'ed?
+        " maybe check height in this level (above inner loop to break)
+        
+        " apply max per indent
+        if len(inner_out) <= max_height_per_indent
+            call extend(out, inner_out)
+            continue
+        endif
+
+        let diff = len(inner_out) - max_height_per_indent
+
+        let indent = inner_out[0].indent
+        let limited = inner_out[: max_height_per_indent/2-1]
+        let ellipsis_line = context#line#make(0, indent, repeat(' ', indent) . g:context.ellipsis)
+        call add(limited, ellipsis_line)
+        call extend(limited, inner_out[-(max_height_per_indent-1)/2 :])
+
+        call extend(out, limited)
         " TODO: context can actually be empty at this point, handle that
         " (don't show border line)
     endfor
@@ -170,14 +197,15 @@ function! context#popup#get_context(base_line) abort
         return [[], 0]
     endif
 
-    if len(out) > max
-        let indent1 = out[max/2].indent
-        let indent2 = out[-(max-1)/2].indent
+    " apply total limit
+    if len(out) > max_height
+        let indent1 = out[max_height/2].indent
+        let indent2 = out[-(max_height-1)/2].indent
         let ellipsis = repeat(g:context.char_ellipsis, max([indent2 - indent1, 3]))
         " TODO: test this
         let ellipsis_line = context#line#make(0, indent1, repeat(' ', indent1) . ellipsis)
-        call remove(out, max/2, -(max+1)/2)
-        call insert(out, ellipsis_line, max/2)
+        call remove(out, max_height/2, -(max_height+1)/2)
+        call insert(out, ellipsis_line, max_height/2)
     endif
 
     if g:context.show_border
