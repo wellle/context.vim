@@ -58,7 +58,11 @@ function! context#context#get(base_line) abort
         " that are allowed to be joined on the caller side
         let joined = s:join(context_map[indent])
         call add(context_list, joined)
-        let line_count += len(joined)
+        if len(joined) > g:context.max_per_indent
+            let line_count += g:context.max_per_indent
+        else
+            let line_count += len(joined)
+        endif
     endfor
 
     return [context_list, line_count]
