@@ -132,9 +132,9 @@ function! context#popup#get_context(base_line) abort
     let max_height = g:context.max_height
     let max_height_per_indent = g:context.max_per_indent
 
-    let out = [] " TODO: rename to lines eventually?
     let height = 0
     let done = 0
+    let out = [] " TODO: rename to lines eventually?
     for per_indent in context
         " TODO: merge this check into display() once it works. actually
         " probably not

@@ -4,20 +4,28 @@ let s:context_buffer_name = '<context.vim>'
 " TODO: apply total limit below (has been pushed out of context#context#get())
 
 " TODO: try to avoid empty context lines here too?
-" TODO: fix "border" indent
 function! context#preview#update_context() abort
     let min_height = 0
 
     while 1
         let base_line = context#line#get_base_line(w:context.cursor_line)
         let [context, _] = context#context#get(base_line)
-        let hidden_indent = s:get_hidden_indent(base_line, context)
+        let line_number = base_line.number
 
         call context#util#echof('> context#preview#update_context', len(context))
 
+        let done = 0
         let lines = []
         for per_indent in context
+            if done
+                break
+            endif
+
             for joined in per_indent
+                if done
+                    break
+                endif
+
                 if joined[0].number >= w:context.top_line
                     let line_number = joined[0].number
                     let done = 1
@@ -47,7 +55,8 @@ function! context#preview#update_context() abort
 
         call map(lines, function('context#line#text'))
 
-        call s:show(lines, hidden_indent)
+        let indent = g:context.Indent(line_number)
+        call s:show(lines, indent)
 
         call context#util#update_state()
         if w:context.needs_update
@@ -93,7 +102,7 @@ function! context#preview#close() abort
     let layout = winrestcmd() | set equalalways | noautocmd execute layout
 endfunction
 
-function! s:show(lines, hidden_indent) abort
+function! s:show(lines, indent) abort
     call context#preview#close()
 
     if len(a:lines) == 0
@@ -118,8 +127,8 @@ function! s:show(lines, hidden_indent) abort
     endif
 
     let statusline = '%=' . s:context_buffer_name . ' ' " trailing space for padding
-    if a:hidden_indent >= 0
-        let statusline = repeat(' ', padding + a:hidden_indent) . g:context.ellipsis . statusline
+    if a:indent >= 0
+        let statusline = repeat(' ', padding + a:indent) . g:context.ellipsis . statusline
     endif
 
     setlocal buftype=nofile
@@ -146,27 +155,4 @@ function! s:show(lines, hidden_indent) abort
     execute 'resize' len(a:lines)
 
     wincmd p " jump back
-endfunction
-
-" returns indent of first nonempty hidden line
-function! s:get_hidden_indent(base_line, lines) abort
-    call context#util#echof('> get_hidden_indent', a:base_line.number, len(a:lines))
-    if len(a:lines) == 0
-        " don't show ellipsis if context is empty
-        return -1
-    endif
-
-    let max_line = a:lines[-1][-1][0].number " last indent, last join group, first join part
-    let current_line = a:base_line.number - 1 " first hidden line
-    while current_line > max_line
-        let line = getline(current_line)
-        if context#line#should_skip(line)
-            let current_line -= 1
-            continue
-        endif
-
-        return g:context.Indent(current_line)
-    endwhile
-
-    return -1
 endfunction
