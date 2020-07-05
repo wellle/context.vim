@@ -3,14 +3,13 @@ let s:context_buffer_name = '<context.vim>'
 " TODO: test this again
 " TODO: apply total limit below (has been pushed out of context#context#get())
 
-" TODO!: update this to also show the filtered context of the cursor line
-" instead of the full context of the top line
 " TODO: try to avoid empty context lines here too?
+" TODO: fix "border" indent
 function! context#preview#update_context() abort
     let min_height = 0
 
     while 1
-        let base_line = context#line#get_base_line(w:context.top_line)
+        let base_line = context#line#get_base_line(w:context.cursor_line)
         let [context, _] = context#context#get(base_line)
         let hidden_indent = s:get_hidden_indent(base_line, context)
 
@@ -19,6 +18,22 @@ function! context#preview#update_context() abort
         let lines = []
         for per_indent in context
             for joined in per_indent
+                if joined[0].number >= w:context.top_line
+                    let line_number = joined[0].number
+                    let done = 1
+                    break
+                endif
+
+                for i in range(1, len(joined)-1)
+                    " call context#util#echof('joined ', i, joined[0].number, w:context.top_line, len(out))
+                    if joined[i].number >= w:context.top_line
+                        let line_number = joined[i].number
+                        let done = 1
+                        call remove(joined, i, -1)
+                        break " inner loop
+                    endif
+                endfor
+
                 let line = context#line#display(joined)
                 call context#util#echof('display', joined, line)
                 call add(lines, line)
