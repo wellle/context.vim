@@ -128,7 +128,10 @@ function! context#popup#get_context(base_line) abort
     " TODO: there's an issue where context lines are hidden when scrolling
     " with <C-E>
 
-    " TODO: extract this big thing as a function?
+    " TODO: extract this big thing as a function? also compare again with
+    " preview code, they are very very similar now. maybe something can be
+    " extracted
+
     let max_height = g:context.max_height
     let max_height_per_indent = g:context.max_per_indent
 
@@ -182,6 +185,7 @@ function! context#popup#get_context(base_line) abort
         " TODO: need another break in this loop if inner for loop break'ed?
         " maybe check height in this level (above inner loop to break)
         
+        " TODO: extract function (used in preview too)
         " apply max per indent
         if len(inner_out) <= max_height_per_indent
             call extend(out, inner_out)

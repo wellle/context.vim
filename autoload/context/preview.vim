@@ -1,10 +1,5 @@
 let s:context_buffer_name = '<context.vim>'
 
-" TODO: test this again
-" TODO: apply total limit below (has been pushed out of context#context#get())
-
-" TODO: try to avoid empty context lines here too?
-" TODO!: is the preview context changing the default register? check popup too
 function! context#preview#update_context() abort
     let min_height = 0
 
@@ -13,6 +8,7 @@ function! context#preview#update_context() abort
         let indent = g:context.Indent(base_line)
 
         while len(lines) < min_height
+            " TODO: try to avoid empty context lines here too?
             call add(lines, '')
         endwhile
         let min_height = len(lines)
@@ -38,6 +34,9 @@ function! context#preview#get_context() abort
 
     call context#util#echof('> context#preview#update_context', len(context))
 
+    let max_height = g:context.max_height
+    let max_height_per_indent = g:context.max_per_indent
+
     let done = 0
     let lines = []
     for per_indent in context
@@ -45,6 +44,7 @@ function! context#preview#get_context() abort
             break
         endif
 
+        let inner_lines = []
         for joined in per_indent
             if done
                 break
@@ -68,13 +68,29 @@ function! context#preview#get_context() abort
 
             let line = context#line#display(joined)
             " call context#util#echof('display', joined, line)
-            call add(lines, line)
+            call add(inner_lines, line)
         endfor
+
+        " TODO: extract function (used in preview too)
+        " apply max per indent
+        if len(inner_lines) <= max_height_per_indent
+            call extend(lines, inner_lines)
+            continue
+        endif
+
+        let diff = len(inner_lines) - max_height_per_indent
+
+        let indent = inner_lines[0].indent
+        let limited = inner_lines[: max_height_per_indent/2-1]
+        let ellipsis_line = context#line#make(0, indent, repeat(' ', indent) . g:context.ellipsis)
+        call add(limited, ellipsis_line)
+        call extend(limited, inner_lines[-(max_height_per_indent-1)/2 :])
+
+        call extend(lines, limited)
     endfor
 
     " TODO: extract function (used in popup too)
     " apply total limit
-    let max_height = g:context.max_height
     if len(lines) > max_height
         let indent1 = lines[max_height/2].indent
         let indent2 = lines[-(max_height-1)/2].indent
