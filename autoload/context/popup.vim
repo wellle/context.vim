@@ -1,6 +1,8 @@
 let s:context_buffer_name = '<context.vim>'
 
 function! context#popup#update_context() abort
+    " TODO: why do we inject cursor_line here, do we ever call this function
+    " differently?
     let [lines, base_line] = context#popup#get_context(w:context.cursor_line)
     call context#util#echof('> context#popup#update_context', len(lines))
 
@@ -125,8 +127,6 @@ function! context#popup#get_context(base_line) abort
 
     " TODO: there's an issue where context lines are hidden when scrolling
     " with <C-E>
-
-    " TODO! apply total limit in the block below
 
     " TODO: extract this big thing as a function?
     let max_height = g:context.max_height

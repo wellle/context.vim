@@ -4,72 +4,81 @@ let s:context_buffer_name = '<context.vim>'
 " TODO: apply total limit below (has been pushed out of context#context#get())
 
 " TODO: try to avoid empty context lines here too?
+" TODO!: is the preview context changing the default register? check popup too
 function! context#preview#update_context() abort
     let min_height = 0
 
     while 1
-        let base_line = context#line#get_base_line(w:context.cursor_line)
-        let [context, _] = context#context#get(base_line)
-        let line_number = base_line.number
+        let [lines, base_line] = context#preview#get_context()
+        let indent = g:context.Indent(base_line)
 
-        call context#util#echof('> context#preview#update_context', len(context))
+        while len(lines) < min_height
+            call add(lines, '')
+        endwhile
+        let min_height = len(lines)
 
-        let done = 0
-        let lines = []
-        for per_indent in context
+        call context#preview#close()
+        call s:show(lines, indent)
+
+        call context#util#update_state() " NOTE: this might set w:context.needs_update
+        if !w:context.needs_update
+            return
+        endif
+
+        " TODO: can we set this above the update_state call? would be more compact
+        let w:context.needs_update = 0
+        " update again until it stabilizes
+    endwhile
+endfunction
+
+function! context#preview#get_context() abort
+    let base_line = context#line#get_base_line(w:context.cursor_line)
+    let [context, _] = context#context#get(base_line)
+    let line_number = base_line.number
+
+    call context#util#echof('> context#preview#update_context', len(context))
+
+    let done = 0
+    let lines = []
+    for per_indent in context
+        if done
+            break
+        endif
+
+        for joined in per_indent
             if done
                 break
             endif
 
-            for joined in per_indent
-                if done
-                    break
-                endif
+            if joined[0].number >= w:context.top_line
+                let line_number = joined[0].number
+                let done = 1
+                break
+            endif
 
-                if joined[0].number >= w:context.top_line
-                    let line_number = joined[0].number
+            for i in range(1, len(joined)-1)
+                " call context#util#echof('joined ', i, joined[0].number, w:context.top_line, len(out))
+                if joined[i].number >= w:context.top_line
+                    let line_number = joined[i].number
                     let done = 1
-                    break
+                    call remove(joined, i, -1)
+                    break " inner loop
                 endif
-
-                for i in range(1, len(joined)-1)
-                    " call context#util#echof('joined ', i, joined[0].number, w:context.top_line, len(out))
-                    if joined[i].number >= w:context.top_line
-                        let line_number = joined[i].number
-                        let done = 1
-                        call remove(joined, i, -1)
-                        break " inner loop
-                    endif
-                endfor
-
-                let line = context#line#display(joined)
-                call context#util#echof('display', joined, line)
-                call add(lines, line)
             endfor
+
+            let line = context#line#display(joined)
+            " call context#util#echof('display', joined, line)
+            call add(lines, line)
         endfor
+    endfor
 
-        while len(lines) < min_height
-            call add(lines, context#line#make(0, 0, ''))
-        endwhile
-        let min_height = len(lines)
+    call map(lines, function('context#line#text'))
 
-        call map(lines, function('context#line#text'))
-
-        let indent = g:context.Indent(line_number)
-        call s:show(lines, indent)
-
-        call context#util#update_state()
-        if w:context.needs_update
-            let w:context.needs_update = 0
-            " update again until it stabilizes
-            continue
-        endif
-
-        break
-    endwhile
+    return [lines, line_number]
 endfunction
 
 " NOTE: this function updates the statusline too, as it depends on the padding
+" TODO: delete this function? why is it empty?
 function! context#preview#update_padding(padding) abort
 endfunction
 
@@ -103,12 +112,10 @@ function! context#preview#close() abort
 endfunction
 
 function! s:show(lines, indent) abort
-    call context#preview#close()
-
     if len(a:lines) == 0
         " nothing to do
         call context#util#echof('  none')
-        return
+        return [[], 0]
     endif
 
     let syntax  = &syntax
@@ -123,7 +130,7 @@ function! s:show(lines, indent) abort
         " NOTE: apparently this can fail with E242, see #6
         " in that case just silently abort
         call context#util#echof('  no preview window')
-        return
+        return [[], 0]
     endif
 
     let statusline = '%=' . s:context_buffer_name . ' ' " trailing space for padding
