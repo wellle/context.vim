@@ -72,6 +72,19 @@ function! context#preview#get_context() abort
         endfor
     endfor
 
+    " TODO: extract function (used in popup too)
+    " apply total limit
+    let max_height = g:context.max_height
+    if len(lines) > max_height
+        let indent1 = lines[max_height/2].indent
+        let indent2 = lines[-(max_height-1)/2].indent
+        let ellipsis = repeat(g:context.char_ellipsis, max([indent2 - indent1, 3]))
+        " TODO: test this
+        let ellipsis_line = context#line#make(0, indent1, repeat(' ', indent1) . ellipsis)
+        call remove(lines, max_height/2, -(max_height+1)/2)
+        call insert(lines, ellipsis_line, max_height/2)
+    endif
+
     call map(lines, function('context#line#text'))
 
     return [lines, line_number]

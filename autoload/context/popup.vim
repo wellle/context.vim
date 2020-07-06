@@ -205,6 +205,7 @@ function! context#popup#get_context(base_line) abort
         return [[], 0]
     endif
 
+    " TODO: extract function (used in preview too)
     " apply total limit
     if len(out) > max_height
         let indent1 = out[max_height/2].indent
