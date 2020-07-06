@@ -155,7 +155,7 @@ function! s:show(lines, indent) abort
 
     let b:airline_disable_statusline=1
 
-    silent %d            " delete everything
+    silent %d _          " delete everything
     silent 0put =a:lines " paste lines
     1                    " and jump to first line
 
