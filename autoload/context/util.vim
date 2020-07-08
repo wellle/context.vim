@@ -15,6 +15,10 @@ function! context#util#map_zt() abort
     return "zt:call context#update('zt')\<CR>"
 endfunction
 
+" TODO: there's an issue with fzf popup. when switching from one buffer to a
+" new buffer in some cases the context popup doesn't update. probably need to
+" set w:context.needs_update in some additional case below
+
 function! context#util#update_state() abort
     let windows = {}
     for i in range(1, winnr('$'))

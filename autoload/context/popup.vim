@@ -1,9 +1,7 @@
 let s:context_buffer_name = '<context.vim>'
 
 function! context#popup#update_context() abort
-    " TODO: why do we inject cursor_line here, do we ever call this function
-    " differently?
-    let [lines, base_line] = context#popup#get_context(w:context.cursor_line)
+    let [lines, base_line] = context#popup#get_context()
     call context#util#echof('> context#popup#update_context', len(lines))
 
     let w:context.lines  = lines
@@ -14,8 +12,8 @@ function! context#popup#update_context() abort
 endfunction
 
 " returns [lines, base_line_nr]
-function! context#popup#get_context(base_line) abort
-    call context#util#echof('context#popup#get_context', a:base_line)
+function! context#popup#get_context() abort
+    call context#util#echof('context#popup#get_context')
     " NOTE: there's a problem if some of the hidden lines
     " (behind the popup) are wrapped. then our calculations are off
     " TODO: fix that?
@@ -23,7 +21,7 @@ function! context#popup#get_context(base_line) abort
     " a skipped line has the same context as the next unskipped one below
     let skipped       =  0
     let context_count =  0 " how many contexts did we check?
-    let line_number   = a:base_line - 1 " first iteration starts with base_line
+    let line_number   = w:context.cursor_line - 1 " first iteration starts with cursor_line
     let top_line      = w:context.top_line
     let border_height = g:context.show_border
 
@@ -46,9 +44,6 @@ function! context#popup#get_context(base_line) abort
             call context#util#echof('context#get', base_line.number, len(context))
         endif
 
-        " TODO!: there are some hidden assumptions here about the base line
-        " being the top line. that's not true if it's the cursor line, so we
-        " abort at some point too early/late. fix that
         call context#util#echof('got', top_line, line_number, line_count, border_height, skipped)
         if line_count == 0 && context_count == 0
             " if we get an empty context on the first non skipped line
@@ -56,9 +51,6 @@ function! context#popup#get_context(base_line) abort
         endif
         let context_count += 1
 
-        " TODO! there's an issue with scrolling (and H)
-        " probably don't break here in that case. is that enough?
-        " needs some refinement to avoid empty lines in context
         " TODO: as for H, we probably need to change behavior. before this
         " branch we the context would be indepedent of the cursor position
         " within the buffer, so H would not change it. now that it depends on
@@ -103,7 +95,7 @@ function! context#popup#get_context(base_line) abort
 
         while 1
             let line_offset -= 1
-            let line_number = a:base_line + line_offset
+            let line_number = w:context.cursor_line + line_offset
             let indent = g:context.Indent(line_number) "    -1 for invalid lines
             let line = getline(line_number)            " empty for invalid lines
             let base_line = context#line#make(line_number, indent, line)
@@ -139,11 +131,7 @@ function! context#popup#get_context(base_line) abort
     let done = 0
     let out = [] " TODO: rename to lines eventually?
     for per_indent in context
-        " TODO: merge this check into display() once it works. actually
-        " probably not
-        " TODO!: there's a case where per_indent is not a list, but a single line,
-        " figure out how that can happen. can be reproduced in util.vim
-        " (gg^D^D^E...)
+        " TODO: merge this check into display() once it works? actually probably not
         " call context#util#echof('per_indent first', per_indent[0].number, w:context.top_line, len(out))
 
         if done
@@ -224,18 +212,6 @@ function! context#popup#get_context(base_line) abort
     if g:context.show_border
         call add(out, context#line#make(0, 0, '')) " add line for border, will be replaced later
     endif
-
-    " TODO! continue here. recently disabled the filling below, check if
-    " needed. make it depending on line numbers and context height instead of
-    " the line_offset, fully remove line_offset as it's confusing for cursor
-    " line based contexts
-    " TODO: now zt doesn't work, try on for line
-    " fill context until it reaches the skipped lines
-    " (to hide lines whose context didn't fit)
-    " TODO: test this again? in what case is that really needed?
-    " while len(out) + skipped < line_offset
-    "     call add(out, '')
-    " endwhile
 
     call map(out, function('context#line#text'))
 
