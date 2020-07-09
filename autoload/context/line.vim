@@ -27,19 +27,14 @@ function! context#line#get_base_line(line) abort
     endwhile
 endfunction
 
-" TODO: rename to #merge/join()?
-function! context#line#display(lines) abort
-    let line = a:lines[0]
-    let text = s:join(a:lines)
+function! context#line#join(batch) abort
+    let line = a:batch[0]
+    let text = s:join(a:batch)
 
     let n = &columns - 30 - strchars(context#line#trim(text)) - line.indent
-    let text = printf('%s%s // %2d n:%5d i:%2d', text, repeat(' ', n), len(a:lines), line.number, line.indent)
+    let text = printf('%s%s // %2d n:%5d i:%2d', text, repeat(' ', n), len(a:batch), line.number, line.indent)
 
     return context#line#make(line.number, line.indent, text)
-endfunction
-
-function! context#line#text(i, line) abort
-    return a:line.text
 endfunction
 
 " TODO: clean up, move down?
@@ -81,6 +76,10 @@ function! s:join(lines) abort
     endfor
 
     return joined
+endfunction
+
+function! context#line#text(i, line) abort
+    return a:line.text
 endfunction
 
 function! context#line#trim(string) abort

@@ -139,28 +139,28 @@ function! context#popup#get_context() abort
         endif
 
         let inner_out = []
-        for joined in per_indent
+        for join_batch in per_indent
             if done
                 break
             endif
 
-            if joined[0].number >= w:context.top_line + height
-                let line_number = joined[0].number
+            if join_batch[0].number >= w:context.top_line + height
+                let line_number = join_batch[0].number
                 let done = 1
                 break
             endif
 
-            for i in range(1, len(joined)-1)
-                " call context#util#echof('joined ', i, joined[0].number, w:context.top_line, len(out))
-                if joined[i].number > w:context.top_line + height + 1
-                    let line_number = joined[i].number
+            for i in range(1, len(join_batch)-1)
+                " call context#util#echof('join_batch ', i, join_batch[0].number, w:context.top_line, len(out))
+                if join_batch[i].number > w:context.top_line + height + 1
+                    let line_number = join_batch[i].number
                     let done = 1
-                    call remove(joined, i, -1)
+                    call remove(join_batch, i, -1)
                     break " inner loop
                 endif
             endfor
 
-            let line = context#line#display(joined)
+            let line = context#line#join(join_batch)
             " call context#util#echof('adding', line)
             if height == 0 && g:context.show_border
                 let height += 2 " adding border line
