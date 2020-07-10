@@ -5,9 +5,9 @@ function! context#util#active() abort
 endfunction
 
 function! context#util#map_H() abort
-    " TODO: handle count and scrolloff
-    let w:context.force_fix_strategy = 'move'
-    return 'H'
+    " TODO: handle scrolloff
+    let n = len(w:context.lines) + v:count1
+    return "\<Esc>". n . 'H'
 endfunction
 
 function! context#util#map_zt() abort

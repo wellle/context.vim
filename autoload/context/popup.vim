@@ -51,17 +51,7 @@ function! context#popup#get_context() abort
         endif
         let context_count += 1
 
-        " TODO: as for H, we probably need to change behavior. before this
-        " branch we the context would be indepedent of the cursor position
-        " within the buffer, so H would not change it. now that it depends on
-        " the cursor position H is misleading for now, as it currently picks
-        " the highest visible line which can be selected so that the context
-        " still fits. but that might not be the highest visible bufferline
-        " (below the context) before. I think the expectation would be that H
-        " jumps to the highest visible line and if the context gets bigger by
-        " that, then the line would need to be scrolled down until the full
-        " context fits. or maybe not?
-        if w:context.fix_strategy == 'scroll' " && line_number >= w:context.cursor_line
+        if w:context.fix_strategy == 'scroll'
             call context#util#echof('scroll: done')
             break
         endif
