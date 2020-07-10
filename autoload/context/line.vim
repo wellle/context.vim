@@ -37,27 +37,24 @@ function! context#line#join(batch) abort
     return context#line#make(line.number, line.indent, text)
 endfunction
 
-" TODO: clean up, move down?
 function! s:join(lines) abort
-    " call context#util#echof('> join_pending', len(a:lines))
+    " call context#util#echof('> join', len(a:lines))
     let joined = a:lines[0].text
     if len(a:lines) == 1
         return joined
     endif
 
-    if g:context.max_join_parts < 3
-        if g:context.max_join_parts == 2
-            let joined.text .= ' ' . g:context.ellipsis
-        endif
+    let max = g:context.max_join_parts
+
+    if max == 1
         return joined
+    elseif max == 2
+        return joined . ' ' . g:context.ellipsis
     endif
 
-    " TODO: probably need to fix some magic numbers (because we use lines
-    " instead of pending now)
-    let max = g:context.max_join_parts
     if len(a:lines) > max
-        call remove(a:lines, (max)/2, -max/2-1)
-        call insert(a:lines, s:nil_line, (max)/2) " middle marker
+        call remove(a:lines, (max+1)/2, -max/2-1)
+        call insert(a:lines, s:nil_line, (max+1)/2) " middle marker
     endif
 
     let last_number = a:lines[0].number

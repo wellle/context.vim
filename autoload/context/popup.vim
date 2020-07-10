@@ -152,7 +152,7 @@ function! context#popup#get_context() abort
 
             for i in range(1, len(join_batch)-1)
                 " call context#util#echof('join_batch ', i, join_batch[0].number, w:context.top_line, len(out))
-                if join_batch[i].number > w:context.top_line + height + 1
+                if join_batch[i].number > w:context.top_line + height
                     let line_number = join_batch[i].number
                     let done = 1
                     call remove(join_batch, i, -1)
@@ -203,7 +203,6 @@ function! context#popup#get_context() abort
         let indent1 = out[max_height/2].indent
         let indent2 = out[-(max_height-1)/2].indent
         let ellipsis = repeat(g:context.char_ellipsis, max([indent2 - indent1, 3]))
-        " TODO: test this
         let ellipsis_line = context#line#make(0, indent1, repeat(' ', indent1) . ellipsis)
         call remove(out, max_height/2, -(max_height+1)/2)
         call insert(out, ellipsis_line, max_height/2)

@@ -32,7 +32,7 @@ function! context#settings#parse() abort
 
     " how many lines can be joined in one line (if they match
     " regex_join) before the ones in the middle get hidden
-    let max_join_parts = get(g:, 'context_max_join_parts', 5)
+    let max_join_parts = get(g:, 'context_max_join_parts', 4)
 
     " which character to use for the ellipsis "..."
     let char_ellipsis = get(g:, 'context_ellipsis_char', '·')
