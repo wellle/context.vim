@@ -20,7 +20,6 @@ function! context#popup#get_context() abort
 
     " a skipped line has the same context as the next unskipped one below
     let skipped       =  0
-    let context_count =  0 " how many contexts did we check?
     let line_number   = w:context.cursor_line - 1 " first iteration starts with cursor_line
     let top_line      = w:context.top_line
     let border_height = g:context.show_border
@@ -28,28 +27,26 @@ function! context#popup#get_context() abort
     while 1
         let line_number += 1
 
-        let indent = g:context.Indent(line_number) "    -1 for invalid lines
-        let line = getline(line_number)            " empty for invalid lines
-        let base_line = context#line#make(line_number, indent, line)
-
-        if base_line.indent < 0
-            call context#util#echof('negative indent', base_line.number)
+        let indent = g:context.Indent(line_number) " -1 for invalid lines
+        if indent < 0
+            call context#util#echof('negative indent', line_number)
             return [[], 0]
-        elseif context#line#should_skip(line)
+        endif
+
+        let line = getline(line_number) " empty for invalid lines
+        if context#line#should_skip(line)
             let skipped += 1
-            call context#util#echof('skip', base_line.number)
+            call context#util#echof('skip', line_number)
             continue
-        else
-            let [context, line_count] = context#context#get(base_line)
-            call context#util#echof('context#get', base_line.number, len(context))
         endif
 
-        call context#util#echof('got', top_line, line_number, line_count, border_height, skipped)
-        if line_count == 0 && context_count == 0
-            " if we get an empty context on the first non skipped line
+        let base_line = context#line#make(line_number, indent, line)
+        let [context, line_count] = context#context#get(base_line)
+        call context#util#echof('context#get', line_number, line_count)
+
+        if line_count == 0
             return [[], 0]
         endif
-        let context_count += 1
 
         if w:context.fix_strategy == 'scroll'
             call context#util#echof('scroll: done')
@@ -62,50 +59,9 @@ function! context#popup#get_context() abort
             break
         endif
 
-        " if w:context.fix_strategy == 'scroll' && line_number >= w:context.cursor_line
-        "     " if we want to show the cursor by scrolling and we reached the
-        "     " cursor line, we don't need to check lower lines because the
-        "     " cursor line will be visible, so this is the proper context
-        "     call context#util#echof('skip cursor line')
-        "     break
-        " endif
-
         " try again on next line if this context doesn't fit
         let skipped = 0
     endwhile
-
-    " TODO: test this again, looks like it would be broken now
-    if context_count == 0
-        " we got here because we ran into the cursor line before we found any
-        " context. now we need to scan upwards (from above top line) until we
-        " find a line with a context and use that one.
-
-        let skipped     = 0
-        let line_offset = 0 " first iteration starts with -1
-
-        while 1
-            let line_offset -= 1
-            let line_number = w:context.cursor_line + line_offset
-            let indent = g:context.Indent(line_number) "    -1 for invalid lines
-            let line = getline(line_number)            " empty for invalid lines
-            let base_line = context#line#make(line_number, indent, line)
-
-            call context#util#echof('checking above', line_offset, line_number)
-
-            if base_line.indent < 0
-                let lines = []
-                call context#util#echof('reached nan')
-            elseif context#line#should_skip(line)
-                let skipped += 1
-                continue
-            else
-                let lines = context#context#get(base_line)
-                call context#util#echof('got', len(lines))
-            endif
-
-            break
-        endwhile
-    endif
 
     " TODO: there's an issue where context lines are hidden when scrolling
     " with <C-E>
