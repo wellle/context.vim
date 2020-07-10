@@ -63,9 +63,6 @@ function! context#popup#get_context() abort
         let skipped = 0
     endwhile
 
-    " TODO: there's an issue where context lines are hidden when scrolling
-    " with <C-E>
-
     " TODO: extract this big thing as a function? also compare again with
     " preview code, they are very very similar now. maybe something can be
     " extracted
@@ -96,8 +93,13 @@ function! context#popup#get_context() abort
                 break
             endif
 
+            if height == 0 && g:context.show_border
+                let height += 2 " adding border line
+            elseif height < max_height && len(inner_out) < max_height_per_indent
+                let height += 1
+            endif
+
             for i in range(1, len(join_batch)-1)
-                " call context#util#echof('join_batch ', i, join_batch[0].number, w:context.top_line, len(out))
                 if join_batch[i].number > w:context.top_line + height
                     let line_number = join_batch[i].number
                     let done = 1
@@ -107,12 +109,6 @@ function! context#popup#get_context() abort
             endfor
 
             let line = context#line#join(join_batch)
-            " call context#util#echof('adding', line)
-            if height == 0 && g:context.show_border
-                let height += 2 " adding border line
-            elseif height < max_height && len(inner_out) < max_height_per_indent
-                let height += 1
-            endif
             call add(inner_out, line)
         endfor
 
