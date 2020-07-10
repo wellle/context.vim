@@ -1,28 +1,19 @@
 let s:context_buffer_name = '<context.vim>'
 
 function! context#preview#update_context() abort
-    let min_height = 0
-
     while 1
         let [lines, base_line] = context#preview#get_context()
         let indent = g:context.Indent(base_line)
 
-        while len(lines) < min_height
-            " TODO: try to avoid empty context lines here too?
-            call add(lines, '')
-        endwhile
-        let min_height = len(lines)
-
         call context#preview#close()
         call s:show(lines, indent)
 
+        let w:context.needs_update = 0
         call context#util#update_state() " NOTE: this might set w:context.needs_update
         if !w:context.needs_update
             return
         endif
 
-        " TODO: can we set this above the update_state call? would be more compact
-        let w:context.needs_update = 0
         " update again until it stabilizes
     endwhile
 endfunction
@@ -95,7 +86,6 @@ function! context#preview#get_context() abort
         let indent1 = lines[max_height/2].indent
         let indent2 = lines[-(max_height-1)/2].indent
         let ellipsis = repeat(g:context.char_ellipsis, max([indent2 - indent1, 3]))
-        " TODO: test this
         let ellipsis_line = context#line#make(0, indent1, repeat(' ', indent1) . ellipsis)
         call remove(lines, max_height/2, -(max_height+1)/2)
         call insert(lines, ellipsis_line, max_height/2)
@@ -104,11 +94,6 @@ function! context#preview#get_context() abort
     call map(lines, function('context#line#text'))
 
     return [lines, line_number]
-endfunction
-
-" NOTE: this function updates the statusline too, as it depends on the padding
-" TODO: delete this function? why is it empty?
-function! context#preview#update_padding(padding) abort
 endfunction
 
 function! context#preview#close() abort
