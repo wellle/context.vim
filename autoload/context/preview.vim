@@ -28,6 +28,7 @@ function! context#preview#get_context() abort
     let max_height = g:context.max_height
     let max_height_per_indent = g:context.max_per_indent
 
+    let height = 0
     let done = 0
     let lines = []
     for per_indent in context
@@ -41,15 +42,14 @@ function! context#preview#get_context() abort
                 break
             endif
 
-            if join_batch[0].number >= w:context.top_line
+            if join_batch[0].number >= w:context.top_line + height
                 let line_number = join_batch[0].number
                 let done = 1
                 break
             endif
 
             for i in range(1, len(join_batch)-1)
-                " call context#util#echof('join_batch ', i, join_batch[0].number, w:context.top_line, len(lines))
-                if join_batch[i].number >= w:context.top_line
+                if join_batch[i].number > w:context.top_line + height
                     let line_number = join_batch[i].number
                     let done = 1
                     call remove(join_batch, i, -1)
@@ -58,7 +58,6 @@ function! context#preview#get_context() abort
             endfor
 
             let line = context#line#join(join_batch)
-            " call context#util#echof('display', join_batch, line)
             call add(inner_lines, line)
         endfor
 
@@ -80,7 +79,11 @@ function! context#preview#get_context() abort
         call extend(lines, limited)
     endfor
 
-    " TODO: extract function (used in popup too)
+    if len(lines) == 0
+        return [[], 0]
+    endif
+
+    " TODO: extract function
     " apply total limit
     if len(lines) > max_height
         let indent1 = lines[max_height/2].indent

@@ -74,9 +74,6 @@ function! context#popup#get_context() abort
     let done = 0
     let lines = []
     for per_indent in context
-        " TODO: merge this check into display() once it works? actually probably not
-        " call context#util#echof('per_indent first', per_indent[0].number, w:context.top_line, len(lines))
-
         if done
             break
         endif
@@ -112,9 +109,6 @@ function! context#popup#get_context() abort
             call add(inner_lines, line)
         endfor
 
-        " TODO: need another break in this loop if inner for loop break'ed?
-        " maybe check height in this level (above inner loop to break)
-        
         " TODO: extract function (used in preview too)
         " apply max per indent
         if len(inner_lines) <= max_height_per_indent
@@ -131,15 +125,13 @@ function! context#popup#get_context() abort
         call extend(limited, inner_lines[-(max_height_per_indent-1)/2 :])
 
         call extend(lines, limited)
-        " TODO: context can actually be empty at this point, handle that
-        " (don't show border line)
     endfor
 
     if len(lines) == 0
         return [[], 0]
     endif
 
-    " TODO: extract function (used in preview too)
+    " TODO: extract function
     " apply total limit
     if len(lines) > max_height
         let indent1 = lines[max_height/2].indent
@@ -150,11 +142,11 @@ function! context#popup#get_context() abort
         call insert(lines, ellipsis_line, max_height/2)
     endif
 
-    if g:context.show_border
-        call add(lines, context#line#make(0, 0, '')) " add line for border, will be replaced later
-    endif
-
     call map(lines, function('context#line#text'))
+
+    if g:context.show_border
+        call add(lines, '') " add line for border, will be replaced later
+    endif
 
     return [lines, line_number]
 endfunction
@@ -196,6 +188,7 @@ function! context#popup#redraw(winid, force) abort
         return
     endif
 
+    " TODO: clean this up
     let lines = c.lines
     if len(lines) == 0
         return
