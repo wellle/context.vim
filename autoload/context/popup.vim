@@ -72,16 +72,16 @@ function! context#popup#get_context() abort
 
     let height = 0
     let done = 0
-    let out = [] " TODO: rename to lines eventually?
+    let lines = []
     for per_indent in context
         " TODO: merge this check into display() once it works? actually probably not
-        " call context#util#echof('per_indent first', per_indent[0].number, w:context.top_line, len(out))
+        " call context#util#echof('per_indent first', per_indent[0].number, w:context.top_line, len(lines))
 
         if done
             break
         endif
 
-        let inner_out = []
+        let inner_lines = []
         for join_batch in per_indent
             if done
                 break
@@ -95,7 +95,7 @@ function! context#popup#get_context() abort
 
             if height == 0 && g:context.show_border
                 let height += 2 " adding border line
-            elseif height < max_height && len(inner_out) < max_height_per_indent
+            elseif height < max_height && len(inner_lines) < max_height_per_indent
                 let height += 1
             endif
 
@@ -109,7 +109,7 @@ function! context#popup#get_context() abort
             endfor
 
             let line = context#line#join(join_batch)
-            call add(inner_out, line)
+            call add(inner_lines, line)
         endfor
 
         " TODO: need another break in this loop if inner for loop break'ed?
@@ -117,46 +117,46 @@ function! context#popup#get_context() abort
         
         " TODO: extract function (used in preview too)
         " apply max per indent
-        if len(inner_out) <= max_height_per_indent
-            call extend(out, inner_out)
+        if len(inner_lines) <= max_height_per_indent
+            call extend(lines, inner_lines)
             continue
         endif
 
-        let diff = len(inner_out) - max_height_per_indent
+        let diff = len(inner_lines) - max_height_per_indent
 
-        let indent = inner_out[0].indent
-        let limited = inner_out[: max_height_per_indent/2-1]
+        let indent = inner_lines[0].indent
+        let limited = inner_lines[: max_height_per_indent/2-1]
         let ellipsis_line = context#line#make(0, indent, repeat(' ', indent) . g:context.ellipsis)
         call add(limited, ellipsis_line)
-        call extend(limited, inner_out[-(max_height_per_indent-1)/2 :])
+        call extend(limited, inner_lines[-(max_height_per_indent-1)/2 :])
 
-        call extend(out, limited)
+        call extend(lines, limited)
         " TODO: context can actually be empty at this point, handle that
         " (don't show border line)
     endfor
 
-    if len(out) == 0
+    if len(lines) == 0
         return [[], 0]
     endif
 
     " TODO: extract function (used in preview too)
     " apply total limit
-    if len(out) > max_height
-        let indent1 = out[max_height/2].indent
-        let indent2 = out[-(max_height-1)/2].indent
+    if len(lines) > max_height
+        let indent1 = lines[max_height/2].indent
+        let indent2 = lines[-(max_height-1)/2].indent
         let ellipsis = repeat(g:context.char_ellipsis, max([indent2 - indent1, 3]))
         let ellipsis_line = context#line#make(0, indent1, repeat(' ', indent1) . ellipsis)
-        call remove(out, max_height/2, -(max_height+1)/2)
-        call insert(out, ellipsis_line, max_height/2)
+        call remove(lines, max_height/2, -(max_height+1)/2)
+        call insert(lines, ellipsis_line, max_height/2)
     endif
 
     if g:context.show_border
-        call add(out, context#line#make(0, 0, '')) " add line for border, will be replaced later
+        call add(lines, context#line#make(0, 0, '')) " add line for border, will be replaced later
     endif
 
-    call map(out, function('context#line#text'))
+    call map(lines, function('context#line#text'))
 
-    return [out, line_number]
+    return [lines, line_number]
 endfunction
 
 function! context#popup#layout() abort

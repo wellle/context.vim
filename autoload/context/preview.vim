@@ -48,7 +48,7 @@ function! context#preview#get_context() abort
             endif
 
             for i in range(1, len(join_batch)-1)
-                " call context#util#echof('join_batch ', i, join_batch[0].number, w:context.top_line, len(out))
+                " call context#util#echof('join_batch ', i, join_batch[0].number, w:context.top_line, len(lines))
                 if join_batch[i].number >= w:context.top_line
                     let line_number = join_batch[i].number
                     let done = 1
