@@ -25,76 +25,7 @@ function! context#preview#get_context() abort
 
     call context#util#echof('> context#preview#update_context', len(context))
 
-    let max_height = g:context.max_height
-    let max_height_per_indent = g:context.max_per_indent
-
-    let height = 0
-    let done = 0
-    let lines = []
-    for per_indent in context
-        if done
-            break
-        endif
-
-        let inner_lines = []
-        for join_batch in per_indent
-            if done
-                break
-            endif
-
-            if join_batch[0].number >= w:context.top_line + height
-                let line_number = join_batch[0].number
-                let done = 1
-                break
-            endif
-
-            for i in range(1, len(join_batch)-1)
-                if join_batch[i].number > w:context.top_line + height
-                    let line_number = join_batch[i].number
-                    let done = 1
-                    call remove(join_batch, i, -1)
-                    break " inner loop
-                endif
-            endfor
-
-            let line = context#line#join(join_batch)
-            call add(inner_lines, line)
-        endfor
-
-        " TODO: extract function (used in preview too)
-        " apply max per indent
-        if len(inner_lines) <= max_height_per_indent
-            call extend(lines, inner_lines)
-            continue
-        endif
-
-        let diff = len(inner_lines) - max_height_per_indent
-
-        let indent = inner_lines[0].indent
-        let limited = inner_lines[: max_height_per_indent/2-1]
-        let ellipsis_line = context#line#make(0, indent, repeat(' ', indent) . g:context.ellipsis)
-        call add(limited, ellipsis_line)
-        call extend(limited, inner_lines[-(max_height_per_indent-1)/2 :])
-
-        call extend(lines, limited)
-    endfor
-
-    if len(lines) == 0
-        return [[], 0]
-    endif
-
-    " TODO: extract function
-    " apply total limit
-    if len(lines) > max_height
-        let indent1 = lines[max_height/2].indent
-        let indent2 = lines[-(max_height-1)/2].indent
-        let ellipsis = repeat(g:context.char_ellipsis, max([indent2 - indent1, 3]))
-        let ellipsis_line = context#line#make(0, indent1, repeat(' ', indent1) . ellipsis)
-        call remove(lines, max_height/2, -(max_height+1)/2)
-        call insert(lines, ellipsis_line, max_height/2)
-    endif
-
-    call map(lines, function('context#line#text'))
+    let [lines, line_number] = context#util#filter(context, line_number, 0)
 
     return [lines, line_number]
 endfunction
