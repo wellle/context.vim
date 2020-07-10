@@ -94,11 +94,11 @@ function! context#popup#layout() abort
         " changed, but we can't really fix that (without temporarily
         " moving the cursor which we'd like to avoid)
         " TODO: fix that?
-        call context#popup#redraw(winid, 1)
+        call context#popup#redraw(winid)
     endfor
 endfunction
 
-function! context#popup#redraw(winid, force) abort
+function! context#popup#redraw(winid) abort
     let popup = get(g:context.popups, a:winid)
     if popup == 0
         return
@@ -109,27 +109,15 @@ function! context#popup#redraw(winid, force) abort
         return
     endif
 
-    " TODO: clean this up
     let lines = c.lines
     if len(lines) == 0
         return
     endif
 
-    " check where to put the context, prefer top, but switch to bottom if
-    " cursor is too high. abort if popup doesn't have to move and no a:force
-    " is given
-    if !a:force && c.popup_offset == 0
-        call context#util#echof('  > context#popup#redraw no force skip top')
-        return
-    endif
-
-    let lines = c.lines
-    if g:context.show_border && len(lines) > 0
+    if g:context.show_border
         let lines[-1] = s:get_border_line(a:winid, 1)
         let c.lines = lines
     endif
-
-    let c.popup_offset = 0
 
     call context#util#echof('  > context#popup#redraw', len(lines))
     if g:context.presenter == 'nvim-float'
@@ -173,10 +161,6 @@ function! s:show() abort
     if len(w:context.lines) == 0
         call context#util#echof('  no lines')
 
-        " if there are no lines, we reset popup_offset here so we'll try to
-        " show the next non empty context at the top again
-        let w:context.popup_offset = 0
-
         if popup > 0
             call s:close(popup)
             call remove(g:context.popups, winid)
@@ -189,7 +173,7 @@ function! s:show() abort
         let g:context.popups[winid] = popup
     endif
 
-    call context#popup#redraw(winid, 1)
+    call context#popup#redraw(winid)
 
     if g:context.presenter == 'nvim-float'
         call context#popup#nvim#redraw_screen()
