@@ -65,7 +65,7 @@ function! context#popup#get_context() abort
 
     let [lines, line_number] = context#util#filter(context, line_number, 1)
 
-    if g:context.show_border
+    if g:context.show_border && len(lines) > 0
         call add(lines, '') " add line for border, will be replaced later
     endif
 
