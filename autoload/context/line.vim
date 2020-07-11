@@ -31,8 +31,8 @@ function! context#line#join(batch) abort
     let line = a:batch[0]
     let text = s:join(a:batch)
 
-    let n = &columns - 30 - strchars(context#line#trim(text)) - line.indent
-    let text = printf('%s%s // %2d n:%5d i:%2d', text, repeat(' ', n), len(a:batch), line.number, line.indent)
+    " let n = &columns - 30 - strchars(context#line#trim(text)) - line.indent
+    " let text = printf('%s%s // %2d n:%5d i:%2d', text, repeat(' ', n), len(a:batch), line.number, line.indent)
 
     return context#line#make(line.number, line.indent, text)
 endfunction
