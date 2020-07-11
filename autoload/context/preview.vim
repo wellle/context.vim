@@ -1,38 +1,33 @@
 let s:context_buffer_name = '<context.vim>'
 
 function! context#preview#update_context() abort
-    let min_height = 0
-
     while 1
-        let base_line = context#line#get_base_line(w:context.top_line)
-        let lines = context#context#get(base_line)
-        let hidden_indent = s:get_hidden_indent(base_line, lines)
+        let [lines, base_line] = context#preview#get_context()
+        let indent = g:context.Indent(base_line)
 
-        call context#util#echof('> context#preview#update_context', len(lines))
+        call context#preview#close()
+        call s:show(lines, indent)
 
-        " NOTE: this overwrites lines, from here on out it's just a list of string
-        call map(lines, function('context#line#display'))
-
-        while len(lines) < min_height
-            call add(lines, '')
-        endwhile
-        let min_height = len(lines)
-
-        call s:show(lines, hidden_indent)
-
-        call context#util#update_state()
-        if w:context.needs_update
-            let w:context.needs_update = 0
-            " update again until it stabilizes
-            continue
+        let w:context.needs_update = 0
+        call context#util#update_state() " NOTE: this might set w:context.needs_update
+        if !w:context.needs_update
+            return
         endif
 
-        break
+        " update again until it stabilizes
     endwhile
 endfunction
 
-" NOTE: this function updates the statusline too, as it depends on the padding
-function! context#preview#update_padding(padding) abort
+function! context#preview#get_context() abort
+    let base_line = context#line#get_base_line(w:context.cursor_line)
+    let [context, _] = context#context#get(base_line)
+    let line_number = base_line.number
+
+    call context#util#echof('> context#preview#update_context', len(context))
+
+    let [lines, line_number] = context#util#filter(context, line_number, 0)
+
+    return [lines, line_number]
 endfunction
 
 function! context#preview#close() abort
@@ -64,13 +59,11 @@ function! context#preview#close() abort
     let layout = winrestcmd() | set equalalways | noautocmd execute layout
 endfunction
 
-function! s:show(lines, hidden_indent) abort
-    call context#preview#close()
-
+function! s:show(lines, indent) abort
     if len(a:lines) == 0
         " nothing to do
         call context#util#echof('  none')
-        return
+        return [[], 0]
     endif
 
     let syntax  = &syntax
@@ -85,12 +78,12 @@ function! s:show(lines, hidden_indent) abort
         " NOTE: apparently this can fail with E242, see #6
         " in that case just silently abort
         call context#util#echof('  no preview window')
-        return
+        return [[], 0]
     endif
 
     let statusline = '%=' . s:context_buffer_name . ' ' " trailing space for padding
-    if a:hidden_indent >= 0
-        let statusline = repeat(' ', padding + a:hidden_indent) . g:context.ellipsis . statusline
+    if a:indent >= 0
+        let statusline = repeat(' ', padding + a:indent) . g:context.ellipsis . statusline
     endif
 
     setlocal buftype=nofile
@@ -110,34 +103,11 @@ function! s:show(lines, hidden_indent) abort
 
     let b:airline_disable_statusline=1
 
-    silent %d            " delete everything
+    silent %d _          " delete everything
     silent 0put =a:lines " paste lines
     1                    " and jump to first line
 
     execute 'resize' len(a:lines)
 
     wincmd p " jump back
-endfunction
-
-" returns indent of first nonempty hidden line
-function! s:get_hidden_indent(base_line, lines) abort
-    call context#util#echof('> get_hidden_indent', a:base_line.number, len(a:lines))
-    if len(a:lines) == 0
-        " don't show ellipsis if context is empty
-        return -1
-    endif
-
-    let max_line = a:lines[-1].number
-    let current_line = a:base_line.number - 1 " first hidden line
-    while current_line > max_line
-        let line = getline(current_line)
-        if context#line#should_skip(line)
-            let current_line -= 1
-            continue
-        endif
-
-        return g:context.Indent(current_line)
-    endwhile
-
-    return -1
 endfunction

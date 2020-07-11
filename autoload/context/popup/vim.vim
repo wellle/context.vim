@@ -21,7 +21,7 @@ function! context#popup#vim#redraw(winid, popup, lines) abort
 
     let c = getwinvar(a:winid, 'context')
     call popup_move(a:popup, {
-                \ 'line':     c.pos_y + c.popup_offset,
+                \ 'line':     c.pos_y,
                 \ 'col':      c.pos_x,
                 \ 'minwidth': c.size_w,
                 \ 'maxwidth': c.size_w,

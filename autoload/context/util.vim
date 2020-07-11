@@ -5,15 +5,19 @@ function! context#util#active() abort
 endfunction
 
 function! context#util#map_H() abort
-    " TODO: handle count and scrolloff
-    let w:context.force_fix_strategy = 'move'
-    return 'H'
+    " TODO: handle scrolloff
+    let n = len(w:context.lines) + v:count1
+    return "\<Esc>". n . 'H'
 endfunction
 
 function! context#util#map_zt() abort
     let w:context.force_fix_strategy = 'scroll'
     return "zt:call context#update('zt')\<CR>"
 endfunction
+
+" TODO: there's an issue with fzf popup. when switching from one buffer to a
+" new buffer in some cases the context popup doesn't update. probably need to
+" set w:context.needs_update in some additional case below
 
 function! context#util#update_state() abort
     let windows = {}
@@ -121,7 +125,97 @@ function! context#util#update_window_state(winid) abort
     endif
 endfunction
 
-let s:log_indent = 0
+" this is a pretty weird function
+" it has been extracted to reduce duplication between popup and preview code
+" what it does: it goes through all lines of the given full context and
+" filters which lines should be visible in the filtered context.
+" this is to avoid displaying lines in the context which are already visible
+" on screen
+" additionally this function applies the per indent and the total limits for
+" lines displayed within a context
+" finally it maps the lines and returns a list of the context lines which are
+" to be displayed together with the line_number which should be used for the
+" indentation of the border line/status line
+function! context#util#filter(context, line_number, consider_height) abort
+    let line_number = a:line_number
+    let max_height = g:context.max_height
+    let max_height_per_indent = g:context.max_per_indent
+
+    let height = 0
+    let done = 0
+    let lines = []
+    for per_indent in a:context
+        if done
+            break
+        endif
+
+        let inner_lines = []
+        for join_batch in per_indent
+            if done
+                break
+            endif
+
+            if join_batch[0].number >= w:context.top_line + height
+                let line_number = join_batch[0].number
+                let done = 1
+                break
+            endif
+
+            if a:consider_height
+                if height == 0 && g:context.show_border
+                    let height += 2 " adding border line
+                elseif height < max_height && len(inner_lines) < max_height_per_indent
+                    let height += 1
+                endif
+            endif
+
+            for i in range(1, len(join_batch)-1)
+                if join_batch[i].number > w:context.top_line + height
+                    let line_number = join_batch[i].number
+                    let done = 1
+                    call remove(join_batch, i, -1)
+                    break " inner loop
+                endif
+            endfor
+
+            let line = context#line#join(join_batch)
+            call add(inner_lines, line)
+        endfor
+
+        " apply max per indent
+        if len(inner_lines) <= max_height_per_indent
+            call extend(lines, inner_lines)
+            continue
+        endif
+
+        let diff = len(inner_lines) - max_height_per_indent
+
+        let indent = inner_lines[0].indent
+        let limited = inner_lines[: max_height_per_indent/2-1]
+        let ellipsis_line = context#line#make(0, indent, repeat(' ', indent) . g:context.ellipsis)
+        call add(limited, ellipsis_line)
+        call extend(limited, inner_lines[-(max_height_per_indent-1)/2 :])
+
+        call extend(lines, limited)
+    endfor
+
+    if len(lines) == 0
+        return [[], 0]
+    endif
+
+    " apply total limit
+    if len(lines) > max_height
+        let indent1 = lines[max_height/2].indent
+        let indent2 = lines[-(max_height-1)/2].indent
+        let ellipsis = repeat(g:context.char_ellipsis, max([indent2 - indent1, 3]))
+        let ellipsis_line = context#line#make(0, indent1, repeat(' ', indent1) . ellipsis)
+        call remove(lines, max_height/2, -(max_height+1)/2)
+        call insert(lines, ellipsis_line, max_height/2)
+    endif
+
+    call map(lines, function('context#line#text'))
+    return [lines, line_number]
+endfunction
 
 function! context#util#show_cursor() abort
     " compare height of context to cursor line on screen
@@ -132,10 +226,13 @@ function! context#util#show_cursor() abort
     end
 
     " otherwise we have to either move or scroll the cursor accordingly
+    " call context#util#echof('show_cursor', w:context.fix_strategy, n)
     let key = (w:context.fix_strategy == 'move') ? 'j' : "\<C-Y>"
     execute 'normal! ' . n . key
     call context#util#update_line_state()
 endfunction
+
+let s:log_indent = 0
 
 function! context#util#log_indent(amount) abort
     let s:log_indent += a:amount

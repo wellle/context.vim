@@ -1,13 +1,23 @@
 let s:nil_line = context#line#make(0, 0, '')
 
 " collect all context lines
+" returns [context, line_count]
+" context has this structure:
+" [
+"   [ // lines in this list have the same indentation (used for max height per indent)
+"     [ // line in this list are allowed to be joined
+"       {line},
+"       {line}
+"     ]
+"   ]
+" ]
 function! context#context#get(base_line) abort
     let base_line = a:base_line
     if base_line.number == 0
-        return []
+        return [[], 0]
     endif
 
-    let context = {}
+    let context_map = {}
 
     if !exists('b:context') || b:context.tick != b:changedtick
         " skips is a dictionary that maps a line to its next context line so
@@ -28,36 +38,34 @@ function! context#context#get(base_line) abort
         endif
 
         let indent = context_line.indent
-        if !has_key(context, indent)
-            let context[indent] = []
+        if !has_key(context_map, indent)
+            let context_map[indent] = []
         endif
 
-        call insert(context[indent], context_line, 0)
+        call insert(context_map[indent], context_line, 0)
 
         " for next iteration
         let base_line = context_line
     endwhile
 
+
+    let context_list = []
+    let line_count = 0
     " join, limit and get context lines
-    let lines = []
-    for indent in sort(keys(context), 'N')
-        let context[indent] = s:join(context[indent])
-        let context[indent] = s:limit(context[indent], indent)
-        call extend(lines, context[indent])
+    " NOTE: at this stage lines changes from list to list of lists
+    for indent in sort(keys(context_map), 'N')
+        " NOTE: s:join switches from list to list of lists, grouping lines
+        " that are allowed to be joined on the caller side
+        let joined = s:join(context_map[indent])
+        call add(context_list, joined)
+        if len(joined) > g:context.max_per_indent
+            let line_count += g:context.max_per_indent
+        else
+            let line_count += len(joined)
+        endif
     endfor
 
-    " limit total context
-    let max = g:context.max_height
-    if len(lines) > max
-        let indent1 = lines[max/2].indent
-        let indent2 = lines[-(max-1)/2].indent
-        let ellipsis = repeat(g:context.char_ellipsis, max([indent2 - indent1, 3]))
-        let ellipsis_line = context#line#make(0, indent1, repeat(' ', indent1) . ellipsis)
-        call remove(lines, max/2, -(max+1)/2)
-        call insert(lines, ellipsis_line, max/2)
-    endif
-
-    return lines
+    return [context_list, line_count]
 endfunction
 
 function! s:get_context_line(line) abort
@@ -108,82 +116,17 @@ function! s:get_context_line(line) abort
 endfunction
 
 function! s:join(lines) abort
-    if g:context.max_join_parts < 1
-        return a:lines
-    endif
-
     " call context#util#echof('> join', len(a:lines))
-    let pending = [] " lines which might be joined with previous
-    let joined = a:lines[:0] " start with first line
+    let joined = [a:lines[:0]] " start with first line
     for line in a:lines[1:]
         if context#line#should_join(line.text)
-            " add lines without word characters to pending list
-            call add(pending, line)
-            continue
+            " add to previous group
+            call add(joined[-1], line)
+        else
+            " create new group
+            call add(joined, [line])
         endif
-
-        " don't join lines with word characters
-        " but first join pending lines to previous output line
-        let joined[-1] = s:join_pending(joined[-1], pending)
-        let pending = []
-        call add(joined, line)
-    endfor
-
-    " join remaining pending lines to last
-    let joined[-1] = s:join_pending(joined[-1], pending)
-    return joined
-endfunction
-
-function! s:join_pending(base, pending) abort
-    " call context#util#echof('> join_pending', len(a:pending))
-    if len(a:pending) == 0
-        return a:base
-    endif
-
-    let joined = a:base
-    if g:context.max_join_parts < 3
-        if g:context.max_join_parts == 2
-            let joined.text .= ' ' . g:context.ellipsis
-        endif
-        return joined
-    endif
-
-    let max = g:context.max_join_parts
-    if len(a:pending) > max-1
-        call remove(a:pending, (max-1)/2-1, -max/2-1)
-        call insert(a:pending, s:nil_line, (max-1)/2-1) " middle marker
-    endif
-
-    for line in a:pending
-        let joined.text .= ' '
-        if line.number == 0
-            " this is the middle marker, use long ellipsis
-            let joined.text .= g:context.ellipsis5
-        elseif joined.number != 0 && line.number != joined.number + 1
-            " not after middle marker and there are lines in between: show ellipsis
-            let joined.text .= g:context.ellipsis . ' '
-        endif
-
-        let joined.text .= context#line#trim(line.text)
-        let joined.number = line.number
     endfor
 
     return joined
-endfunction
-
-function! s:limit(lines, indent) abort
-    " call context#util#echof('> limit', a:indent, len(a:lines))
-
-    let max = g:context.max_per_indent
-    if len(a:lines) <= max
-        return a:lines
-    endif
-
-    let diff = len(a:lines) - max
-
-    let limited = a:lines[: max/2-1]
-    call add(limited, context#line#make(0, a:indent, repeat(' ', a:indent) . g:context.ellipsis))
-    call extend(limited, a:lines[-(max-1)/2 :])
-    return limited
-endif
 endfunction

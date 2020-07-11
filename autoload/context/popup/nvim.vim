@@ -30,7 +30,7 @@ function! context#popup#nvim#redraw(winid, popup, lines) abort
     let c = getwinvar(a:winid, 'context')
     call nvim_win_set_config(a:popup, {
                 \ 'relative': 'editor',
-                \ 'row':      c.pos_y - 1 + c.popup_offset,
+                \ 'row':      c.pos_y - 1,
                 \ 'col':      c.pos_x - 1,
                 \ 'height':   len(a:lines),
                 \ 'width':    c.size_w,
