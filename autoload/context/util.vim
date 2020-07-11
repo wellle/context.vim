@@ -4,13 +4,26 @@ function! context#util#active() abort
                 \ && !get(g:context.filetype_blacklist, &filetype)
 endfunction
 
+function! context#util#map(arg) abort
+    if mode(1) == 'niI' " i^o
+        return a:arg
+    endif
+    return a:arg . ":call context#update('" . a:arg . "')\<CR>"
+endfunction
+
 function! context#util#map_H() abort
+    if mode(1) == 'niI' " i^o
+        return 'H'
+    endif
     " TODO: handle scrolloff
     let n = len(w:context.lines) + v:count1
     return "\<Esc>". n . 'H'
 endfunction
 
 function! context#util#map_zt() abort
+    if mode(1) == 'niI' " i^o
+        return 'zt'
+    endif
     let w:context.force_fix_strategy = 'scroll'
     return "zt:call context#update('zt')\<CR>"
 endfunction
