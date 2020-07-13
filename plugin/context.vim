@@ -47,6 +47,7 @@ if g:context.add_autocmds
         autocmd VimResized   * call context#update('VimResized')
         autocmd CursorHold   * call context#update('CursorHold')
         autocmd User GitGutter call context#update('GitGutter')
+        " TODO: add autocommands for options changed (number, relativenumber, list, etc)
     augroup END
 endif
 

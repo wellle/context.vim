@@ -70,6 +70,8 @@ function! context#update(...) abort
                     \ 'indent':             0,
                     \ 'needs_layout':       0,
                     \ 'needs_update':       0,
+                    \ 'number_width':       0,
+                    \ 'sign_width':         0,
                     \ 'padding':            0,
                     \ 'top_line':           0,
                     \ 'bottom_line':        0,

@@ -195,7 +195,7 @@ function! s:open() abort
     call matchadd(g:context.highlight_tag,    tag,    10, -1, {'window': popup})
 
     let buf = winbufnr(popup)
-    call setbufvar(buf, '&syntax', &syntax)
+    " call setbufvar(buf, '&syntax', &syntax)
 
     return popup
 endfunction

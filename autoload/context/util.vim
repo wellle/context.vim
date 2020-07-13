@@ -90,6 +90,34 @@ function! context#util#update_state() abort
     let w:context.top_line = top_line
     let w:context.cursor_line = cursor_line
 
+    if &number
+        " depends on total number of lines
+        let number_width = max([&numberwidth, float2nr(ceil(log10(line('$') + 1))) + 1])
+    elseif &relativenumber
+        " depends on number of visible lines
+        let number_width = max([&numberwidth, float2nr(ceil(log10(&lines - 1))) + 1])
+    else
+        let number_width = 0
+    endif
+    if w:context.number_width != number_width
+        call context#util#echof('number width changed', w:context.number_width, number_width)
+        let w:context.number_width = number_width
+        let w:context.needs_update = 1
+    endif
+
+    let old = [&virtualedit, &conceallevel]
+    let [&virtualedit, &conceallevel] = ['all', 0]
+    let sign_width = wincol() - virtcol('.') - number_width
+    let [&virtualedit, &conceallevel] = old
+    " NOTE: sign_width can be negative if the cursor is on the wrapped part of
+    " a wrapped line. in that case ignore the value
+    if sign_width >= 0 && w:context.sign_width != sign_width
+        call context#util#echof('sign width changed', w:context.sign_width, sign_width)
+        let w:context.sign_width = sign_width
+        let w:context.needs_update = 1
+    endif
+
+    " TODO: remove padding, use sign_width and number_width exclusively instead
     " padding can only be checked for the current window
     let padding = wincol() - virtcol('.')
     " NOTE: if 'list' is set and the cursor is on a Tab character the cursor

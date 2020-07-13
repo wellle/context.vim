@@ -8,7 +8,7 @@ function! context#popup#nvim#open() abort
                 \ 'col':       0,
                 \ 'width':     1,
                 \ 'height':    1,
-                \ 'focusable': v:false,
+                \ 'focusable': v:true,
                 \ 'style':     'minimal',
                 \ })
 
@@ -36,7 +36,7 @@ function! context#popup#nvim#redraw(winid, popup, lines) abort
                 \ 'width':    c.size_w,
                 \ })
 
-    call setwinvar(a:popup, '&foldcolumn', c.padding)
+    call setwinvar(a:popup, '&list', &list)
 endfunction
 
 function! context#popup#nvim#close(popup) abort

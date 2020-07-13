@@ -43,6 +43,8 @@ function! context#settings#parse() abort
     let Indent        = get(g:, 'Context_indent',        function('indent'))
     let Border_indent = get(g:, 'Context_border_indent', function('indent'))
 
+    " TODO: skip label lines
+
     " lines matching this regex will be ignored for the context
     " match whitespace only lines to show the full context
     " also by default excludes comment lines etc.
