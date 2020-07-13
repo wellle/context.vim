@@ -1,21 +1,13 @@
 let s:context_buffer_name = '<context.vim>'
 
 function! context#preview#update_context() abort
-    while 1
-        let [lines, base_line] = context#preview#get_context()
-        let indent = g:context.Indent(base_line)
+    let lines = [string(localtime()), "a", "b", "c"]
+    let indent = 4
 
-        call context#preview#close()
-        call s:show(lines, indent)
+    call context#preview#close()
+    call s:show(lines, indent)
 
-        let w:context.needs_update = 0
-        call context#util#update_state() " NOTE: this might set w:context.needs_update
-        if !w:context.needs_update
-            return
-        endif
-
-        " update again until it stabilizes
-    endwhile
+    return
 endfunction
 
 function! context#preview#get_context() abort

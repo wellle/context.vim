@@ -1,11 +1,11 @@
 let s:context_buffer_name = '<context.vim>'
 
 function! context#popup#update_context() abort
-    let [lines, base_line] = context#popup#get_context()
-    call context#util#echof('> context#popup#update_context', len(lines))
+    " let [lines, base_line] = context#popup#get_context()
+    " call context#util#echof('> context#popup#update_context', len(lines))
 
-    let w:context.lines  = lines
-    let w:context.indent = g:context.Border_indent(base_line)
+    let w:context.lines  = [string(localtime()), "a", "b", "c"]
+    let w:context.indent = 4
 
     call context#util#show_cursor()
     call s:show()
