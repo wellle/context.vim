@@ -77,24 +77,33 @@ endfunction
 
 function! context#line#text(i, line) abort
     " TODO: do the same in border line
+    " TODO: for border line use number of lines hidden below bottom context
+    " line and topmost visible line? maybe with different highlight group?
 
     " sign column
-    let text = repeat(' ', w:context.sign_width)
+    let line = repeat(' ', w:context.sign_width)
 
     " number column
-    if w:context.number_width > 0
+    " TODO: remove special handling for 0 again
+    if a:line.number == 0
+        let line .= repeat(' ', w:context.number_width)
+    elseif w:context.number_width > 0
         if &relativenumber
             let n = w:context.cursor_line - a:line.number
         elseif &number
             let n = a:line.number
         endif
-        let text .= printf('%*d ', w:context.number_width - 1, n)
+        let line .= printf('%*d ', w:context.number_width - 1, n)
     endif
 
-    " text
-    let text .= a:line.text
+    " TODO: use `space` to fake tab listchars
+    let [_, space, text; _] = matchlist(a:line.text, '\v^(\s*)(.*)$')
 
-    return text
+    let line .= repeat(' ', a:line.indent)
+    " text
+    let line .= text
+
+    return line
 endfunction
 
 function! context#line#trim(string) abort
