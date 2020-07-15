@@ -76,7 +76,14 @@ function! s:join(lines) abort
 endfunction
 
 function! context#line#text(i, line) abort
-    return a:line.text
+    " TODO: do the same in border line
+    if &relativenumber
+        return printf('%*s%*d %s', w:context.sign_width, '', w:context.number_width - 1, w:context.cursor_line - a:line.number, a:line.text)
+    elseif &number
+        return printf('%*s%*d %s', w:context.sign_width, '', w:context.number_width - 1, a:line.number, a:line.text)
+    else
+        return printf('%*s%s', w:context.sign_width, '', a:line.text)
+    endif
 endfunction
 
 function! context#line#trim(string) abort
