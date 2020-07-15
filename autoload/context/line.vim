@@ -77,13 +77,24 @@ endfunction
 
 function! context#line#text(i, line) abort
     " TODO: do the same in border line
-    if &relativenumber
-        return printf('%*s%*d %s', w:context.sign_width, '', w:context.number_width - 1, w:context.cursor_line - a:line.number, a:line.text)
-    elseif &number
-        return printf('%*s%*d %s', w:context.sign_width, '', w:context.number_width - 1, a:line.number, a:line.text)
-    else
-        return printf('%*s%s', w:context.sign_width, '', a:line.text)
+
+    " sign column
+    let text = repeat(' ', w:context.sign_width)
+
+    " number column
+    if w:context.number_width > 0
+        if &relativenumber
+            let n = w:context.cursor_line - a:line.number
+        elseif &number
+            let n = a:line.number
+        endif
+        let text .= printf('%*d ', w:context.number_width - 1, n)
     endif
+
+    " text
+    let text .= a:line.text
+
+    return text
 endfunction
 
 function! context#line#trim(string) abort
