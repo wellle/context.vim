@@ -166,6 +166,12 @@ function! context#util#update_window_state(winid) abort
     endif
 endfunction
 
+" TODO!: there's a bug:
+" normal.c, line 2788
+" ztj
+" shows `... {` even though the { is visible below the border line
+" on master too
+
 " this is a pretty weird function
 " it has been extracted to reduce duplication between popup and preview code
 " what it does: it goes through all lines of the given full context and
