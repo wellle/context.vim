@@ -253,6 +253,11 @@ function! context#util#filter(context, line_number, consider_height) abort
         return [[], 0]
     endif
 
+    " TODO!: there's another bug: in total.c
+    " starting around line 100, wher scrolling down, lines which should go
+    " into the context disappear behind the border line, but don't show up in
+    " context
+
     " apply total limit
     if len(lines) > max_height
         let indent1 = lines[max_height/2][0].indent
