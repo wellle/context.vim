@@ -219,16 +219,26 @@ function! s:get_border_line(winid, indent) abort
         let line_len -= len(s:context_buffer_name) + 1
     endif
 
+    let line = repeat(' ', w:context.sign_width)
+
+    " number column
+    " TODO: remove special handling for 0 again
+    if w:context.number_width > 0
+        " TODO: show number of hidden lines below last context line
+        let n = 0
+        let line .= printf('%*d ', w:context.number_width - 1, n)
+    endif
+
+    let line .= repeat(' ', indent)
+    let line .= repeat(g:context.char_border, line_len)
+
     " NOTE: we use a non breaking space before the buffer name because there
     " can be some display issues in the Kitty terminal with a normal space
-    let border_line = ''
-                \ . repeat(' ', indent)
-                \ . repeat(g:context.char_border, line_len)
-                \ . ' '
+    let line .= ' '
+
     if g:context.show_tag
-        let border_line .= ''
-                    \ . s:context_buffer_name
-                    \ . ' '
+        let line .= s:context_buffer_name . ' '
     endif
-    return border_line
+
+    return line
 endfunction
