@@ -28,84 +28,97 @@ function! context#line#get_base_line(line) abort
 endfunction
 
 function! context#line#join(batch) abort
+    return s:join(a:batch)
+
+    " TODO: clean up/inline
     let line = a:batch[0]
     let text = s:join(a:batch)
 
+    " TODO: where should this debug output go now?
     " let n = &columns - 30 - strchars(context#line#trim(text)) - line.indent
     " let text = printf('%s%s // %2d n:%5d i:%2d', text, repeat(' ', n), len(a:batch), line.number, line.indent)
 
     return context#line#make(line.number, line.indent, text)
 endfunction
 
+" TODO: rename? doesn't really join now, but just enforce max_join_parts
 function! s:join(lines) abort
     " call context#util#echof('> join', len(a:lines))
-    let joined = a:lines[0].text
     if len(a:lines) == 1
-        return joined
+        return a:lines
     endif
 
     let max = g:context.max_join_parts
 
     if max == 1
-        return joined
+        return [a:lines[0]]
     elseif max == 2
-        return joined . ' ' . g:context.ellipsis
+        " TODO: add vars for ellipsis lines?
+        return [a:lines[0], context#line#make(0, 0, g:context.ellipsis)]
     endif
 
     if len(a:lines) > max
         call remove(a:lines, (max+1)/2, -max/2-1)
-        call insert(a:lines, s:nil_line, (max+1)/2) " middle marker
+        call insert(a:lines, context#line#make(0, 0, g:context.ellipsis5), (max+1)/2) " middle marker
     endif
 
-    let last_number = a:lines[0].number
-    for line in a:lines[1:]
-        let joined.text .= ' '
-        if line.number == 0
-            " this is the middle marker, use long ellipsis
-            let joined.text .= g:context.ellipsis5
-        elseif last_number != 0 && line.number != last_number + 1
-            " not after middle marker and there are lines in between: show ellipsis
-            let joined.text .= g:context.ellipsis . ' '
-        endif
+    " TODO: remove
+    " let last_number = a:lines[0].number
+    " for line in a:lines[1:]
+    "     let joined.text .= ' '
+    "     if line.number == 0
+    "         " this is the middle marker, use long ellipsis
+    "         let joined.text .= g:context.ellipsis5
+    "     elseif last_number != 0 && line.number != last_number + 1
+    "         " not after middle marker and there are lines in between: show ellipsis
+    "         let joined.text .= g:context.ellipsis . ' '
+    "     endif
 
-        let joined.text .= context#line#trim(line.text)
-        let last_number = line.number
-    endfor
+    "     let joined.text .= context#line#trim(line.text)
+    "     let last_number = line.number
+    " endfor
 
-    return joined
+    return a:lines
 endfunction
 
-function! context#line#text(i, line) abort
+function! context#line#text(i, lines) abort
     " TODO: do the same in border line
     " TODO: for border line use number of lines hidden below bottom context
     " line and topmost visible line? maybe with different highlight group?
 
     " sign column
-    let line = repeat(' ', w:context.sign_width)
+    let text = repeat(' ', w:context.sign_width)
 
     " number column
     " TODO: remove special handling for 0 again
-    if a:line.number == 0
-        let line .= repeat(' ', w:context.number_width)
+    if a:lines[0].number == 0
+        let text .= repeat(' ', w:context.number_width)
     elseif w:context.number_width > 0
         if &relativenumber
-            let n = w:context.cursor_line - a:line.number
+            let n = w:context.cursor_line - a:lines[0].number
         elseif &number
-            let n = a:line.number
+            let n = a:lines[0].number
         endif
-        let line .= printf('%*d ', w:context.number_width - 1, n)
+        let text .= printf('%*d ', w:context.number_width - 1, n)
     endif
 
-    " TODO: use `space` to fake tab listchars
-    let [_, space, text; _] = matchlist(a:line.text, '\v^(\s*)(.*)$')
+    " indent
+    " TODO: use `space` to fake tab listchars?
+    " let [_, space, text; _] = matchlist(a:lines[0].text, '\v^(\s*)(.*)$')
+    let text .= repeat(' ', a:lines[0].indent)
 
-    let line .= repeat(' ', a:line.indent)
     " text
-    let line .= text
+    for i in range(0, len(a:lines) - 1)
+        if i > 0
+            let text .= ' '
+        endif
+        let text .=  context#line#trim(a:lines[i].text)
+    endfor
 
-    return line
+    return text
 endfunction
 
+" TODO: make this an s: function? only used in here
 function! context#line#trim(string) abort
     return substitute(a:string, '^\s*', '', '')
 endfunction

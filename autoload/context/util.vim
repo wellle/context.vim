@@ -225,8 +225,8 @@ function! context#util#filter(context, line_number, consider_height) abort
                 endif
             endfor
 
-            let line = context#line#join(join_batch)
-            call add(inner_lines, line)
+            let joined_lines = context#line#join(join_batch)
+            call add(inner_lines, joined_lines)
         endfor
 
         " apply max per indent
