@@ -125,6 +125,20 @@ function! context#popup#redraw(winid) abort
     elseif g:context.presenter == 'vim-popup'
         call context#popup#vim#redraw(a:winid, popup, lines)
     endif
+
+    for i in range(1, len(lines))
+        let n = 1
+        " TODO: seems like we need to handle the case where w:context doesn't
+        " exist. do we have a bug somewhere? try open normal.c, split window,
+        " change with fzf (probably the fzf popup issue again...)
+        let m = w:context.sign_width
+        call matchaddpos('SignColumn', [[i,n,m]], 10, -1, {'window': popup})
+        if w:context.number_width > 0
+            let n += m
+            let m = w:context.number_width
+            call matchaddpos('LineNr', [[i,n,m]], 10, -1, {'window': popup})
+        endif
+    endfor
 endfunction
 
 " close all popups
@@ -180,6 +194,8 @@ function! s:show() abort
     endif
 endfunction
 
+" TODO: consider fold column too
+
 function! s:open() abort
     call context#util#echof('  > open')
     if g:context.presenter == 'nvim-float'
@@ -191,6 +207,7 @@ function! s:open() abort
     " NOTE: we use a non breaking space here again before the buffer name
     let border = ' *' .g:context.char_border . '* '
     let tag = s:context_buffer_name
+    " TODO: remove these
     call matchadd(g:context.highlight_border, border, 10, -1, {'window': popup})
     call matchadd(g:context.highlight_tag,    tag,    10, -1, {'window': popup})
 
