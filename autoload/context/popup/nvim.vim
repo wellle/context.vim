@@ -38,13 +38,10 @@ function! context#popup#nvim#redraw(winid, popup, lines) abort
 
     call setwinvar(a:popup, '&list', &list)
 
-    " TODO!: there's actually an issue now. try scolling or zt, sometimes the
-    " popup window remains active...
-
     " NOTE: because of some neovim limitation we have to temporarily switch to
     " the popup window so we can clear the highlighting
     " https://github.com/neovim/neovim/issues/10822
-    execute bufwinnr(buf) . "wincmd w"
+    execute 'noautocmd' bufwinnr(buf) . 'wincmd w'
     call clearmatches()
     wincmd p
 endfunction

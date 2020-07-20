@@ -146,14 +146,14 @@ endfunction
 
 function! s:set_enabled(arg, enabled) abort
     if a:arg == 'window'
-        let winids = [winnr()] " only current window
+        let winnrs = [winnr()] " only current window
     else
-        let winids = range(1, winnr('$')) " all windows
+        let winnrs = range(1, winnr('$')) " all windows
         let g:context.enabled = a:enabled
     endif
 
-    for winid in winids
-        let c = getwinvar(win_getid(winid), 'context', {})
+    for winnr in winnrs
+        let c = getwinvar(win_getid(winnr), 'context', {})
         let c.enabled = a:enabled
         let c.top_line = 0 " don't rely on old cache
     endfor
