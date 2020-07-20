@@ -127,16 +127,24 @@ function! context#popup#redraw(winid) abort
     endif
 
     for i in range(1, len(lines))
-        let n = 1
         " TODO: seems like we need to handle the case where w:context doesn't
         " exist. do we have a bug somewhere? try open normal.c, split window,
         " change with fzf (probably the fzf popup issue again...)
-        let m = w:context.sign_width
-        call matchaddpos('SignColumn', [[i,n,m]], 10, -1, {'window': popup})
-        if w:context.number_width > 0
+        let n = 1
+        let m = 0
+
+        let d = w:context.sign_width
+        if d > 0
+            let m += d
+            call matchaddpos('SignColumn', [[i,n,m]], 10, -1, {'window': popup})
             let n += m
+        endif
+
+        let d = w:context.number_width
+        if d > 0
             let m = w:context.number_width
             call matchaddpos('LineNr', [[i,n,m]], 10, -1, {'window': popup})
+            let n += m
         endif
     endfor
 endfunction
