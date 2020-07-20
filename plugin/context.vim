@@ -37,6 +37,7 @@ endif
 
 
 " autocommands
+" TODO: update docs
 if g:context.add_autocmds
     augroup context.vim
         autocmd!
@@ -47,7 +48,10 @@ if g:context.add_autocmds
         autocmd VimResized   * call context#update('VimResized')
         autocmd CursorHold   * call context#update('CursorHold')
         autocmd User GitGutter call context#update('GitGutter')
-        " TODO: add autocommands for options changed (number, relativenumber, list, etc)
+        " TODO: there's a bug here, if number is set and you toggle
+        " relativenumber, then the context doesn't get updated
+        autocmd OptionSet number,relativenumber,numberwidth,signcolumn,tabstop
+                    \          call context#update('OptionSet')
     augroup END
 endif
 
