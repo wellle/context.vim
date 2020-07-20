@@ -57,26 +57,21 @@ function! s:join(lines) abort
         return [a:lines[0], context#line#make(0, 0, g:context.ellipsis)]
     endif
 
-    if len(a:lines) > max
+    if len(a:lines) > max " too many parts
         call remove(a:lines, (max+1)/2, -max/2-1)
         call insert(a:lines, context#line#make(0, 0, g:context.ellipsis5), (max+1)/2) " middle marker
     endif
 
-    " TODO: remove
-    " let last_number = a:lines[0].number
-    " for line in a:lines[1:]
-    "     let joined.text .= ' '
-    "     if line.number == 0
-    "         " this is the middle marker, use long ellipsis
-    "         let joined.text .= g:context.ellipsis5
-    "     elseif last_number != 0 && line.number != last_number + 1
-    "         " not after middle marker and there are lines in between: show ellipsis
-    "         let joined.text .= g:context.ellipsis . ' '
-    "     endif
-
-    "     let joined.text .= context#line#trim(line.text)
-    "     let last_number = line.number
-    " endfor
+    " insert ellipses where there are gaps between the parts
+    let i = 0
+    while i < len(a:lines) - 1
+        let [n1, n2] = [a:lines[i].number, a:lines[i+1].number]
+        if n1 > 0 && n2 > 0 && n2 > n1 + 1
+            " line i+1 is not directly below line i, so add a marker
+            call insert(a:lines, context#line#make(0, 0, g:context.ellipsis), i+1)
+        endif
+        let i += 1
+    endwhile
 
     return a:lines
 endfunction
