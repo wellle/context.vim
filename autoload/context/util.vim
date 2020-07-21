@@ -166,12 +166,6 @@ function! context#util#update_window_state(winid) abort
     endif
 endfunction
 
-" TODO!: there's a bug:
-" normal.c, line 2788
-" ztj
-" shows `... {` even though the { is visible below the border line
-" on master too
-
 " this is a pretty weird function
 " it has been extracted to reduce duplication between popup and preview code
 " what it does: it goes through all lines of the given full context and
@@ -217,7 +211,7 @@ function! context#util#filter(context, line_number, consider_height) abort
             endif
 
             for i in range(1, len(join_batch)-1)
-                if join_batch[i].number > w:context.top_line + height
+                if join_batch[i].number >= w:context.top_line + height
                     let line_number = join_batch[i].number
                     let done = 1
                     call remove(join_batch, i, -1)
