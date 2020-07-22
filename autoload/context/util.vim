@@ -178,9 +178,10 @@ endfunction
 " to be displayed together with the line_number which should be used for the
 " indentation of the border line/status line
 function! context#util#filter(context, line_number, consider_height) abort
-    let line_number = a:line_number
-    let max_height = g:context.max_height
-    let max_height_per_indent = g:context.max_per_indent
+    let line_number    = a:line_number
+    let show_border    = g:context.show_border
+    let max_height     = g:context.max_height
+    let max_per_indent = g:context.max_per_indent
 
     let height = 0
     let done = 0
@@ -203,9 +204,9 @@ function! context#util#filter(context, line_number, consider_height) abort
             endif
 
             if a:consider_height
-                if height == 0 && g:context.show_border
+                if height == 0 && show_border
                     let height += 2 " adding border line
-                elseif height < max_height && len(inner_lines) < max_height_per_indent
+                elseif height < max_height + show_border && len(inner_lines) < max_per_indent
                     let height += 1
                 endif
             endif
@@ -224,21 +225,21 @@ function! context#util#filter(context, line_number, consider_height) abort
         endfor
 
         " apply max per indent
-        if len(inner_lines) <= max_height_per_indent
+        if len(inner_lines) <= max_per_indent
             call extend(lines, inner_lines)
             continue
         endif
 
-        let diff = len(inner_lines) - max_height_per_indent
+        let diff = len(inner_lines) - max_per_indent
 
         " call context#util#echof('inner_lines', inner_lines)
 
         let indent = inner_lines[0][0].indent
-        let limited = inner_lines[: max_height_per_indent/2-1]
+        let limited = inner_lines[: max_per_indent/2-1]
         " TODO: use first line number of removed batch
         let ellipsis_lines = [context#line#make(0, indent, repeat(' ', indent) . g:context.ellipsis)]
         call add(limited, ellipsis_lines)
-        call extend(limited, inner_lines[-(max_height_per_indent-1)/2 :])
+        call extend(limited, inner_lines[-(max_per_indent-1)/2 :])
 
         call extend(lines, limited)
     endfor
@@ -246,11 +247,6 @@ function! context#util#filter(context, line_number, consider_height) abort
     if len(lines) == 0
         return [[], 0]
     endif
-
-    " TODO!: there's another bug: in total.c
-    " starting around line 100, wher scrolling down, lines which should go
-    " into the context disappear behind the border line, but don't show up in
-    " context
 
     " apply total limit
     if len(lines) > max_height
