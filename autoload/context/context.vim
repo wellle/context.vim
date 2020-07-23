@@ -73,7 +73,7 @@ function! s:get_context_line(line) abort
     let skipped = get(b:context.skips, a:line.number, -1)
     if skipped != -1
         " call context#util#echof('  skipped', a:line.number, '->', skipped)
-        return context#line#make(skipped, g:context.Indent(skipped), getline(skipped))
+        return context#line#make(skipped, g:context.Indent(skipped), context#line#trim(getline(skipped)))
     endif
 
     " if line starts with closing brace or similar: jump to matching
@@ -105,13 +105,15 @@ function! s:get_context_line(line) abort
             continue
         endif
 
-        let line = getline(current_line)
-        if context#line#should_skip(line)
+        let text = getline(current_line)
+        " TODO: inject trimmed text into these functions? that way can
+        " probably simplify regexes too (don't need to handle leading spaces)
+        if context#line#should_skip(text)
             let current_line -= 1
             continue
         endif
 
-        return context#line#make(current_line, indent, line)
+        return context#line#make(current_line, indent, context#line#trim(text))
     endwhile
 endfunction
 

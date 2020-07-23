@@ -132,26 +132,36 @@ function! context#popup#redraw(winid) abort
         call context#popup#vim#redraw(a:winid, popup, display_lines)
     endif
 
-    for i in range(1, len(lines))
+    for l in range(0, len(lines) - 1)
         " TODO: seems like we need to handle the case where w:context doesn't
         " exist. do we have a bug somewhere? try open normal.c, split window,
         " change with fzf (probably the fzf popup issue again...)
-        let n = 1
-        let m = 0
+        let col = 1
 
-        let d = w:context.sign_width
-        if d > 0
-            let m += d
-            call matchaddpos('SignColumn', [[i,n,m]], 10, -1, {'window': popup})
-            let n += m
+        let width = c.sign_width
+        if width > 0
+            " TODO: collect highlights and call matchaddpos() once per
+            " highlight group? same for LineNr below
+            call matchaddpos('SignColumn', [[l+1, col, width]], 10, -1, {'window': popup})
+            let col += width
         endif
 
-        let d = w:context.number_width
-        if d > 0
-            let m = w:context.number_width
-            call matchaddpos('LineNr', [[i,n,m]], 10, -1, {'window': popup})
-            let n += m
+        let width = c.number_width
+        if width > 0
+            call matchaddpos('LineNr', [[l+1, col, width]], 10, -1, {'window': popup})
+            let col += width
         endif
+
+        let col += lines[l][0].indent
+
+        " highlight individual join parts
+        let hl = 'Search'
+        for join_part in lines[l]
+            let width = len(join_part.text)
+            call matchaddpos(hl, [[l+1, col, width]], 10, -1, {'window': popup})
+            let hl = hl == 'Search' ? 'IncSearch' : 'Search'
+            let col += width
+        endfor
     endfor
 endfunction
 
@@ -250,14 +260,7 @@ function! s:get_border_line(winid, indent) abort
         let line_len -= len(s:context_buffer_name) + 1
     endif
 
-    " NOTE: the indent isn't really needed at this point because currently we
-    " trim and fill the indent by spaces in #line#text()
-    " TODO: if we try to fake the listchars in the context we should consider
-    " taking the proper indent (spaces or tabs) from the base line instead of
-    " only the indent as number of spaces
-    let text = repeat(' ', indent)
-
-    let text .= repeat(g:context.char_border, line_len)
+    let text = repeat(g:context.char_border, line_len)
 
     " NOTE: we use a non breaking space before the buffer name because there
     " can be some display issues in the Kitty terminal with a normal space

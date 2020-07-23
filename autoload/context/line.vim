@@ -58,17 +58,19 @@ function! s:join(lines) abort
     endif
 
     if len(a:lines) > max " too many parts
+        let text = ' ' . g:context.ellipsis5 . ' '
         call remove(a:lines, (max+1)/2, -max/2-1)
-        call insert(a:lines, context#line#make(0, 0, g:context.ellipsis5), (max+1)/2) " middle marker
+        call insert(a:lines, context#line#make(0, 0, text), (max+1)/2) " middle marker
     endif
 
     " insert ellipses where there are gaps between the parts
     let i = 0
     while i < len(a:lines) - 1
         let [n1, n2] = [a:lines[i].number, a:lines[i+1].number]
-        if n1 > 0 && n2 > 0 && n2 > n1 + 1
-            " line i+1 is not directly below line i, so add a marker
-            call insert(a:lines, context#line#make(0, 0, g:context.ellipsis), i+1)
+        if n1 > 0 && n2 > 0
+            " show ellipsis if line i+1 is not directly below line i
+            let text = n2 > n1 + 1 ? ' ' . g:context.ellipsis . ' ' : ' '
+            call insert(a:lines, context#line#make(0, 0, text), i+1)
         endif
         let i += 1
     endwhile
@@ -76,8 +78,9 @@ function! s:join(lines) abort
     return a:lines
 endfunction
 
+" TODO: have a single function going through the join parts once and returning
+" the joined text and the highlight groups?
 function! context#line#text(lines) abort
-    " TODO: do the same in border line
     " TODO: for border line use number of lines hidden below bottom context
     " line and topmost visible line? maybe with different highlight group?
 
@@ -103,11 +106,8 @@ function! context#line#text(lines) abort
     let text .= repeat(' ', a:lines[0].indent)
 
     " text
-    for i in range(0, len(a:lines) - 1)
-        if i > 0
-            let text .= ' '
-        endif
-        let text .=  context#line#trim(a:lines[i].text)
+    for line in a:lines
+        let text .= line.text
     endfor
 
     return text
