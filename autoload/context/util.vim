@@ -259,7 +259,6 @@ function! context#util#filter(context, line_number, consider_height) abort
         call insert(lines, ellipsis_lines, max_height/2)
     endif
 
-    call map(lines, function('context#line#text'))
     return [lines, line_number]
 endfunction
 

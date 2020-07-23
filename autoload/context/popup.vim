@@ -66,7 +66,7 @@ function! context#popup#get_context() abort
     let [lines, line_number] = context#util#filter(context, line_number, 1)
 
     if g:context.show_border && len(lines) > 0
-        call add(lines, '') " add line for border, will be replaced later
+        call add(lines, []) " add line for border, will be replaced later
     endif
 
     return [lines, line_number]
@@ -120,10 +120,16 @@ function! context#popup#redraw(winid) abort
     endif
 
     call context#util#echof('  > context#popup#redraw', len(lines))
+
+    let display_lines = []
+    for line in lines
+        call add(display_lines, context#line#text(line))
+    endfor
+
     if g:context.presenter == 'nvim-float'
-        call context#popup#nvim#redraw(a:winid, popup, lines)
+        call context#popup#nvim#redraw(a:winid, popup, display_lines)
     elseif g:context.presenter == 'vim-popup'
-        call context#popup#vim#redraw(a:winid, popup, lines)
+        call context#popup#vim#redraw(a:winid, popup, display_lines)
     endif
 
     for i in range(1, len(lines))
@@ -244,26 +250,22 @@ function! s:get_border_line(winid, indent) abort
         let line_len -= len(s:context_buffer_name) + 1
     endif
 
-    let line = repeat(' ', w:context.sign_width)
+    " NOTE: the indent isn't really needed at this point because currently we
+    " trim and fill the indent by spaces in #line#text()
+    " TODO: if we try to fake the listchars in the context we should consider
+    " taking the proper indent (spaces or tabs) from the base line instead of
+    " only the indent as number of spaces
+    let text = repeat(' ', indent)
 
-    " number column
-    " TODO: remove special handling for 0 again
-    if w:context.number_width > 0
-        " TODO: show number of hidden lines below last context line
-        let n = 0
-        let line .= printf('%*d ', w:context.number_width - 1, n)
-    endif
-
-    let line .= repeat(' ', indent)
-    let line .= repeat(g:context.char_border, line_len)
+    let text .= repeat(g:context.char_border, line_len)
 
     " NOTE: we use a non breaking space before the buffer name because there
     " can be some display issues in the Kitty terminal with a normal space
-    let line .= ' '
+    let text .= ' '
 
     if g:context.show_tag
-        let line .= s:context_buffer_name . ' '
+        let text .= s:context_buffer_name . ' '
     endif
 
-    return line
+    return [context#line#make(0, indent, text)]
 endfunction

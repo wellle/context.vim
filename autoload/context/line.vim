@@ -76,7 +76,7 @@ function! s:join(lines) abort
     return a:lines
 endfunction
 
-function! context#line#text(i, lines) abort
+function! context#line#text(lines) abort
     " TODO: do the same in border line
     " TODO: for border line use number of lines hidden below bottom context
     " line and topmost visible line? maybe with different highlight group?
