@@ -17,13 +17,13 @@ function! context#line#get_base_line(line) abort
             return s:nil_line
         endif
 
-        let line = getline(current_line)
-        if context#line#should_skip(line)
+        let text = getline(current_line)
+        if context#line#should_skip(text)
             let current_line += 1
             continue
         endif
 
-        return context#line#make(current_line, indent, line)
+        return context#line#make(current_line, indent, text)
     endwhile
 endfunction
 

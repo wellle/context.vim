@@ -33,14 +33,14 @@ function! context#popup#get_context() abort
             return [[], 0]
         endif
 
-        let line = getline(line_number) " empty for invalid lines
-        if context#line#should_skip(line)
+        let text = getline(line_number) " empty for invalid lines
+        if context#line#should_skip(text)
             let skipped += 1
             call context#util#echof('skip', line_number)
             continue
         endif
 
-        let base_line = context#line#make(line_number, indent, line)
+        let base_line = context#line#make(line_number, indent, text)
         let [context, line_count] = context#context#get(base_line)
         call context#util#echof('context#get', line_number, line_count)
 
@@ -154,14 +154,45 @@ function! context#popup#redraw(winid) abort
 
         let col += lines[l][0].indent
 
-        " highlight individual join parts
-        let hl = 'Search'
+        " " highlight individual join parts
+        " let hl = 'Search'
+        " for join_part in lines[l]
+        "     let width = len(join_part.text)
+        "     call matchaddpos(hl, [[l+1, col, width]], 10, -1, {'window': popup})
+        "     let hl = hl == 'Search' ? 'IncSearch' : 'Search'
+        "     let col += width
+        " endfor
+
+        " TODO!: we probably also need a way later to check how many characters
+        " (not visual columns) the indentation was originally, because the
+        " syntax highlight check seems to need chars instead of columns...
+        let prev_hl = ''
+        let count = 0
         for join_part in lines[l]
-            let width = len(join_part.text)
-            call matchaddpos(hl, [[l+1, col, width]], 10, -1, {'window': popup})
-            let hl = hl == 'Search' ? 'IncSearch' : 'Search'
-            let col += width
+            " call context#util#echof('join_part', l, len(join_part.text) + 1)
+            for line_col in range(1+join_part.indent, join_part.indent + len(join_part.text)+1) " TODO: only up to windowwidth
+                let hlgroup = synIDattr(synIDtrans(synID(join_part.number, line_col, 1)), 'name')
+                " call context#util#echof('hlgroup', l, line_col, hlgroup)
+
+                " if hlgroup != ''
+                "     call context#util#echof('hl', join_part.number, line_col, hlgroup, count)
+                " endif
+
+                if hlgroup == prev_hl " TODO: add col < end condition?
+                    let count += 1
+                    continue
+                endif
+
+                if prev_hl != ''
+                    " call context#util#echof('adding hl', prev_hl, l, col, count)
+                    call matchaddpos(prev_hl, [[l+1, col, count]], 0, -1, {'window': popup})
+                endif
+                let prev_hl = hlgroup
+                let col += count
+                let count = 1
+            endfor
         endfor
+
     endfor
 endfunction
 

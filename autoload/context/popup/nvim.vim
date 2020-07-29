@@ -41,6 +41,8 @@ function! context#popup#nvim#redraw(winid, popup, lines) abort
     " NOTE: because of some neovim limitation we have to temporarily switch to
     " the popup window so we can clear the highlighting
     " https://github.com/neovim/neovim/issues/10822
+    " TODO: seems like this still triggers a BufEnter autocmd which triggers a
+    " context, stop that from happening
     execute 'noautocmd' bufwinnr(buf) . 'wincmd w'
     call clearmatches()
     wincmd p
