@@ -170,7 +170,7 @@ function! context#popup#redraw(winid) abort
         let count = 0
         for join_part in lines[l]
             " call context#util#echof('join_part', l, len(join_part.text) + 1)
-            for line_col in range(1+join_part.indent, join_part.indent + len(join_part.text)+1) " TODO: only up to windowwidth
+            for line_col in range(1+join_part.indent_chars, join_part.indent_chars + len(join_part.text)+1) " TODO: only up to windowwidth
                 let hlgroup = synIDattr(synIDtrans(synID(join_part.number, line_col, 1)), 'name')
                 " call context#util#echof('hlgroup', l, line_col, hlgroup)
 
