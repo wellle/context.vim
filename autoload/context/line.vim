@@ -1,10 +1,5 @@
 function! context#line#make(number, indent, text) abort
-    return {
-                \ 'number':       a:number,
-                \ 'indent':       a:indent,
-                \ 'indent_chars': a:indent,
-                \ 'text':         a:text,
-                \ }
+    return context#line#make_highlight(a:number, a:indent, a:text, '')
 endfunction
 
 function! context#line#make_trimmed(number, indent, text) abort
@@ -14,6 +9,17 @@ function! context#line#make_trimmed(number, indent, text) abort
                 \ 'indent':       a:indent,
                 \ 'indent_chars': len(a:text) - len(trimmed_text),
                 \ 'text':         trimmed_text,
+                \ 'highlight':    '',
+                \ }
+endfunction
+
+function! context#line#make_highlight(number, indent, text, highlight) abort
+    return {
+                \ 'number':       a:number,
+                \ 'indent':       a:indent,
+                \ 'indent_chars': a:indent,
+                \ 'text':         a:text,
+                \ 'highlight':    a:highlight,
                 \ }
 endfunction
 

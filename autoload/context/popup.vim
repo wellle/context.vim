@@ -65,10 +65,6 @@ function! context#popup#get_context() abort
 
     let [lines, line_number] = context#util#filter(context, line_number, 1)
 
-    if g:context.show_border && len(lines) > 0
-        call add(lines, []) " add line for border, will be replaced later
-    endif
-
     return [lines, line_number]
 endfunction
 
@@ -109,14 +105,13 @@ function! context#popup#redraw(winid) abort
         return
     endif
 
-    let lines = c.lines
+    let lines = copy(c.lines)
     if len(lines) == 0
         return
     endif
 
     if g:context.show_border
-        let lines[-1] = s:get_border_line(a:winid, 1)
-        let c.lines = lines
+        call add(lines, s:get_border_line(a:winid, 1))
     endif
 
     call context#util#echof('  > context#popup#redraw', len(lines))
@@ -131,6 +126,10 @@ function! context#popup#redraw(winid) abort
     elseif g:context.presenter == 'vim-popup'
         call context#popup#vim#redraw(a:winid, popup, display_lines)
     endif
+
+    " TODO!: use better "line numbers" for special lines, maybe use
+    " CursorLineNr as highlight group
+    " TODO!: add highlight for ellipsis? (as comment?)
 
     for l in range(0, len(lines) - 1)
         " TODO: seems like we need to handle the case where w:context doesn't
@@ -158,18 +157,24 @@ function! context#popup#redraw(winid) abort
         " let hl = 'Search'
         " for join_part in lines[l]
         "     let width = len(join_part.text)
-        "     call matchaddpos(hl, [[l+1, col, width]], 10, -1, {'window': popup})
+        "     call matchaddpos(hl, [[l+1, col, width]], 11, -1, {'window': popup})
         "     let hl = hl == 'Search' ? 'IncSearch' : 'Search'
         "     let col += width
         " endfor
+        " continue
 
-        " TODO!: we probably also need a way later to check how many characters
-        " (not visual columns) the indentation was originally, because the
-        " syntax highlight check seems to need chars instead of columns...
         let prev_hl = ''
         let count = 0
         for join_part in lines[l]
             " call context#util#echof('join_part', l, len(join_part.text) + 1)
+
+            if join_part.highlight != ''
+                let count = len(join_part.text)
+                call matchaddpos(join_part.highlight, [[l+1, col, count]], 0, -1, {'window': popup})
+                let col += count
+                continue
+            endif
+
             for line_col in range(1+join_part.indent_chars, join_part.indent_chars + len(join_part.text)+1) " TODO: only up to windowwidth
                 let hlgroup = synIDattr(synIDtrans(synID(join_part.number, line_col, 1)), 'name')
                 " call context#util#echof('hlgroup', l, line_col, hlgroup)
@@ -192,7 +197,6 @@ function! context#popup#redraw(winid) abort
                 let count = 1
             endfor
         endfor
-
     endfor
 endfunction
 
@@ -284,22 +288,23 @@ endfunction
 function! s:get_border_line(winid, indent) abort
     let c = getwinvar(a:winid, 'context')
     let indent = a:indent ? c.indent : 0
-    " let indent = 0
+
+    " NOTE: we use a non breaking space after the border chars because there
+    " can be some display issues in the Kitty terminal with a normal space
 
     let line_len = c.size_w - c.padding - indent - 1
     if g:context.show_tag
         let line_len -= len(s:context_buffer_name) + 1
+        let border_text = repeat(g:context.char_border, line_len)
+        " here the NB space belongs to the tag part (for minor highlighting reasons)
+        let tag_text = ' ' . s:context_buffer_name . ' '
+        return [
+                    \ context#line#make_highlight(0, indent, border_text, g:context.highlight_border),
+                    \ context#line#make_highlight(0, indent, tag_text, g:context.highlight_tag)
+                    \ ]
     endif
 
-    let text = repeat(g:context.char_border, line_len)
-
-    " NOTE: we use a non breaking space before the buffer name because there
-    " can be some display issues in the Kitty terminal with a normal space
-    let text .= ' '
-
-    if g:context.show_tag
-        let text .= s:context_buffer_name . ' '
-    endif
-
-    return [context#line#make(0, indent, text)]
+    " here the NB space belongs to the border part
+    let border_text = repeat(g:context.char_border, line_len) . ' '
+    return [context#line#make_highlight(0, indent, border_text, g:context.highlight_border)]
 endfunction

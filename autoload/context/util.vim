@@ -16,7 +16,7 @@ function! context#util#map_H() abort
         return 'H'
     endif
     " TODO: handle scrolloff
-    let n = len(w:context.lines) + v:count1
+    let n = len(w:context.lines) + g:context.show_border + v:count1
     return "\<Esc>". n . 'H'
 endfunction
 
@@ -264,7 +264,7 @@ endfunction
 
 function! context#util#show_cursor() abort
     " compare height of context to cursor line on screen
-    let n = len(w:context.lines) - (w:context.cursor_line - w:context.top_line)
+    let n = len(w:context.lines) + g:context.show_border - (w:context.cursor_line - w:context.top_line)
     if n <= 0
         " if cursor is low enough, nothing to do
         return
