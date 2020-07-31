@@ -129,7 +129,6 @@ function! context#popup#redraw(winid) abort
 
     " TODO!: use better "line numbers" for special lines, maybe use
     " CursorLineNr as highlight group
-    " TODO!: add highlight for ellipsis? (as comment?)
 
     for l in range(0, len(lines) - 1)
         " TODO: seems like we need to handle the case where w:context doesn't
@@ -164,14 +163,16 @@ function! context#popup#redraw(winid) abort
         " continue
 
         let prev_hl = ''
-        let count = 0
         for join_part in lines[l]
+            let count = 0
             " call context#util#echof('join_part', l, len(join_part.text) + 1)
 
             if join_part.highlight != ''
                 let count = len(join_part.text)
+                call context#util#echof('adding hl1', join_part.highlight, l, col, count)
                 call matchaddpos(join_part.highlight, [[l+1, col, count]], 0, -1, {'window': popup})
                 let col += count
+                let count = 1
                 continue
             endif
 
@@ -189,13 +190,14 @@ function! context#popup#redraw(winid) abort
                 endif
 
                 if prev_hl != ''
-                    " call context#util#echof('adding hl', prev_hl, l, col, count)
+                    call context#util#echof('adding hl2', prev_hl, l, col, count)
                     call matchaddpos(prev_hl, [[l+1, col, count]], 0, -1, {'window': popup})
                 endif
                 let prev_hl = hlgroup
                 let col += count
                 let count = 1
             endfor
+            let col += count-1
         endfor
     endfor
 endfunction

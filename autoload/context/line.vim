@@ -71,13 +71,14 @@ function! s:join(lines) abort
         return [a:lines[0]]
     elseif max == 2
         " TODO: add vars for ellipsis lines?
-        return [a:lines[0], context#line#make(0, 0, g:context.ellipsis)]
+        let text = ' ' . g:context.ellipsis
+        return [a:lines[0], context#line#make_highlight(0, 0, text, 'Comment')]
     endif
 
     if len(a:lines) > max " too many parts
         let text = ' ' . g:context.ellipsis5 . ' '
         call remove(a:lines, (max+1)/2, -max/2-1)
-        call insert(a:lines, context#line#make(0, 0, text), (max+1)/2) " middle marker
+        call insert(a:lines, context#line#make_highlight(0, 0, text, 'Comment'), (max+1)/2) " middle marker
     endif
 
     " insert ellipses where there are gaps between the parts
@@ -87,7 +88,7 @@ function! s:join(lines) abort
         if n1 > 0 && n2 > 0
             " show ellipsis if line i+1 is not directly below line i
             let text = n2 > n1 + 1 ? ' ' . g:context.ellipsis . ' ' : ' '
-            call insert(a:lines, context#line#make(0, 0, text), i+1)
+            call insert(a:lines, context#line#make_highlight(0, 0, text, 'Comment'), i+1)
         endif
         let i += 1
     endwhile
@@ -95,7 +96,7 @@ function! s:join(lines) abort
     return a:lines
 endfunction
 
-" TODO: have a single function going through the join parts once and returning
+" TODO!: have a single function going through the join parts once and returning
 " the joined text and the highlight groups?
 function! context#line#text(lines) abort
     " TODO: for border line use number of lines hidden below bottom context
