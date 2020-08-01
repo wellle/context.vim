@@ -127,9 +127,6 @@ function! context#popup#redraw(winid) abort
         call context#popup#vim#redraw(a:winid, popup, display_lines)
     endif
 
-    " TODO!: use better "line numbers" for special lines, maybe use
-    " CursorLineNr as highlight group
-
     for l in range(0, len(lines) - 1)
         " TODO: seems like we need to handle the case where w:context doesn't
         " exist. do we have a bug somewhere? try open normal.c, split window,
@@ -146,7 +143,9 @@ function! context#popup#redraw(winid) abort
 
         let width = c.number_width
         if width > 0
-            let hl = lines[l][0].display_number == 0 ? 'LineNr' : 'CursorLineNr'
+            " TODO: really use CursorLineNr here? puts maybe a bit too much
+            " emphasis? maybe being left aligned might be enough?
+            let hl = lines[l][0].display_number >= 0 ? 'CursorLineNr' : 'LineNr'
             call matchaddpos(hl, [[l+1, col, width]], 10, -1, {'window': popup})
             let col += width
         endif
@@ -292,6 +291,11 @@ function! s:get_border_line(winid, indent) abort
     let c = getwinvar(a:winid, 'context')
     let indent = a:indent ? c.indent : 0
 
+    let new_top_line = w:context.top_line + len(w:context.lines)
+    " TODO: use 0 or -1 in second []? which one is more natural/useful?
+    " TODO: +1 or not in the end? (to avoid zeros)
+    let n = new_top_line - w:context.lines[-1][0].number
+
     " NOTE: we use a non breaking space after the border chars because there
     " can be some display issues in the Kitty terminal with a normal space
 
@@ -302,12 +306,12 @@ function! s:get_border_line(winid, indent) abort
         " here the NB space belongs to the tag part (for minor highlighting reasons)
         let tag_text = ' ' . s:context_buffer_name . ' '
         return [
-                    \ context#line#make_highlight(0, 0, indent, border_text, g:context.highlight_border),
-                    \ context#line#make_highlight(0, 0, indent, tag_text,    g:context.highlight_tag)
+                    \ context#line#make_highlight(0, n, indent, border_text, g:context.highlight_border),
+                    \ context#line#make_highlight(0, n, indent, tag_text,    g:context.highlight_tag)
                     \ ]
     endif
 
     " here the NB space belongs to the border part
     let border_text = repeat(g:context.char_border, line_len) . ' '
-    return [context#line#make_highlight(0, 0, indent, border_text, g:context.highlight_border)]
+    return [context#line#make_highlight(0, n, indent, border_text, g:context.highlight_border)]
 endfunction
