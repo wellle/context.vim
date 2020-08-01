@@ -1,25 +1,27 @@
 function! context#line#make(number, indent, text) abort
-    return context#line#make_highlight(a:number, a:indent, a:text, '')
+    return context#line#make_highlight(a:number, 0, a:indent, a:text, '')
 endfunction
 
 function! context#line#make_trimmed(number, indent, text) abort
     let trimmed_text = context#line#trim(a:text)
     return {
-                \ 'number':       a:number,
-                \ 'indent':       a:indent,
-                \ 'indent_chars': len(a:text) - len(trimmed_text),
-                \ 'text':         trimmed_text,
-                \ 'highlight':    '',
+                \ 'number':         a:number,
+                \ 'display_number': 0,
+                \ 'indent':         a:indent,
+                \ 'indent_chars':   len(a:text) - len(trimmed_text),
+                \ 'text':           trimmed_text,
+                \ 'highlight':      '',
                 \ }
 endfunction
 
-function! context#line#make_highlight(number, indent, text, highlight) abort
+function! context#line#make_highlight(number, display_number, indent, text, highlight) abort
     return {
-                \ 'number':       a:number,
-                \ 'indent':       a:indent,
-                \ 'indent_chars': a:indent,
-                \ 'text':         a:text,
-                \ 'highlight':    a:highlight,
+                \ 'number':         a:number,
+                \ 'display_number': a:display_number,
+                \ 'indent':         a:indent,
+                \ 'indent_chars':   a:indent,
+                \ 'text':           a:text,
+                \ 'highlight':      a:highlight,
                 \ }
 endfunction
 
@@ -72,13 +74,13 @@ function! s:join(lines) abort
     elseif max == 2
         " TODO: add vars for ellipsis lines?
         let text = ' ' . g:context.ellipsis
-        return [a:lines[0], context#line#make_highlight(0, 0, text, 'Comment')]
+        return [a:lines[0], context#line#make_highlight(0, 0, 0, text, 'Comment')]
     endif
 
     if len(a:lines) > max " too many parts
         let text = ' ' . g:context.ellipsis5 . ' '
         call remove(a:lines, (max+1)/2, -max/2-1)
-        call insert(a:lines, context#line#make_highlight(0, 0, text, 'Comment'), (max+1)/2) " middle marker
+        call insert(a:lines, context#line#make_highlight(0, 0, 0, text, 'Comment'), (max+1)/2) " middle marker
     endif
 
     " insert ellipses where there are gaps between the parts
@@ -88,7 +90,7 @@ function! s:join(lines) abort
         if n1 > 0 && n2 > 0
             " show ellipsis if line i+1 is not directly below line i
             let text = n2 > n1 + 1 ? ' ' . g:context.ellipsis . ' ' : ' '
-            call insert(a:lines, context#line#make_highlight(0, 0, text, 'Comment'), i+1)
+            call insert(a:lines, context#line#make_highlight(0, 0, 0, text, 'Comment'), i+1)
         endif
         let i += 1
     endwhile
@@ -106,16 +108,22 @@ function! context#line#text(lines) abort
     let text = repeat(' ', w:context.sign_width)
 
     " number column
-    " TODO: remove special handling for 0 again
-    if a:lines[0].number == 0
-        let text .= repeat(' ', w:context.number_width)
-    elseif w:context.number_width > 0
-        if &relativenumber
-            let n = w:context.cursor_line - a:lines[0].number
-        elseif &number
-            let n = a:lines[0].number
+    if w:context.number_width > 0
+        if a:lines[0].display_number != 0
+            " NOTE: we align to the left here, similar to what Vim does when both
+            " 'nmuber' and 'relativenumber' are set
+            let text .= printf('%-*d ', w:context.number_width - 1, a:lines[0].display_number)
+        " TODO: remove special handling for 0 again
+        elseif a:lines[0].number == 0
+            let text .= repeat(' ', w:context.number_width)
+        else
+            if &relativenumber
+                let n = w:context.cursor_line - a:lines[0].number
+            elseif &number
+                let n = a:lines[0].number
+            endif
+            let text .= printf('%*d ', w:context.number_width - 1, n)
         endif
-        let text .= printf('%*d ', w:context.number_width - 1, n)
     endif
 
     " indent

@@ -225,19 +225,19 @@ function! context#util#filter(context, line_number, consider_height) abort
         endfor
 
         " apply max per indent
-        if len(inner_lines) <= max_per_indent
+        let diff = len(inner_lines) - max_per_indent
+        if diff <= 0
             call extend(lines, inner_lines)
             continue
         endif
 
-        let diff = len(inner_lines) - max_per_indent
 
         " call context#util#echof('inner_lines', inner_lines)
 
         let indent = inner_lines[0][0].indent
         let limited = inner_lines[: max_per_indent/2-1]
         " TODO: use first line number of removed batch
-        let ellipsis_lines = [context#line#make_highlight(0, indent, g:context.ellipsis, 'Comment')]
+        let ellipsis_lines = [context#line#make_highlight(0, diff, indent, g:context.ellipsis, 'Comment')]
         call add(limited, ellipsis_lines)
         call extend(limited, inner_lines[-(max_per_indent-1)/2 :])
 
@@ -249,12 +249,13 @@ function! context#util#filter(context, line_number, consider_height) abort
     endif
 
     " apply total limit
-    if len(lines) > max_height
+    let diff = len(lines) - max_height
+    if diff > 0
         let indent1 = lines[max_height/2][0].indent
         let indent2 = lines[-(max_height-1)/2][0].indent
         let ellipsis = repeat(g:context.char_ellipsis, max([indent2 - indent1, 3]))
         " TODO: use first line number of removed batch
-        let ellipsis_lines = [context#line#make_highlight(0, indent1, ellipsis, 'Comment')]
+        let ellipsis_lines = [context#line#make_highlight(0, diff, indent1, ellipsis, 'Comment')]
         call remove(lines, max_height/2, -(max_height+1)/2)
         call insert(lines, ellipsis_lines, max_height/2)
     endif

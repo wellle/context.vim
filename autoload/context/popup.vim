@@ -146,7 +146,8 @@ function! context#popup#redraw(winid) abort
 
         let width = c.number_width
         if width > 0
-            call matchaddpos('LineNr', [[l+1, col, width]], 10, -1, {'window': popup})
+            let hl = lines[l][0].display_number == 0 ? 'LineNr' : 'CursorLineNr'
+            call matchaddpos(hl, [[l+1, col, width]], 10, -1, {'window': popup})
             let col += width
         endif
 
@@ -301,12 +302,12 @@ function! s:get_border_line(winid, indent) abort
         " here the NB space belongs to the tag part (for minor highlighting reasons)
         let tag_text = ' ' . s:context_buffer_name . ' '
         return [
-                    \ context#line#make_highlight(0, indent, border_text, g:context.highlight_border),
-                    \ context#line#make_highlight(0, indent, tag_text, g:context.highlight_tag)
+                    \ context#line#make_highlight(0, 0, indent, border_text, g:context.highlight_border),
+                    \ context#line#make_highlight(0, 0, indent, tag_text,    g:context.highlight_tag)
                     \ ]
     endif
 
     " here the NB space belongs to the border part
     let border_text = repeat(g:context.char_border, line_len) . ' '
-    return [context#line#make_highlight(0, indent, border_text, g:context.highlight_border)]
+    return [context#line#make_highlight(0, 0, indent, border_text, g:context.highlight_border)]
 endfunction
