@@ -117,8 +117,12 @@ function! context#popup#redraw(winid) abort
     call context#util#echof('  > context#popup#redraw', len(lines))
 
     let display_lines = []
+    let hls = [] " list of lists, one per context line
     for line in lines
-        call add(display_lines, context#line#text(line))
+        let [text, highlights] = context#line#display(line)
+        call context#util#echof('highlights', text, highlights)
+        call add(display_lines, text)
+        call add(hls, highlights)
     endfor
 
     if g:context.presenter == 'nvim-float'
@@ -127,77 +131,10 @@ function! context#popup#redraw(winid) abort
         call context#popup#vim#redraw(a:winid, popup, display_lines)
     endif
 
-    for l in range(0, len(lines) - 1)
-        " TODO: seems like we need to handle the case where w:context doesn't
-        " exist. do we have a bug somewhere? try open normal.c, split window,
-        " change with fzf (probably the fzf popup issue again...)
-        let col = 1
-
-        let width = c.sign_width
-        if width > 0
-            " TODO: collect highlights and call matchaddpos() once per
-            " highlight group? same for LineNr below
-            call matchaddpos('SignColumn', [[l+1, col, width]], 10, -1, {'window': popup})
-            let col += width
-        endif
-
-        let width = c.number_width
-        if width > 0
-            " TODO: really use CursorLineNr here? puts maybe a bit too much
-            " emphasis? maybe being left aligned might be enough?
-            let hl = lines[l][0].display_number >= 0 ? 'CursorLineNr' : 'LineNr'
-            call matchaddpos(hl, [[l+1, col, width]], 10, -1, {'window': popup})
-            let col += width
-        endif
-
-        let col += lines[l][0].indent
-
-        " " highlight individual join parts
-        " let hl = 'Search'
-        " for join_part in lines[l]
-        "     let width = len(join_part.text)
-        "     call matchaddpos(hl, [[l+1, col, width]], 11, -1, {'window': popup})
-        "     let hl = hl == 'Search' ? 'IncSearch' : 'Search'
-        "     let col += width
-        " endfor
-        " continue
-
-        let prev_hl = ''
-        for join_part in lines[l]
-            let count = 0
-            " call context#util#echof('join_part', l, len(join_part.text) + 1)
-
-            if join_part.highlight != ''
-                let count = len(join_part.text)
-                call context#util#echof('adding hl1', join_part.highlight, l, col, count)
-                call matchaddpos(join_part.highlight, [[l+1, col, count]], 0, -1, {'window': popup})
-                let col += count
-                let count = 1
-                continue
-            endif
-
-            for line_col in range(1+join_part.indent_chars, join_part.indent_chars + len(join_part.text)+1) " TODO: only up to windowwidth
-                let hlgroup = synIDattr(synIDtrans(synID(join_part.number, line_col, 1)), 'name')
-                " call context#util#echof('hlgroup', l, line_col, hlgroup)
-
-                " if hlgroup != ''
-                "     call context#util#echof('hl', join_part.number, line_col, hlgroup, count)
-                " endif
-
-                if hlgroup == prev_hl " TODO: add col < end condition?
-                    let count += 1
-                    continue
-                endif
-
-                if prev_hl != ''
-                    call context#util#echof('adding hl2', prev_hl, l, col, count)
-                    call matchaddpos(prev_hl, [[l+1, col, count]], 0, -1, {'window': popup})
-                endif
-                let prev_hl = hlgroup
-                let col += count
-                let count = 1
-            endfor
-            let col += count-1
+    let args = {'window': popup}
+    for h in range(0, len(hls)-1)
+        for hl in hls[h]
+            call matchaddpos(hl[0], [[h+1, hl[1], hl[2]]], 10, -1, args)
         endfor
     endfor
 endfunction

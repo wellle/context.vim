@@ -98,42 +98,105 @@ function! s:join(lines) abort
     return a:lines
 endfunction
 
-" TODO!: have a single function going through the join parts once and returning
-" the joined text and the highlight groups?
-function! context#line#text(lines) abort
-    " TODO: for border line use number of lines hidden below bottom context
-    " line and topmost visible line? maybe with different highlight group?
+" returns list of [line, [highlights]]
+" where each highlight is [hl, col, width]
+function! context#line#display(join_parts) abort
+    let col = 1 " TODO: can we infer this from len(text) or something?
+    let text = ''
+    let highlights = []
+
+    " TODO: remove and use the below instead. we then probably need to call
+    " #display again from context#popup#layout with injected winid. but test
+    " this first, make sure this is actually needed (probably is), have
+    " multiple windows, some with sign/number columns others without and then
+    " trigger layout or similar
+    let c = w:context
+
+    " let c = getwinvar(a:winid, 'context', {})
+    " if c == {}
+    "     " TODO: can this happen? do we need this check?
+    "     return [text, highlights]
+    " endif
 
     " sign column
-    let text = repeat(' ', w:context.sign_width)
+    let width = c.sign_width
+    if width > 0
+        let text .= repeat(' ', width)
+        call add(highlights, ['SignColumn', col, width])
+        let col += width
+    endif
 
     " number column
-    if w:context.number_width > 0
-        if a:lines[0].display_number >= 0
+    let width = c.number_width
+    if width > 0
+        if a:join_parts[0].display_number >= 0
             " NOTE: we align to the left here, similar to what Vim does when both
             " 'nmuber' and 'relativenumber' are set
-            let text .= printf('%-*d ', w:context.number_width - 1, a:lines[0].display_number)
+            let text .= printf('%-*d ', width - 1, a:join_parts[0].display_number)
         else
             if &relativenumber
-                let n = w:context.cursor_line - a:lines[0].number
+                let n = c.cursor_line - a:join_parts[0].number
             elseif &number
-                let n = a:lines[0].number
+                let n = a:join_parts[0].number
             endif
-            let text .= printf('%*d ', w:context.number_width - 1, n)
+            let text .= printf('%*d ', width - 1, n)
         endif
+
+        " TODO: really use CursorLineNr here? puts maybe a bit too much
+        " emphasis? maybe being left aligned might be enough?
+        let hl = a:join_parts[0].display_number >= 0 ? 'CursorLineNr' : 'LineNr'
+        call add(highlights, [hl, col, width])
+        let col += width
     endif
 
     " indent
     " TODO: use `space` to fake tab listchars?
-    " let [_, space, text; _] = matchlist(a:lines[0].text, '\v^(\s*)(.*)$')
-    let text .= repeat(' ', a:lines[0].indent)
+    " let [_, space, text; _] = matchlist(a:join_parts[0].text, '\v^(\s*)(.*)$')
+    let text .= repeat(' ', a:join_parts[0].indent)
+    let col += a:join_parts[0].indent
 
     " text
-    for line in a:lines
-        let text .= line.text
+    let prev_hl = ''
+    for j in range(0, len(a:join_parts)-1)
+        let join_part = a:join_parts[j]
+        let text .= join_part.text
+
+        " " highlight individual join parts for debugging
+        " let width = len(join_part.text)
+        " let hl = j % 2 == 0 ? 'Search' : 'IncSearch'
+        " call add(highlights, [hl, col, width])
+        " let col += width
+
+        let count = 0
+
+        if join_part.highlight != ''
+            let count = len(join_part.text)
+            call add(highlights, [join_part.highlight, col, count])
+            let col += count
+            let count = 1
+            continue
+        endif
+
+        for line_col in range(1+join_part.indent_chars, join_part.indent_chars + len(join_part.text)+1) " TODO: only up to windowwidth
+            let hlgroup = synIDattr(synIDtrans(synID(join_part.number, line_col, 1)), 'name')
+
+            if hlgroup == prev_hl " TODO: add col < end condition?
+                let count += 1
+                continue
+            endif
+
+            if prev_hl != ''
+                call add(highlights, [prev_hl, col, count])
+            endif
+
+            let prev_hl = hlgroup
+            let col += count
+            let count = 1
+        endfor
+        let col += count-1
     endfor
 
-    return text
+    return [text, highlights]
 endfunction
 
 " TODO: make this an s: function? only used in here
