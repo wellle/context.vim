@@ -119,11 +119,16 @@ function! context#line#display(join_parts) abort
     "     return [text, highlights]
     " endif
 
+    " NOTE: we use non breaking spaces for padding in order to not show
+    " 'listchars' in the sign and number columns
+
     " sign column
     let width = c.sign_width
     if width > 0
-        let text .= repeat(' ', width)
+        let part = repeat(' ', width)
+        let width = len(part)
         call add(highlights, ['SignColumn', col, width])
+        let text .= part
         let col += width
     endif
 
@@ -140,7 +145,8 @@ function! context#line#display(join_parts) abort
             elseif &number
                 let n = part0.number
             endif
-            let part = printf('%*d ', width - 1, n)
+            " let part = printf('%*d ', width - 1, n)
+            let part = repeat(' ', width-len(n)-1) . n . ' '
         endif
 
         let width = len(part)
