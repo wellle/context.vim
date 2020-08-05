@@ -237,18 +237,19 @@ function! s:get_border_line(winid, indent) abort
     " can be some display issues in the Kitty terminal with a normal space
 
     let line_len = c.size_w - c.padding - indent - 1
+    let border_char = g:context.char_border
     if g:context.show_tag
         let line_len -= len(s:context_buffer_name) + 1
         let border_text = repeat(g:context.char_border, line_len)
         " here the NB space belongs to the tag part (for minor highlighting reasons)
         let tag_text = ' ' . s:context_buffer_name . ' '
         return [
-                    \ context#line#make_highlight(0, n, indent, border_text, g:context.highlight_border),
-                    \ context#line#make_highlight(0, n, indent, tag_text,    g:context.highlight_tag)
+                    \ context#line#make_highlight(0, n, border_char, indent, border_text, g:context.highlight_border),
+                    \ context#line#make_highlight(0, n, border_char, indent, tag_text,    g:context.highlight_tag)
                     \ ]
     endif
 
     " here the NB space belongs to the border part
     let border_text = repeat(g:context.char_border, line_len) . ' '
-    return [context#line#make_highlight(0, n, indent, border_text, g:context.highlight_border)]
+    return [context#line#make_highlight(0, n, border_char, indent, border_text, g:context.highlight_border)]
 endfunction

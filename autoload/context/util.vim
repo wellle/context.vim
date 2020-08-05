@@ -237,7 +237,8 @@ function! context#util#filter(context, line_number, consider_height) abort
         let indent = inner_lines[0][0].indent
         let limited = inner_lines[: max_per_indent/2-1]
         " TODO: use first line number of removed batch
-        let ellipsis_lines = [context#line#make_highlight(0, diff+1, indent, g:context.ellipsis, 'Comment')]
+        " TODO: let c = g:context
+        let ellipsis_lines = [context#line#make_highlight(0, diff+1, g:context.char_ellipsis, indent, g:context.ellipsis, 'Comment')]
         call add(limited, ellipsis_lines)
         call extend(limited, inner_lines[-(max_per_indent-1)/2 :])
 
@@ -255,7 +256,7 @@ function! context#util#filter(context, line_number, consider_height) abort
         let indent2 = lines[-(max_height-1)/2][0].indent
         let ellipsis = repeat(g:context.char_ellipsis, max([indent2 - indent1, 3]))
         " TODO: use first line number of removed batch
-        let ellipsis_lines = [context#line#make_highlight(0, diff+1, indent1, ellipsis, 'Comment')]
+        let ellipsis_lines = [context#line#make_highlight(0, diff+1, g:context.char_ellipsis, indent1, ellipsis, 'Comment')]
         call remove(lines, max_height/2, -(max_height+1)/2)
         call insert(lines, ellipsis_lines, max_height/2)
     endif
