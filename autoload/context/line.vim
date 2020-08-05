@@ -174,13 +174,13 @@ function! context#line#display(join_parts) abort
         " call add(highlights, [hl, col, width])
         " let col += width
 
-        let count = 0
+        let width = 0
 
         if join_part.highlight != ''
-            let count = len(join_part.text)
-            call add(highlights, [join_part.highlight, col, count])
-            let col += count
-            let count = 1
+            let width = len(join_part.text)
+            call add(highlights, [join_part.highlight, col, width])
+            let col += width
+            let width = 1
             continue
         endif
 
@@ -188,19 +188,19 @@ function! context#line#display(join_parts) abort
             let hlgroup = synIDattr(synIDtrans(synID(join_part.number, line_col, 1)), 'name')
 
             if hlgroup == prev_hl " TODO: add col < end condition?
-                let count += 1
+                let width += 1
                 continue
             endif
 
             if prev_hl != ''
-                call add(highlights, [prev_hl, col, count])
+                call add(highlights, [prev_hl, col, width])
             endif
 
             let prev_hl = hlgroup
-            let col += count
-            let count = 1
+            let col += width
+            let width = 1
         endfor
-        let col += count-1
+        let col += width-1
     endfor
 
     return [text, highlights]

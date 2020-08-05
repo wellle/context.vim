@@ -1,5 +1,8 @@
 let s:context_buffer_name = '<context.vim>'
 
+" TODO!: make work for preview
+" TODO!: use smart statusline to look like in popup
+
 function! context#preview#update_context() abort
     while 1
         let [lines, base_line] = context#preview#get_context()
