@@ -244,12 +244,12 @@ function! s:get_border_line(winid, indent) abort
         " here the NB space belongs to the tag part (for minor highlighting reasons)
         let tag_text = ' ' . s:context_buffer_name . ' '
         return [
-                    \ context#line#make_highlight(0, n, border_char, indent, border_text, g:context.highlight_border),
-                    \ context#line#make_highlight(0, n, border_char, indent, tag_text,    g:context.highlight_tag)
+                    \ context#line#make_highlight(0, border_char, indent, border_text, g:context.highlight_border),
+                    \ context#line#make_highlight(0, border_char, indent, tag_text,    g:context.highlight_tag)
                     \ ]
     endif
 
     " here the NB space belongs to the border part
     let border_text = repeat(g:context.char_border, line_len) . ' '
-    return [context#line#make_highlight(0, n, border_char, indent, border_text, g:context.highlight_border)]
+    return [context#line#make_highlight(0, border_char, indent, border_text, g:context.highlight_border)]
 endfunction
