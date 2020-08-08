@@ -100,24 +100,17 @@ endfunction
 
 " returns list of [line, [highlights]]
 " where each highlight is [hl, col, width]
-function! context#line#display(join_parts) abort
+function! context#line#display(winid, join_parts) abort
     let col = 1 " TODO: can we infer this from len(text) or something?
     let text = ''
     let highlights = []
     let part0 = a:join_parts[0]
 
-    " TODO: remove and use the below instead. we then probably need to call
-    " #display again from context#popup#layout with injected winid. but test
-    " this first, make sure this is actually needed (probably is), have
-    " multiple windows, some with sign/number columns others without and then
-    " trigger layout or similar
-    let c = w:context
-
-    " let c = getwinvar(a:winid, 'context', {})
-    " if c == {}
-    "     " TODO: can this happen? do we need this check?
-    "     return [text, highlights]
-    " endif
+    let c = getwinvar(a:winid, 'context', {})
+    if c == {}
+        " TODO: can this happen? do we need this check?
+        return [text, highlights]
+    endif
 
     " NOTE: we use non breaking spaces for padding in order to not show
     " 'listchars' in the sign and number columns

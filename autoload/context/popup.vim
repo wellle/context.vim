@@ -119,7 +119,7 @@ function! context#popup#redraw(winid) abort
     let display_lines = []
     let hls = [] " list of lists, one per context line
     for line in lines
-        let [text, highlights] = context#line#display(line)
+        let [text, highlights] = context#line#display(a:winid, line)
         call context#util#echof('highlights', text, highlights)
         call add(display_lines, text)
         call add(hls, highlights)
@@ -209,9 +209,6 @@ function! s:open() abort
     call matchadd(g:context.highlight_border, border, 10, -1, {'window': popup})
     call matchadd(g:context.highlight_tag,    tag,    10, -1, {'window': popup})
 
-    let buf = winbufnr(popup)
-    " call setbufvar(buf, '&syntax', &syntax)
-
     return popup
 endfunction
 
@@ -240,6 +237,9 @@ function! s:get_border_line(winid, indent) abort
     let border_char = g:context.char_border
     if g:context.show_tag
         let line_len -= len(s:context_buffer_name) + 1
+        " TODO: maybe we can move this calculation to #line#render?
+        " so we could reuse the context lines even if the width has changed?
+        " might not be worth it, but maybe consider
         let border_text = repeat(g:context.char_border, line_len)
         " here the NB space belongs to the tag part (for minor highlighting reasons)
         let tag_text = ' ' . s:context_buffer_name . ' '

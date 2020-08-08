@@ -1,6 +1,5 @@
 let s:context_buffer_name = '<context.vim>'
 
-" TODO!: make work for preview
 " TODO!: use smart statusline to look like in popup
 
 function! context#preview#update_context() abort
@@ -69,9 +68,16 @@ function! s:show(lines, indent) abort
         return [[], 0]
     endif
 
-    let syntax  = &syntax
-    let tabstop = &tabstop
-    let padding = w:context.padding
+    let winid = win_getid()
+
+    let display_lines = []
+    let hls = [] " list of lists, one per context line
+    for line in a:lines
+        let [text, highlights] = context#line#display(winid, line)
+        call context#util#echof('highlights', text, highlights)
+        call add(display_lines, text)
+        call add(hls, highlights)
+    endfor
 
     execute 'silent! aboveleft pedit' s:context_buffer_name
 
@@ -86,7 +92,8 @@ function! s:show(lines, indent) abort
 
     let statusline = '%=' . s:context_buffer_name . ' ' " trailing space for padding
     if a:indent >= 0
-        let statusline = repeat(' ', padding + a:indent) . g:context.ellipsis . statusline
+        " TODO!: improve statusline
+        let statusline = g:context.ellipsis . statusline
     endif
 
     setlocal buftype=nofile
@@ -99,16 +106,19 @@ function! s:show(lines, indent) abort
     setlocal nowrap
     setlocal signcolumn=no
 
-    execute 'setlocal syntax='     . syntax
-    execute 'setlocal tabstop='    . tabstop
-    execute 'setlocal foldcolumn=' . padding
     execute 'setlocal statusline=' . escape(statusline, ' ')
 
     let b:airline_disable_statusline=1
 
-    silent %d _          " delete everything
-    silent 0put =a:lines " paste lines
-    1                    " and jump to first line
+    silent %d _                " delete everything
+    silent 0put =display_lines " paste lines
+    1                          " and jump to first line
+
+    for h in range(0, len(hls)-1)
+        for hl in hls[h]
+            call matchaddpos(hl[0], [[h+1, hl[1], hl[2]]], 10, -1)
+        endfor
+    endfor
 
     execute 'resize' len(a:lines)
 
