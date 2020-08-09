@@ -1,9 +1,9 @@
-let s:context_buffer_name = '<context.vim>'
-
 function! context#popup#update_context() abort
     let [lines, base_line] = context#popup#get_context()
     call context#util#echof('> context#popup#update_context', len(lines))
 
+    " TODO: do we need to retain those? or can we just pass them like we do
+    " for preview?
     let w:context.lines  = lines
     let w:context.indent = g:context.Border_indent(base_line)
 
@@ -111,7 +111,7 @@ function! context#popup#redraw(winid) abort
     endif
 
     if g:context.show_border
-        call add(lines, s:get_border_line(a:winid, 1))
+        call add(lines, context#util#get_border_line(lines, w:context.indent, a:winid))
     endif
 
     call context#util#echof('  > context#popup#redraw', len(lines))
@@ -197,19 +197,10 @@ endfunction
 function! s:open() abort
     call context#util#echof('  > open')
     if g:context.presenter == 'nvim-float'
-        let popup = context#popup#nvim#open()
+        return context#popup#nvim#open()
     elseif g:context.presenter == 'vim-popup'
-        let popup = context#popup#vim#open()
+        return context#popup#vim#open()
     endif
-
-    " NOTE: we use a non breaking space here again before the buffer name
-    let border = ' *' .g:context.char_border . '* '
-    let tag = s:context_buffer_name
-    " TODO: remove these
-    call matchadd(g:context.highlight_border, border, 10, -1, {'window': popup})
-    call matchadd(g:context.highlight_tag,    tag,    10, -1, {'window': popup})
-
-    return popup
 endfunction
 
 function! s:close(popup) abort
@@ -219,37 +210,4 @@ function! s:close(popup) abort
     elseif g:context.presenter == 'vim-popup'
         call context#popup#vim#close(a:popup)
     endif
-endfunction
-
-function! s:get_border_line(winid, indent) abort
-    let c = getwinvar(a:winid, 'context')
-    let indent = a:indent ? c.indent : 0
-
-    let new_top_line = w:context.top_line + len(w:context.lines)
-    " TODO: use 0 or -1 in second []? which one is more natural/useful?
-    " TODO: +1 or not in the end? (to avoid zeros)
-    let n = new_top_line - w:context.lines[-1][0].number
-
-    " NOTE: we use a non breaking space after the border chars because there
-    " can be some display issues in the Kitty terminal with a normal space
-
-    let line_len = c.size_w - c.padding - indent - 1
-    let border_char = g:context.char_border
-    if g:context.show_tag
-        let line_len -= len(s:context_buffer_name) + 1
-        " TODO: maybe we can move this calculation to #line#render?
-        " so we could reuse the context lines even if the width has changed?
-        " might not be worth it, but maybe consider
-        let border_text = repeat(g:context.char_border, line_len)
-        " here the NB space belongs to the tag part (for minor highlighting reasons)
-        let tag_text = ' ' . s:context_buffer_name . ' '
-        return [
-                    \ context#line#make_highlight(0, border_char, indent, border_text, g:context.highlight_border),
-                    \ context#line#make_highlight(0, border_char, indent, tag_text,    g:context.highlight_tag)
-                    \ ]
-    endif
-
-    " here the NB space belongs to the border part
-    let border_text = repeat(g:context.char_border, line_len) . ' '
-    return [context#line#make_highlight(0, border_char, indent, border_text, g:context.highlight_border)]
 endfunction

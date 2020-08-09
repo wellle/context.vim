@@ -27,9 +27,7 @@ function! context#preview#get_context() abort
 
     call context#util#echof('> context#preview#update_context', len(context))
 
-    let [lines, line_number] = context#util#filter(context, line_number, 0)
-
-    return [lines, line_number]
+    return context#util#filter(context, line_number, 0)
 endfunction
 
 function! context#preview#close() abort
@@ -70,6 +68,10 @@ function! s:show(lines, indent) abort
 
     let winid = win_getid()
 
+    let border_line = context#util#get_border_line(a:lines, a:indent, winid)
+    " TODO: don't actually add to a:lines, but use for statusline instead
+    call add(a:lines, border_line)
+
     let display_lines = []
     let hls = [] " list of lists, one per context line
     for line in a:lines
@@ -90,7 +92,7 @@ function! s:show(lines, indent) abort
         return [[], 0]
     endif
 
-    let statusline = '%=' . s:context_buffer_name . ' ' " trailing space for padding
+    let statusline = s:context_buffer_name . ' ' " trailing space for padding
     if a:indent >= 0
         " TODO!: improve statusline
         let statusline = g:context.ellipsis . statusline

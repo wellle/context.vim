@@ -1,3 +1,5 @@
+let s:context_buffer_name = '<context.vim>'
+
 function! context#util#active() abort
     return 1
                 \ && w:context.enabled
@@ -166,6 +168,38 @@ function! context#util#update_window_state(winid) abort
     endif
 endfunction
 
+function! context#util#get_border_line(lines, indent, winid) abort
+    let c = getwinvar(a:winid, 'context')
+
+    let new_top_line = w:context.top_line + len(a:lines)
+    " TODO: use 0 or -1 in second []? which one is more natural/useful?
+    " TODO: +1 or not in the end? (to avoid zeros)
+    let n = new_top_line - a:lines[-1][0].number
+
+    " NOTE: we use a non breaking space after the border chars because there
+    " can be some display issues in the Kitty terminal with a normal space
+
+    let line_len = c.size_w - c.padding - a:indent - 1
+    let border_char = g:context.char_border
+    if !g:context.show_tag
+        " here the NB space belongs to the border part
+        let border_text = repeat(g:context.char_border, line_len) . ' '
+        return [context#line#make_highlight(0, border_char, a:indent, border_text, g:context.highlight_border)]
+    endif
+
+    let line_len -= len(s:context_buffer_name) + 1
+    " TODO: maybe we can move this calculation to #line#render?
+    " so we could reuse the context lines even if the width has changed?
+    " might not be worth it, but maybe consider
+    let border_text = repeat(g:context.char_border, line_len)
+    " here the NB space belongs to the tag part (for minor highlighting reasons)
+    let tag_text = ' ' . s:context_buffer_name . ' '
+    return [
+                \ context#line#make_highlight(0, border_char, a:indent, border_text, g:context.highlight_border),
+                \ context#line#make_highlight(0, border_char, a:indent, tag_text,    g:context.highlight_tag)
+                \ ]
+endfunction
+
 " this is a pretty weird function
 " it has been extracted to reduce duplication between popup and preview code
 " what it does: it goes through all lines of the given full context and
@@ -264,6 +298,7 @@ function! context#util#filter(context, line_number, consider_height) abort
     return [lines, line_number]
 endfunction
 
+" TODO: move to popup.vim? used anywhere else?
 function! context#util#show_cursor() abort
     " compare height of context to cursor line on screen
     let n = len(w:context.lines) + g:context.show_border - (w:context.cursor_line - w:context.top_line)
