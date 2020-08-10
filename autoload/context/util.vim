@@ -254,8 +254,8 @@ function! context#util#filter(context, line_number, consider_height) abort
                 endif
             endfor
 
-            let joined_lines = context#line#join(join_batch)
-            call add(inner_lines, joined_lines)
+            let limited_lines = context#util#limit_join_parts(join_batch)
+            call add(inner_lines, limited_lines)
         endfor
 
         " apply max per indent
@@ -296,6 +296,45 @@ function! context#util#filter(context, line_number, consider_height) abort
     endif
 
     return [lines, line_number]
+endfunction
+
+" takes a list of join parts and checks g:context.max_join_parts
+" if the limit is exceeded it's reduced with an ellipsis part
+function! context#util#limit_join_parts(lines) abort
+    " call context#util#echof('> join', len(a:lines))
+    if len(a:lines) == 1
+        return a:lines
+    endif
+
+    let max = g:context.max_join_parts
+
+    if max == 1
+        return [a:lines[0]]
+    elseif max == 2
+        " TODO: add vars for ellipsis lines?
+        let text = ' ' . g:context.ellipsis
+        return [a:lines[0], context#line#make_highlight(0, '', 0, text, 'Comment')]
+    endif
+
+    if len(a:lines) > max " too many parts
+        let text = ' ' . g:context.ellipsis5 . ' '
+        call remove(a:lines, (max+1)/2, -max/2-1)
+        call insert(a:lines, context#line#make_highlight(0, '', 0, text, 'Comment'), (max+1)/2) " middle marker
+    endif
+
+    " insert ellipses where there are gaps between the parts
+    let i = 0
+    while i < len(a:lines) - 1
+        let [n1, n2] = [a:lines[i].number, a:lines[i+1].number]
+        if n1 > 0 && n2 > 0
+            " show ellipsis if line i+1 is not directly below line i
+            let text = n2 > n1 + 1 ? ' ' . g:context.ellipsis . ' ' : ' '
+            call insert(a:lines, context#line#make_highlight(0, '', 0, text, 'Comment'), i+1)
+        endif
+        let i += 1
+    endwhile
+
+    return a:lines
 endfunction
 
 " TODO: move to popup.vim? used anywhere else?

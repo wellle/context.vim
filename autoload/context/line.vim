@@ -46,58 +46,6 @@ function! context#line#get_base_line(line) abort
     endwhile
 endfunction
 
-function! context#line#join(batch) abort
-    return s:join(a:batch)
-
-    " TODO: clean up/inline
-    let line = a:batch[0]
-    let text = s:join(a:batch)
-
-    " TODO: where should this debug output go now?
-    " let n = &columns - 30 - strchars(context#line#trim(text)) - line.indent
-    " let text = printf('%s%s // %2d n:%5d i:%2d', text, repeat(' ', n), len(a:batch), line.number, line.indent)
-
-    return context#line#make(line.number, line.indent, text)
-endfunction
-
-" TODO: rename? doesn't really join now, but just enforce max_join_parts
-function! s:join(lines) abort
-    " call context#util#echof('> join', len(a:lines))
-    if len(a:lines) == 1
-        return a:lines
-    endif
-
-    let max = g:context.max_join_parts
-
-    if max == 1
-        return [a:lines[0]]
-    elseif max == 2
-        " TODO: add vars for ellipsis lines?
-        let text = ' ' . g:context.ellipsis
-        return [a:lines[0], context#line#make_highlight(0, '', 0, text, 'Comment')]
-    endif
-
-    if len(a:lines) > max " too many parts
-        let text = ' ' . g:context.ellipsis5 . ' '
-        call remove(a:lines, (max+1)/2, -max/2-1)
-        call insert(a:lines, context#line#make_highlight(0, '', 0, text, 'Comment'), (max+1)/2) " middle marker
-    endif
-
-    " insert ellipses where there are gaps between the parts
-    let i = 0
-    while i < len(a:lines) - 1
-        let [n1, n2] = [a:lines[i].number, a:lines[i+1].number]
-        if n1 > 0 && n2 > 0
-            " show ellipsis if line i+1 is not directly below line i
-            let text = n2 > n1 + 1 ? ' ' . g:context.ellipsis . ' ' : ' '
-            call insert(a:lines, context#line#make_highlight(0, '', 0, text, 'Comment'), i+1)
-        endif
-        let i += 1
-    endwhile
-
-    return a:lines
-endfunction
-
 " returns list of [line, [highlights]]
 " where each highlight is [hl, col, width]
 function! context#line#display(winid, join_parts) abort

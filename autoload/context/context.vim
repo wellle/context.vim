@@ -106,8 +106,6 @@ function! s:get_context_line(line) abort
         endif
 
         let text = getline(current_line)
-        " TODO: inject trimmed text into these functions? that way can
-        " probably simplify regexes too (don't need to handle leading spaces)
         if context#line#should_skip(text)
             let current_line -= 1
             continue
