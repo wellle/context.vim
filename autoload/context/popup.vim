@@ -134,7 +134,7 @@ function! context#popup#redraw(winid) abort
     let args = {'window': popup}
     for h in range(0, len(hls)-1)
         for hl in hls[h]
-            call matchaddpos(hl[0], [[h+1, hl[1], hl[2]]], 10, -1, args)
+            call matchaddpos(hl[0], [[h+1, hl[1]+1, hl[2]]], 10, -1, args)
         endfor
     endfor
 endfunction

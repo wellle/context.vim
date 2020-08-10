@@ -91,7 +91,7 @@ function! s:show(lines, indent) abort
     let [border_text, border_hls] = context#line#display(winid, border_line)
     let statusline = ''
     for hl in border_hls
-        let part = strpart(border_text, hl[1]-1, hl[2])
+        let part = strpart(border_text, hl[1], hl[2])
         let statusline .= '%#' . hl[0] . '#' . part
     endfor
 
@@ -115,7 +115,7 @@ function! s:show(lines, indent) abort
 
     for h in range(0, len(hls)-1)
         for hl in hls[h]
-            call matchaddpos(hl[0], [[h+1, hl[1], hl[2]]], 10, -1)
+            call matchaddpos(hl[0], [[h+1, hl[1]+1, hl[2]]], 10, -1)
         endfor
     endfor
 

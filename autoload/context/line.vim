@@ -49,7 +49,6 @@ endfunction
 " returns list of [line, [highlights]]
 " where each highlight is [hl, col, width]
 function! context#line#display(winid, join_parts) abort
-    let col = 1 " TODO: can we infer this from len(text) or something?
     let text = ''
     let highlights = []
     let part0 = a:join_parts[0]
@@ -64,9 +63,8 @@ function! context#line#display(winid, join_parts) abort
     if width > 0
         let part = repeat(' ', width)
         let width = len(part)
-        call add(highlights, ['SignColumn', col, width])
+        call add(highlights, ['SignColumn', len(text), width])
         let text .= part
-        let col += width
     endif
 
     " number column
@@ -87,9 +85,8 @@ function! context#line#display(winid, join_parts) abort
         endif
 
         let width = len(part)
-        call add(highlights, ['LineNr', col, width])
+        call add(highlights, ['LineNr', len(text), width])
         let text .= part
-        let col += width
     endif
 
     " indent
@@ -100,10 +97,14 @@ function! context#line#display(winid, join_parts) abort
         let width = len(part)
         " NOTE: this highlight wouldn't be necessary for popup, but is added
         " to make it easier to assemble the statusline for preview
-        call add(highlights, ['Normal', col, width])
+        call add(highlights, ['Normal', len(text), width])
         let text .= part
-        let col += width
     endif
+
+    " NOTE: below 'col' and 'len(text)' diverge because we add the text in one
+    " big chunk but go through the highlights character by character to find
+    " the highlight chunks
+    let col = len(text)
 
     " text
     let prev_hl = ''
@@ -116,6 +117,7 @@ function! context#line#display(winid, join_parts) abort
         " let hl = j % 2 == 0 ? 'Search' : 'IncSearch'
         " call add(highlights, [hl, col, width])
         " let col += width
+        " continue
 
         let width = 0
 
