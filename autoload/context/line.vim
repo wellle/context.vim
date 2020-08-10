@@ -106,11 +106,7 @@ function! context#line#display(winid, join_parts) abort
     let highlights = []
     let part0 = a:join_parts[0]
 
-    let c = getwinvar(a:winid, 'context', {})
-    if c == {}
-        " TODO: can this happen? do we need this check?
-        return [text, highlights]
-    endif
+    let c = getwinvar(a:winid, 'context')
 
     " NOTE: we use non breaking spaces for padding in order to not show
     " 'listchars' in the sign and number columns
@@ -151,9 +147,15 @@ function! context#line#display(winid, join_parts) abort
     " indent
     " TODO: use `space` to fake tab listchars?
     " let [_, space, text; _] = matchlist(part0.text, '\v^(\s*)(.*)$')
-    let part = repeat(' ', part0.indent)
-    let text .= part
-    let col += len(part)
+    if part0.indent > 0
+        let part = repeat(' ', part0.indent)
+        let width = len(part)
+        " NOTE: this highlight wouldn't be necessary for popup, but is added
+        " to make it easier to assemble the statusline for preview
+        call add(highlights, ['Normal', col, width])
+        let text .= part
+        let col += width
+    endif
 
     " text
     let prev_hl = ''

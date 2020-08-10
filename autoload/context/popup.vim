@@ -120,7 +120,7 @@ function! context#popup#redraw(winid) abort
     let hls = [] " list of lists, one per context line
     for line in lines
         let [text, highlights] = context#line#display(a:winid, line)
-        call context#util#echof('highlights', text, highlights)
+        " call context#util#echof('highlights', text, highlights)
         call add(display_lines, text)
         call add(hls, highlights)
     endfor

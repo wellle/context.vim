@@ -1,7 +1,5 @@
 let s:context_buffer_name = '<context.vim>'
 
-" TODO!: use smart statusline to look like in popup
-
 function! context#preview#update_context() abort
     while 1
         let [lines, base_line] = context#preview#get_context()
@@ -68,18 +66,16 @@ function! s:show(lines, indent) abort
 
     let winid = win_getid()
 
-    let border_line = context#util#get_border_line(a:lines, a:indent, winid)
-    " TODO: don't actually add to a:lines, but use for statusline instead
-    call add(a:lines, border_line)
-
     let display_lines = []
     let hls = [] " list of lists, one per context line
     for line in a:lines
         let [text, highlights] = context#line#display(winid, line)
-        call context#util#echof('highlights', text, highlights)
+        " call context#util#echof('highlights', text, highlights)
         call add(display_lines, text)
         call add(hls, highlights)
     endfor
+
+    let border_line = context#util#get_border_line(a:lines, a:indent, winid)
 
     execute 'silent! aboveleft pedit' s:context_buffer_name
 
@@ -92,11 +88,12 @@ function! s:show(lines, indent) abort
         return [[], 0]
     endif
 
-    let statusline = s:context_buffer_name . ' ' " trailing space for padding
-    if a:indent >= 0
-        " TODO!: improve statusline
-        let statusline = g:context.ellipsis . statusline
-    endif
+    let [border_text, border_hls] = context#line#display(winid, border_line)
+    let statusline = ''
+    for hl in border_hls
+        let part = strpart(border_text, hl[1]-1, hl[2])
+        let statusline .= '%#' . hl[0] . '#' . part
+    endfor
 
     setlocal buftype=nofile
     setlocal modifiable
