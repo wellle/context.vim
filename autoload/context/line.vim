@@ -3,7 +3,7 @@ function! context#line#make(number, indent, text) abort
 endfunction
 
 function! context#line#make_trimmed(number, indent, text) abort
-    let trimmed_text = context#line#trim(a:text)
+    let trimmed_text = s:trim(a:text)
     return {
                 \ 'number':         a:number,
                 \ 'number_char':    '',
@@ -23,6 +23,10 @@ function! context#line#make_highlight(number, number_char, indent, text, highlig
                 \ 'text':           a:text,
                 \ 'highlight':      a:highlight,
                 \ }
+endfunction
+
+function! s:trim(string) abort
+    return substitute(a:string, '^\s*', '', '')
 endfunction
 
 let s:nil_line = context#line#make(0, 0, '')
@@ -90,7 +94,7 @@ function! context#line#display(winid, join_parts) abort
     endif
 
     " indent
-    " TODO: use `space` to fake tab listchars?
+    " TODO: use `space` to fake tab listchars? maybe later
     " let [_, space, text; _] = matchlist(part0.text, '\v^(\s*)(.*)$')
     if part0.indent > 0
         let part = repeat(' ', part0.indent)
@@ -105,6 +109,10 @@ function! context#line#display(winid, join_parts) abort
     " big chunk but go through the highlights character by character to find
     " the highlight chunks
     let col = len(text)
+
+    " NOTE: if a context line is longer than then the window width we
+    " currently keep adding highlights even if they won't be visible. we could
+    " try to avoid that, but it doesn't seem worth the effort
 
     " text
     let prev_hl = ''
@@ -129,10 +137,11 @@ function! context#line#display(winid, join_parts) abort
             continue
         endif
 
-        for line_col in range(1+join_part.indent_chars, join_part.indent_chars + len(join_part.text)+1) " TODO: only up to windowwidth
-            let hlgroup = synIDattr(synIDtrans(synID(join_part.number, line_col, 1)), 'name')
+        let start = join_part.indent_chars
+        for line_col in range(start, start + len(join_part.text))
+            let hlgroup = synIDattr(synIDtrans(synID(join_part.number, line_col+1, 1)), 'name')
 
-            if hlgroup == prev_hl " TODO: add col < end condition?
+            if hlgroup == prev_hl
                 let width += 1
                 continue
             endif
@@ -149,11 +158,6 @@ function! context#line#display(winid, join_parts) abort
     endfor
 
     return [text, highlights]
-endfunction
-
-" TODO: make this an s: function? only used in here
-function! context#line#trim(string) abort
-    return substitute(a:string, '^\s*', '', '')
 endfunction
 
 function! context#line#should_extend(line) abort
