@@ -8,7 +8,7 @@ function! context#popup#nvim#open() abort
                 \ 'col':       0,
                 \ 'width':     1,
                 \ 'height':    1,
-                \ 'focusable': v:true,
+                \ 'focusable': v:false,
                 \ 'style':     'minimal',
                 \ })
 

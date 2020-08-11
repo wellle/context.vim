@@ -83,6 +83,14 @@ function! context#line#display(winid, join_parts) abort
                 let n = c.cursor_line - part0.number
             elseif &number
                 let n = part0.number
+            else
+                " NOTE: this is unexpected, but can happen because of a neovim
+                " bug, see neovim#11878
+                " to reproduce open a file with visible context, then invoke
+                " fzf preview window (which activates context.vim based on the
+                " context window contents (which is already very unexpected)
+                " in a confusing way)
+                let n = 0
             endif
             " let part = printf('%*d ', width - 1, n)
             let part = repeat(' ', width-len(n)-1) . n . ' '

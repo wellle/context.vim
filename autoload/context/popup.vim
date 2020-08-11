@@ -36,7 +36,7 @@ function! context#popup#get_context() abort
         let text = getline(line_number) " empty for invalid lines
         if context#line#should_skip(text)
             let skipped += 1
-            call context#util#echof('skip', line_number)
+            " call context#util#echof('skip', line_number)
             continue
         endif
 
