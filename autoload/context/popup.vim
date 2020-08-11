@@ -96,6 +96,8 @@ endfunction
 
 function! context#popup#redraw(winid) abort
     let popup = get(g:context.popups, a:winid)
+    call context#util#echof('> context#popup#redraw', a:winid, popup)
+
     if popup == 0
         return
     endif

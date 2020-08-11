@@ -22,10 +22,20 @@ function! context#popup#nvim#open() abort
 endfunction
 
 function! context#popup#nvim#redraw(winid, popup, lines) abort
-    call context#util#echof('    > context#popup#nvim#redraw', len(a:lines))
-
     let buf = winbufnr(a:popup)
-    call nvim_buf_set_lines(buf, 0, -1, v:true, a:lines)
+    call context#util#echof('    > context#popup#nvim#redraw', len(a:lines), a:winid, buf)
+
+    " NOTE: again we need to do a workaround because of the neovim bug
+    " neovim#11878. to reproduce open a buffer with visible context and then
+    " open a new buffer in a split (with cursor on a line without visible
+    " context). at the time of one of the autocommands the new window appears
+    " to context.vim to hold the previous buffer which leads to an E12 error
+    " from #popup#layout()
+    let v:errmsg = ""
+    silent! call nvim_buf_set_lines(buf, 0, -1, v:true, a:lines)
+    if v:errmsg != ""
+        return
+    endif
 
     let c = getwinvar(a:winid, 'context')
     call nvim_win_set_config(a:popup, {
@@ -41,7 +51,7 @@ function! context#popup#nvim#redraw(winid, popup, lines) abort
     " NOTE: because of some neovim limitation we have to temporarily switch to
     " the popup window so we can clear the highlighting
     " https://github.com/neovim/neovim/issues/10822
-    " TODO: seems like this still triggers a BufEnter autocmd which triggers a
+    " TODO!: seems like this still triggers a BufEnter autocmd which triggers a
     " context, stop that from happening
     execute 'noautocmd' bufwinnr(buf) . 'wincmd w'
     call clearmatches()
