@@ -25,7 +25,6 @@ function! context#popup#vim#redraw(winid, popup, lines) abort
                 \ 'maxwidth': c.size_w,
                 \ })
 
-    " call win_execute(a:popup, 'let &foldcolumn=' . c.padding)
     call win_execute(a:popup, 'let &list=' . &list)
     call win_execute(a:popup, 'call clearmatches()')
 endfunction

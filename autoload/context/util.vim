@@ -118,28 +118,6 @@ function! context#util#update_state() abort
         let w:context.sign_width = sign_width
         let w:context.needs_update = 1
     endif
-
-    " TODO: remove padding, use sign_width and number_width exclusively instead
-    " padding can only be checked for the current window
-    let padding = wincol() - virtcol('.')
-    " NOTE: if 'list' is set and the cursor is on a Tab character the cursor
-    " is positioned differently (at the beginning of the Tab character instead
-    " of at the end). we recognize that case and fix the padding accordingly
-    if &list && getline('.')[getcurpos()[2]-1] == "\t"
-        let padding += &tabstop - 1
-    endif
-    if padding < 0
-        " padding can be negative if cursor was on the wrapped part of a
-        " wrapped line in that case don't take the new value
-        " in this case we don't want to trigger an update, but still set
-        " padding to a value
-        if !exists('w:context.padding')
-            let w:context.padding = 0
-        endif
-    elseif w:context.padding != padding
-        let w:context.padding = padding
-        let w:context.needs_update = 1
-    endif
 endfunction
 
 function! context#util#update_line_state() abort
@@ -171,15 +149,10 @@ endfunction
 function! context#util#get_border_line(lines, indent, winid) abort
     let c = getwinvar(a:winid, 'context')
 
-    let new_top_line = w:context.top_line + len(a:lines)
-    " TODO: use 0 or -1 in second []? which one is more natural/useful?
-    " TODO: +1 or not in the end? (to avoid zeros)
-    let n = new_top_line - a:lines[-1][0].number
-
     " NOTE: we use a non breaking space after the border chars because there
     " can be some display issues in the Kitty terminal with a normal space
 
-    let line_len = c.size_w - c.padding - a:indent - 1
+    let line_len = c.size_w - c.sign_width - c.number_width - a:indent - 1
     let border_char = g:context.char_border
     if !g:context.show_tag
         " here the NB space belongs to the border part
@@ -188,9 +161,6 @@ function! context#util#get_border_line(lines, indent, winid) abort
     endif
 
     let line_len -= len(s:context_buffer_name) + 1
-    " TODO: maybe we can move this calculation to #line#render?
-    " so we could reuse the context lines even if the width has changed?
-    " might not be worth it, but maybe consider
     let border_text = repeat(g:context.char_border, line_len)
     " here the NB space belongs to the tag part (for minor highlighting reasons)
     let tag_text = ' ' . s:context_buffer_name . ' '
@@ -212,10 +182,11 @@ endfunction
 " to be displayed together with the line_number which should be used for the
 " indentation of the border line/status line
 function! context#util#filter(context, line_number, consider_height) abort
+    let c = g:context
     let line_number    = a:line_number
-    let show_border    = g:context.show_border
-    let max_height     = g:context.max_height
-    let max_per_indent = g:context.max_per_indent
+    let show_border    = c.show_border
+    let max_height     = c.max_height
+    let max_per_indent = c.max_per_indent
 
     let height = 0
     let done = 0
@@ -270,8 +241,7 @@ function! context#util#filter(context, line_number, consider_height) abort
 
         let indent = inner_lines[0][0].indent
         let limited = inner_lines[: max_per_indent/2-1]
-        " TODO: let c = g:context
-        let ellipsis_lines = [context#line#make_highlight(0, g:context.char_ellipsis, indent, g:context.ellipsis, 'Comment')]
+        let ellipsis_lines = [context#line#make_highlight(0, c.char_ellipsis, indent, c.ellipsis, 'Comment')]
         call add(limited, ellipsis_lines)
         call extend(limited, inner_lines[-(max_per_indent-1)/2 :])
 
@@ -285,10 +255,10 @@ function! context#util#filter(context, line_number, consider_height) abort
     " apply total limit
     let diff = len(lines) - max_height
     if diff > 0
-        let indent1 = lines[max_height/2][0].indent
+        let indent = lines[max_height/2][0].indent
         let indent2 = lines[-(max_height-1)/2][0].indent
-        let ellipsis = repeat(g:context.char_ellipsis, max([indent2 - indent1, 3]))
-        let ellipsis_lines = [context#line#make_highlight(0, g:context.char_ellipsis, indent1, ellipsis, 'Comment')]
+        let ellipsis = repeat(c.char_ellipsis, max([indent2 - indent, 3]))
+        let ellipsis_lines = [context#line#make_highlight(0, c.char_ellipsis, indent, ellipsis, 'Comment')]
         call remove(lines, max_height/2, -(max_height+1)/2)
         call insert(lines, ellipsis_lines, max_height/2)
     endif
@@ -309,7 +279,6 @@ function! context#util#limit_join_parts(lines) abort
     if max == 1
         return [a:lines[0]]
     elseif max == 2
-        " TODO: add vars for ellipsis lines?
         let text = ' ' . g:context.ellipsis
         return [a:lines[0], context#line#make_highlight(0, '', 0, text, 'Comment')]
     endif
