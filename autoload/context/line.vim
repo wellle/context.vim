@@ -62,6 +62,8 @@ function! context#line#display(winid, join_parts) abort
     " NOTE: we use non breaking spaces for padding in order to not show
     " 'listchars' in the sign and number columns
 
+    " TODO: consider fold column too
+
     " sign column
     let width = c.sign_width
     if width > 0
@@ -109,7 +111,7 @@ function! context#line#display(winid, join_parts) abort
         let width = len(part)
         " NOTE: this highlight wouldn't be necessary for popup, but is added
         " to make it easier to assemble the statusline for preview
-        call add(highlights, ['Normal', len(text), width])
+        call add(highlights, ['Whitespace', len(text), width])
         let text .= part
     endif
 
@@ -135,16 +137,27 @@ function! context#line#display(winid, join_parts) abort
         " let col += width
         " continue
 
-        let width = 0
-
-        if join_part.highlight != ''
-            let width = len(join_part.text)
-            call add(highlights, [join_part.highlight, col, width])
-            let col += width
-            let width = 1
+        if has_key(join_part, 'highlights')
+            call extend(highlights, join_part.highlights)
             continue
         endif
 
+        let join_part.highlights = []
+
+        if join_part.highlight != ''
+            " take explicit highlight
+            let width = len(join_part.text)
+            let hl = [join_part.highlight, col, width]
+            let col += width
+            let width = 1
+            call add(join_part.highlights, hl)
+            call extend(highlights, join_part.highlights)
+            continue
+        endif
+
+        " copy highlights from original buffer lines
+        " this was heavily inspired by https://github.com/zsugabubus/vim-paperplane
+        let width = 0
         let start = join_part.indent_chars
         for line_col in range(start, start + len(join_part.text))
             let hlgroup = synIDattr(synIDtrans(synID(join_part.number, line_col+1, 1)), 'name')
@@ -155,7 +168,8 @@ function! context#line#display(winid, join_parts) abort
             endif
 
             if prev_hl != ''
-                call add(highlights, [prev_hl, col, width])
+                let hl = [prev_hl, col, width]
+                call add(join_part.highlights, hl)
             endif
 
             let prev_hl = hlgroup
@@ -163,6 +177,8 @@ function! context#line#display(winid, join_parts) abort
             let width = 1
         endfor
         let col += width-1
+
+        call extend(highlights, join_part.highlights)
     endfor
 
     return [text, highlights]

@@ -61,6 +61,8 @@ function! context#settings#parse() abort
     " for example a `{` might be lifted to the preceeding `if` line
     let regex_join = get(g:, 'context_join_regex', '^\W*$')
 
+    " TODO: test all these highlight settings again, background color doesn't
+    " seem to work anymore on the indentation
     let default_highlight_border = 'Comment'
     let default_highlight_tag    = 'Special'
 

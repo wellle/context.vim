@@ -2,8 +2,8 @@ function! context#popup#update_context() abort
     let [lines, base_line] = context#popup#get_context()
     call context#util#echof('> context#popup#update_context', len(lines))
 
-    " TODO: do we need to retain those? or can we just pass them like we do
-    " for preview?
+    " NOTE: we remember context lines and baseline indent per window so we can
+    " redraw them in #layout when the window layout changes
     let w:context.lines  = lines
     let w:context.indent = g:context.Border_indent(base_line)
 
@@ -107,25 +107,26 @@ function! context#popup#redraw(winid) abort
         return
     endif
 
-    let lines = copy(c.lines)
-    if len(lines) == 0
+    if len(c.lines) == 0
         return
     endif
 
-    if g:context.show_border
-        call add(lines, context#util#get_border_line(lines, w:context.indent, a:winid))
-    endif
-
-    call context#util#echof('  > context#popup#redraw', len(lines))
+    call context#util#echof('  > context#popup#redraw', len(c.lines))
 
     let display_lines = []
     let hls = [] " list of lists, one per context line
-    for line in lines
+    for line in c.lines
         let [text, highlights] = context#line#display(a:winid, line)
-        " call context#util#echof('highlights', text, highlights)
         call add(display_lines, text)
         call add(hls, highlights)
     endfor
+
+    if g:context.show_border
+        let border_line = context#util#get_border_line(c.lines, w:context.indent, a:winid)
+        let [text, highlights] = context#line#display(a:winid, border_line)
+        call add(display_lines, text)
+        call add(hls, highlights)
+    endif
 
     if g:context.presenter == 'nvim-float'
         call context#popup#nvim#redraw(a:winid, popup, display_lines)
@@ -193,8 +194,6 @@ function! s:show() abort
         call context#popup#nvim#redraw_screen()
     endif
 endfunction
-
-" TODO: consider fold column too
 
 function! s:open() abort
     call context#util#echof('  > open')

@@ -8,7 +8,6 @@ function! context#popup#vim#open() abort
                 \ })
 
     call setwinvar(popup, '&wincolor', g:context.highlight_normal)
-    call win_execute(popup, 'highlight! link FoldColumn Normal')
 
     return popup
 endfunction
