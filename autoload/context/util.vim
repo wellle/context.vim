@@ -102,7 +102,7 @@ function! context#util#update_state() abort
         let number_width = 0
     endif
     if w:context.number_width != number_width
-        call context#util#echof('number width changed', w:context.number_width, number_width)
+        " call context#util#echof('number width changed', w:context.number_width, number_width)
         let w:context.number_width = number_width
         let w:context.needs_update = 1
     endif
@@ -114,7 +114,7 @@ function! context#util#update_state() abort
     " NOTE: sign_width can be negative if the cursor is on the wrapped part of
     " a wrapped line. in that case ignore the value
     if sign_width >= 0 && w:context.sign_width != sign_width
-        call context#util#echof('sign width changed', w:context.sign_width, sign_width)
+        " call context#util#echof('sign width changed', w:context.sign_width, sign_width)
         let w:context.sign_width = sign_width
         let w:context.needs_update = 1
     endif
@@ -302,22 +302,6 @@ function! context#util#limit_join_parts(lines) abort
     endwhile
 
     return a:lines
-endfunction
-
-" TODO: move to popup.vim? used anywhere else?
-function! context#util#show_cursor() abort
-    " compare height of context to cursor line on screen
-    let n = len(w:context.lines) + g:context.show_border - (w:context.cursor_line - w:context.top_line)
-    if n <= 0
-        " if cursor is low enough, nothing to do
-        return
-    end
-
-    " otherwise we have to either move or scroll the cursor accordingly
-    " call context#util#echof('show_cursor', w:context.fix_strategy, n)
-    let key = (w:context.fix_strategy == 'move') ? 'j' : "\<C-Y>"
-    execute 'normal! ' . n . key
-    call context#util#update_line_state()
 endfunction
 
 let s:log_indent = 0

@@ -48,7 +48,7 @@ if g:context.add_autocmds
         autocmd VimResized   * call context#update('VimResized')
         autocmd CursorHold   * call context#update('CursorHold')
         autocmd User GitGutter call context#update('GitGutter')
-        " TODO: there's a bug here, if number is set and you toggle
+        " TODO!: there's a bug here, if number is set and you toggle
         " relativenumber, then the context doesn't get updated
         autocmd OptionSet number,relativenumber,numberwidth,signcolumn,tabstop
                     \          call context#update('OptionSet')

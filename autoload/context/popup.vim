@@ -7,7 +7,7 @@ function! context#popup#update_context() abort
     let w:context.lines  = lines
     let w:context.indent = g:context.Border_indent(base_line)
 
-    call context#util#show_cursor()
+    call s:show_cursor()
     call s:show()
 endfunction
 
@@ -162,7 +162,21 @@ function! context#popup#close() abort
     call remove(g:context.popups, winid)
 endfunction
 
-" popup related
+function! s:show_cursor() abort
+    " compare height of context to cursor line on screen
+    let n = len(w:context.lines) + g:context.show_border - (w:context.cursor_line - w:context.top_line)
+    if n <= 0
+        " if cursor is low enough, nothing to do
+        return
+    end
+
+    " otherwise we have to either move or scroll the cursor accordingly
+    " call context#util#echof('show_cursor', w:context.fix_strategy, n)
+    let key = (w:context.fix_strategy == 'move') ? 'j' : "\<C-Y>"
+    execute 'normal! ' . n . key
+    call context#util#update_line_state()
+endfunction
+
 function! s:show() abort
     let winid = win_getid()
     let popup = get(g:context.popups, winid)
