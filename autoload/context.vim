@@ -97,6 +97,12 @@ function! context#update(...) abort
     call context#util#update_state()
     call context#util#update_window_state(winid)
 
+    if source == 'OptionSet'
+        " some options like 'relativenumber' and 'tabstop' don't change any
+        " currently tracked state. let's just always update on OptionSet.
+        let w:context.needs_update = 1
+    endif
+
     if 0
                 \ || !s:activated
                 \ || s:ignore_update
@@ -113,6 +119,7 @@ function! context#update(...) abort
     endif
 
     if !w:context.needs_update && !w:context.needs_layout
+        " call context#util#echof('> context#update (nothing to do)', source)
         return
     endif
 
