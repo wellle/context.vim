@@ -37,7 +37,6 @@ endif
 
 
 " autocommands
-" TODO: update docs
 if g:context.add_autocmds
     augroup context.vim
         autocmd!

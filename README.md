@@ -241,6 +241,8 @@ autocmd CursorMoved  * call context#update('CursorMoved')
 autocmd VimResized   * call context#update('VimResized')
 autocmd CursorHold   * call context#update('CursorHold')
 autocmd User GitGutter call context#update('GitGutter')
+autocmd OptionSet number,relativenumber,numberwidth,signcolumn,tabstop
+            \          call context#update('OptionSet')
 ```
 
 Note the `VimEnter` one. When Vim starts this plugin isn't active yet, even if enabled. That is because there are some issues with trying to open a preview window before Vim finished opening all windows for the provided file arguments. So if you disable auto commands you will need to call `:ContextActivate` in some way to activate this plugin.
