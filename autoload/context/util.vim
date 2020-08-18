@@ -17,6 +17,10 @@ function! context#util#map_H() abort
     if mode(1) == 'niI' " i^o
         return 'H'
     endif
+    if g:context.presenter == 'preview'
+        " nothing needed for preview
+        return 'H'
+    endif
     " TODO: handle scrolloff
     let n = len(w:context.lines) + g:context.show_border + v:count1
     return "\<Esc>". n . 'H'
