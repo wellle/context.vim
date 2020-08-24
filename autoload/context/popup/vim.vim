@@ -8,7 +8,6 @@ function! context#popup#vim#open() abort
                 \ })
 
     call setwinvar(popup, '&wincolor', g:context.highlight_normal)
-    call win_execute(popup, 'highlight! link FoldColumn Normal')
 
     return popup
 endfunction
@@ -26,8 +25,8 @@ function! context#popup#vim#redraw(winid, popup, lines) abort
                 \ 'maxwidth': c.size_w,
                 \ })
 
-    call win_execute(a:popup, 'let &foldcolumn=' . c.padding)
     call win_execute(a:popup, 'let &list=' . &list)
+    call win_execute(a:popup, 'call clearmatches()')
 endfunction
 
 function! context#popup#vim#close(popup) abort

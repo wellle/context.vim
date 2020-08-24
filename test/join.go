@@ -1,14 +1,15 @@
 package main
 
-import ""
 
-func f(t *testing.T) {
+func f(t *testing.T)
+{
 	for i, tc := range []struct {
 		b string
 		t string
 		f bool
 		c bool
-	}{
+	}
+	{
 
 		{
 			b: otherToken,

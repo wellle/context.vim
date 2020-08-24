@@ -70,6 +70,8 @@ function! context#update(...) abort
                     \ 'indent':             0,
                     \ 'needs_layout':       0,
                     \ 'needs_update':       0,
+                    \ 'number_width':       0,
+                    \ 'sign_width':         0,
                     \ 'padding':            0,
                     \ 'top_line':           0,
                     \ 'bottom_line':        0,
@@ -95,12 +97,19 @@ function! context#update(...) abort
     call context#util#update_state()
     call context#util#update_window_state(winid)
 
+    if source == 'OptionSet'
+        " some options like 'relativenumber' and 'tabstop' don't change any
+        " currently tracked state. let's just always update on OptionSet.
+        let w:context.needs_update = 1
+    endif
+
     if 0
                 \ || !s:activated
                 \ || s:ignore_update
                 \ || &previewwindow
                 \ || mode() != 'n'
                 \ || !context#util#active()
+                \ || bufname() =~# '^term://'
         let w:context.needs_update = 0
         " NOTE: we still consider needs_layout even if this buffer is disabled
     endif
@@ -110,6 +119,7 @@ function! context#update(...) abort
     endif
 
     if !w:context.needs_update && !w:context.needs_layout
+        " call context#util#echof('> context#update (nothing to do)', source)
         return
     endif
 
@@ -144,14 +154,14 @@ endfunction
 
 function! s:set_enabled(arg, enabled) abort
     if a:arg == 'window'
-        let winids = [winnr()] " only current window
+        let winnrs = [winnr()] " only current window
     else
-        let winids = range(1, winnr('$')) " all windows
+        let winnrs = range(1, winnr('$')) " all windows
         let g:context.enabled = a:enabled
     endif
 
-    for winid in winids
-        let c = getwinvar(win_getid(winid), 'context', {})
+    for winnr in winnrs
+        let c = getwinvar(win_getid(winnr), 'context', {})
         let c.enabled = a:enabled
         let c.top_line = 0 " don't rely on old cache
     endfor

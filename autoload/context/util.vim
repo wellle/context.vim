@@ -1,3 +1,5 @@
+let s:context_buffer_name = '<context.vim>'
+
 function! context#util#active() abort
     return 1
                 \ && w:context.enabled
@@ -15,8 +17,12 @@ function! context#util#map_H() abort
     if mode(1) == 'niI' " i^o
         return 'H'
     endif
+    if g:context.presenter == 'preview'
+        " nothing needed for preview
+        return 'H'
+    endif
     " TODO: handle scrolloff
-    let n = len(w:context.lines) + v:count1
+    let n = len(w:context.lines) + g:context.show_border + v:count1
     return "\<Esc>". n . 'H'
 endfunction
 
@@ -90,24 +96,30 @@ function! context#util#update_state() abort
     let w:context.top_line = top_line
     let w:context.cursor_line = cursor_line
 
-    " padding can only be checked for the current window
-    let padding = wincol() - virtcol('.')
-    " NOTE: if 'list' is set and the cursor is on a Tab character the cursor
-    " is positioned differently (at the beginning of the Tab character instead
-    " of at the end). we recognize that case and fix the padding accordingly
-    if &list && getline('.')[getcurpos()[2]-1] == "\t"
-        let padding += &tabstop - 1
+    if &number
+        " depends on total number of lines
+        let number_width = max([&numberwidth, float2nr(ceil(log10(line('$') + 1))) + 1])
+    elseif &relativenumber
+        " depends on number of visible lines
+        let number_width = max([&numberwidth, float2nr(ceil(log10(&lines - 1))) + 1])
+    else
+        let number_width = 0
     endif
-    if padding < 0
-        " padding can be negative if cursor was on the wrapped part of a
-        " wrapped line in that case don't take the new value
-        " in this case we don't want to trigger an update, but still set
-        " padding to a value
-        if !exists('w:context.padding')
-            let w:context.padding = 0
-        endif
-    elseif w:context.padding != padding
-        let w:context.padding = padding
+    if w:context.number_width != number_width
+        " call context#util#echof('number width changed', w:context.number_width, number_width)
+        let w:context.number_width = number_width
+        let w:context.needs_update = 1
+    endif
+
+    let old = [&virtualedit, &conceallevel]
+    let [&virtualedit, &conceallevel] = ['all', 0]
+    let sign_width = wincol() - virtcol('.') - number_width
+    let [&virtualedit, &conceallevel] = old
+    " NOTE: sign_width can be negative if the cursor is on the wrapped part of
+    " a wrapped line. in that case ignore the value
+    if sign_width >= 0 && w:context.sign_width != sign_width
+        " call context#util#echof('sign width changed', w:context.sign_width, sign_width)
+        let w:context.sign_width = sign_width
         let w:context.needs_update = 1
     endif
 endfunction
@@ -138,6 +150,30 @@ function! context#util#update_window_state(winid) abort
     endif
 endfunction
 
+function! context#util#get_border_line(lines, indent, winid) abort
+    let c = getwinvar(a:winid, 'context')
+
+    " NOTE: we use a non breaking space after the border chars because there
+    " can be some display issues in the Kitty terminal with a normal space
+
+    let line_len = c.size_w - c.sign_width - c.number_width - a:indent - 1
+    let border_char = g:context.char_border
+    if !g:context.show_tag
+        " here the NB space belongs to the border part
+        let border_text = repeat(g:context.char_border, line_len) . ' '
+        return [context#line#make_highlight(0, border_char, a:indent, border_text, g:context.highlight_border)]
+    endif
+
+    let line_len -= len(s:context_buffer_name) + 1
+    let border_text = repeat(g:context.char_border, line_len)
+    " here the NB space belongs to the tag part (for minor highlighting reasons)
+    let tag_text = ' ' . s:context_buffer_name . ' '
+    return [
+                \ context#line#make_highlight(0, border_char, a:indent, border_text, g:context.highlight_border),
+                \ context#line#make_highlight(0, border_char, a:indent, tag_text,    g:context.highlight_tag)
+                \ ]
+endfunction
+
 " this is a pretty weird function
 " it has been extracted to reduce duplication between popup and preview code
 " what it does: it goes through all lines of the given full context and
@@ -150,9 +186,11 @@ endfunction
 " to be displayed together with the line_number which should be used for the
 " indentation of the border line/status line
 function! context#util#filter(context, line_number, consider_height) abort
-    let line_number = a:line_number
-    let max_height = g:context.max_height
-    let max_height_per_indent = g:context.max_per_indent
+    let c = g:context
+    let line_number    = a:line_number
+    let show_border    = c.show_border
+    let max_height     = c.max_height
+    let max_per_indent = c.max_per_indent
 
     let height = 0
     let done = 0
@@ -175,15 +213,15 @@ function! context#util#filter(context, line_number, consider_height) abort
             endif
 
             if a:consider_height
-                if height == 0 && g:context.show_border
+                if height == 0 && show_border
                     let height += 2 " adding border line
-                elseif height < max_height && len(inner_lines) < max_height_per_indent
+                elseif height < max_height + show_border && len(inner_lines) < max_per_indent
                     let height += 1
                 endif
             endif
 
             for i in range(1, len(join_batch)-1)
-                if join_batch[i].number > w:context.top_line + height
+                if join_batch[i].number >= w:context.top_line + height
                     let line_number = join_batch[i].number
                     let done = 1
                     call remove(join_batch, i, -1)
@@ -191,23 +229,25 @@ function! context#util#filter(context, line_number, consider_height) abort
                 endif
             endfor
 
-            let line = context#line#join(join_batch)
-            call add(inner_lines, line)
+            let limited_lines = context#util#limit_join_parts(join_batch)
+            call add(inner_lines, limited_lines)
         endfor
 
         " apply max per indent
-        if len(inner_lines) <= max_height_per_indent
+        let diff = len(inner_lines) - max_per_indent
+        if diff <= 0
             call extend(lines, inner_lines)
             continue
         endif
 
-        let diff = len(inner_lines) - max_height_per_indent
 
-        let indent = inner_lines[0].indent
-        let limited = inner_lines[: max_height_per_indent/2-1]
-        let ellipsis_line = context#line#make(0, indent, repeat(' ', indent) . g:context.ellipsis)
-        call add(limited, ellipsis_line)
-        call extend(limited, inner_lines[-(max_height_per_indent-1)/2 :])
+        " call context#util#echof('inner_lines', inner_lines)
+
+        let indent = inner_lines[0][0].indent
+        let limited = inner_lines[: max_per_indent/2-1]
+        let ellipsis_lines = [context#line#make_highlight(0, c.char_ellipsis, indent, c.ellipsis, 'Comment')]
+        call add(limited, ellipsis_lines)
+        call extend(limited, inner_lines[-(max_per_indent-1)/2 :])
 
         call extend(lines, limited)
     endfor
@@ -217,32 +257,55 @@ function! context#util#filter(context, line_number, consider_height) abort
     endif
 
     " apply total limit
-    if len(lines) > max_height
-        let indent1 = lines[max_height/2].indent
-        let indent2 = lines[-(max_height-1)/2].indent
-        let ellipsis = repeat(g:context.char_ellipsis, max([indent2 - indent1, 3]))
-        let ellipsis_line = context#line#make(0, indent1, repeat(' ', indent1) . ellipsis)
+    let diff = len(lines) - max_height
+    if diff > 0
+        let indent = lines[max_height/2][0].indent
+        let indent2 = lines[-(max_height-1)/2][0].indent
+        let ellipsis = repeat(c.char_ellipsis, max([indent2 - indent, 3]))
+        let ellipsis_lines = [context#line#make_highlight(0, c.char_ellipsis, indent, ellipsis, 'Comment')]
         call remove(lines, max_height/2, -(max_height+1)/2)
-        call insert(lines, ellipsis_line, max_height/2)
+        call insert(lines, ellipsis_lines, max_height/2)
     endif
 
-    call map(lines, function('context#line#text'))
     return [lines, line_number]
 endfunction
 
-function! context#util#show_cursor() abort
-    " compare height of context to cursor line on screen
-    let n = len(w:context.lines) - (w:context.cursor_line - w:context.top_line)
-    if n <= 0
-        " if cursor is low enough, nothing to do
-        return
-    end
+" takes a list of join parts and checks g:context.max_join_parts
+" if the limit is exceeded it's reduced with an ellipsis part
+function! context#util#limit_join_parts(lines) abort
+    " call context#util#echof('> join', len(a:lines))
+    if len(a:lines) == 1
+        return a:lines
+    endif
 
-    " otherwise we have to either move or scroll the cursor accordingly
-    " call context#util#echof('show_cursor', w:context.fix_strategy, n)
-    let key = (w:context.fix_strategy == 'move') ? 'j' : "\<C-Y>"
-    execute 'normal! ' . n . key
-    call context#util#update_line_state()
+    let max = g:context.max_join_parts
+
+    if max == 1
+        return [a:lines[0]]
+    elseif max == 2
+        let text = ' ' . g:context.ellipsis
+        return [a:lines[0], context#line#make_highlight(0, '', 0, text, 'Comment')]
+    endif
+
+    if len(a:lines) > max " too many parts
+        let text = ' ' . g:context.ellipsis5 . ' '
+        call remove(a:lines, (max+1)/2, -max/2-1)
+        call insert(a:lines, context#line#make_highlight(0, '', 0, text, 'Comment'), (max+1)/2) " middle marker
+    endif
+
+    " insert ellipses where there are gaps between the parts
+    let i = 0
+    while i < len(a:lines) - 1
+        let [n1, n2] = [a:lines[i].number, a:lines[i+1].number]
+        if n1 > 0 && n2 > 0
+            " show ellipsis if line i+1 is not directly below line i
+            let text = n2 > n1 + 1 ? ' ' . g:context.ellipsis . ' ' : ' '
+            call insert(a:lines, context#line#make_highlight(0, '', 0, text, 'Comment'), i+1)
+        endif
+        let i += 1
+    endwhile
+
+    return a:lines
 endfunction
 
 let s:log_indent = 0

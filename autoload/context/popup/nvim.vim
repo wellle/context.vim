@@ -15,17 +15,26 @@ function! context#popup#nvim#open() abort
     call setwinvar(popup, '&wrap', 0)
     call setwinvar(popup, '&foldenable', 0)
     call setwinvar(popup, '&tabstop', &tabstop)
-    call setwinvar(popup, '&winhighlight',
-                \ 'FoldColumn:Normal,Normal:' . g:context.highlight_normal)
+    call setwinvar(popup, '&winhighlight', 'Normal:' . g:context.highlight_normal)
 
     return popup
 endfunction
 
 function! context#popup#nvim#redraw(winid, popup, lines) abort
-    call context#util#echof('    > context#popup#nvim#redraw', len(a:lines))
-
     let buf = winbufnr(a:popup)
-    call nvim_buf_set_lines(buf, 0, -1, v:true, a:lines)
+    call context#util#echof('    > context#popup#nvim#redraw', len(a:lines), a:winid, buf)
+
+    " NOTE: again we need to do a workaround because of the neovim bug
+    " neovim#11878. to reproduce open a buffer with visible context and then
+    " open a new buffer in a split (with cursor on a line without visible
+    " context). at the time of one of the autocommands the new window appears
+    " to context.vim to hold the previous buffer which leads to an E12 error
+    " from #popup#layout()
+    let v:errmsg = ""
+    silent! call nvim_buf_set_lines(buf, 0, -1, v:true, a:lines)
+    if v:errmsg != ""
+        return
+    endif
 
     let c = getwinvar(a:winid, 'context')
     call nvim_win_set_config(a:popup, {
@@ -36,7 +45,14 @@ function! context#popup#nvim#redraw(winid, popup, lines) abort
                 \ 'width':    c.size_w,
                 \ })
 
-    call setwinvar(a:popup, '&foldcolumn', c.padding)
+    call setwinvar(a:popup, '&list', &list)
+
+    " NOTE: because of some neovim limitation we have to temporarily switch to
+    " the popup window so we can clear the highlighting
+    " https://github.com/neovim/neovim/issues/10822
+    execute 'noautocmd' bufwinnr(buf) . 'wincmd w'
+    call clearmatches()
+    wincmd p
 endfunction
 
 function! context#popup#nvim#close(popup) abort

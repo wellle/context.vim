@@ -1,13 +1,13 @@
-let s:context_buffer_name = '<context.vim>'
-
 function! context#popup#update_context() abort
     let [lines, base_line] = context#popup#get_context()
     call context#util#echof('> context#popup#update_context', len(lines))
 
+    " NOTE: we remember context lines and baseline indent per window so we can
+    " redraw them in #layout when the window layout changes
     let w:context.lines  = lines
     let w:context.indent = g:context.Border_indent(base_line)
 
-    call context#util#show_cursor()
+    call s:show_cursor()
     call s:show()
 endfunction
 
@@ -33,14 +33,14 @@ function! context#popup#get_context() abort
             return [[], 0]
         endif
 
-        let line = getline(line_number) " empty for invalid lines
-        if context#line#should_skip(line)
+        let text = getline(line_number) " empty for invalid lines
+        if context#line#should_skip(text)
             let skipped += 1
-            call context#util#echof('skip', line_number)
+            " call context#util#echof('skip', line_number)
             continue
         endif
 
-        let base_line = context#line#make(line_number, indent, line)
+        let base_line = context#line#make(line_number, indent, text)
         let [context, line_count] = context#context#get(base_line)
         call context#util#echof('context#get', line_number, line_count)
 
@@ -64,10 +64,6 @@ function! context#popup#get_context() abort
     endwhile
 
     let [lines, line_number] = context#util#filter(context, line_number, 1)
-
-    if g:context.show_border && len(lines) > 0
-        call add(lines, '') " add line for border, will be replaced later
-    endif
 
     return [lines, line_number]
 endfunction
@@ -100,6 +96,8 @@ endfunction
 
 function! context#popup#redraw(winid) abort
     let popup = get(g:context.popups, a:winid)
+    call context#util#echof('> context#popup#redraw', a:winid, popup)
+
     if popup == 0
         return
     endif
@@ -109,22 +107,39 @@ function! context#popup#redraw(winid) abort
         return
     endif
 
-    let lines = c.lines
-    if len(lines) == 0
+    if len(c.lines) == 0
         return
     endif
 
+    call context#util#echof('  > context#popup#redraw', len(c.lines))
+
+    let display_lines = []
+    let hls = [] " list of lists, one per context line
+    for line in c.lines
+        let [text, highlights] = context#line#display(a:winid, line)
+        call add(display_lines, text)
+        call add(hls, highlights)
+    endfor
+
     if g:context.show_border
-        let lines[-1] = s:get_border_line(a:winid, 1)
-        let c.lines = lines
+        let border_line = context#util#get_border_line(c.lines, w:context.indent, a:winid)
+        let [text, highlights] = context#line#display(a:winid, border_line)
+        call add(display_lines, text)
+        call add(hls, highlights)
     endif
 
-    call context#util#echof('  > context#popup#redraw', len(lines))
     if g:context.presenter == 'nvim-float'
-        call context#popup#nvim#redraw(a:winid, popup, lines)
+        call context#popup#nvim#redraw(a:winid, popup, display_lines)
     elseif g:context.presenter == 'vim-popup'
-        call context#popup#vim#redraw(a:winid, popup, lines)
+        call context#popup#vim#redraw(a:winid, popup, display_lines)
     endif
+
+    let args = {'window': popup}
+    for h in range(0, len(hls)-1)
+        for hl in hls[h]
+            call matchaddpos(hl[0], [[h+1, hl[1]+1, hl[2]]], 10, -1, args)
+        endfor
+    endfor
 endfunction
 
 " close all popups
@@ -147,7 +162,21 @@ function! context#popup#close() abort
     call remove(g:context.popups, winid)
 endfunction
 
-" popup related
+function! s:show_cursor() abort
+    " compare height of context to cursor line on screen
+    let n = len(w:context.lines) + g:context.show_border - (w:context.cursor_line - w:context.top_line)
+    if n <= 0
+        " if cursor is low enough, nothing to do
+        return
+    end
+
+    " otherwise we have to either move or scroll the cursor accordingly
+    " call context#util#echof('show_cursor', w:context.fix_strategy, n)
+    let key = (w:context.fix_strategy == 'move') ? 'j' : "\<C-Y>"
+    execute 'normal! ' . n . key
+    call context#util#update_line_state()
+endfunction
+
 function! s:show() abort
     let winid = win_getid()
     let popup = get(g:context.popups, winid)
@@ -183,21 +212,10 @@ endfunction
 function! s:open() abort
     call context#util#echof('  > open')
     if g:context.presenter == 'nvim-float'
-        let popup = context#popup#nvim#open()
+        return context#popup#nvim#open()
     elseif g:context.presenter == 'vim-popup'
-        let popup = context#popup#vim#open()
+        return context#popup#vim#open()
     endif
-
-    " NOTE: we use a non breaking space here again before the buffer name
-    let border = ' *' .g:context.char_border . '* '
-    let tag = s:context_buffer_name
-    call matchadd(g:context.highlight_border, border, 10, -1, {'window': popup})
-    call matchadd(g:context.highlight_tag,    tag,    10, -1, {'window': popup})
-
-    let buf = winbufnr(popup)
-    call setbufvar(buf, '&syntax', &syntax)
-
-    return popup
 endfunction
 
 function! s:close(popup) abort
@@ -207,28 +225,4 @@ function! s:close(popup) abort
     elseif g:context.presenter == 'vim-popup'
         call context#popup#vim#close(a:popup)
     endif
-endfunction
-
-function! s:get_border_line(winid, indent) abort
-    let c = getwinvar(a:winid, 'context')
-    let indent = a:indent ? c.indent : 0
-    " let indent = 0
-
-    let line_len = c.size_w - c.padding - indent - 1
-    if g:context.show_tag
-        let line_len -= len(s:context_buffer_name) + 1
-    endif
-
-    " NOTE: we use a non breaking space before the buffer name because there
-    " can be some display issues in the Kitty terminal with a normal space
-    let border_line = ''
-                \ . repeat(' ', indent)
-                \ . repeat(g:context.char_border, line_len)
-                \ . ' '
-    if g:context.show_tag
-        let border_line .= ''
-                    \ . s:context_buffer_name
-                    \ . ' '
-    endif
-    return border_line
 endfunction

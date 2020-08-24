@@ -25,9 +25,7 @@ function! context#preview#get_context() abort
 
     call context#util#echof('> context#preview#update_context', len(context))
 
-    let [lines, line_number] = context#util#filter(context, line_number, 0)
-
-    return [lines, line_number]
+    return context#util#filter(context, line_number, 0)
 endfunction
 
 function! context#preview#close() abort
@@ -66,9 +64,18 @@ function! s:show(lines, indent) abort
         return [[], 0]
     endif
 
-    let syntax  = &syntax
-    let tabstop = &tabstop
-    let padding = w:context.padding
+    let winid = win_getid()
+
+    let display_lines = []
+    let hls = [] " list of lists, one per context line
+    for line in a:lines
+        let [text, highlights] = context#line#display(winid, line)
+        " call context#util#echof('highlights', text, highlights)
+        call add(display_lines, text)
+        call add(hls, highlights)
+    endfor
+
+    let border_line = context#util#get_border_line(a:lines, a:indent, winid)
 
     execute 'silent! aboveleft pedit' s:context_buffer_name
 
@@ -81,10 +88,12 @@ function! s:show(lines, indent) abort
         return [[], 0]
     endif
 
-    let statusline = '%=' . s:context_buffer_name . ' ' " trailing space for padding
-    if a:indent >= 0
-        let statusline = repeat(' ', padding + a:indent) . g:context.ellipsis . statusline
-    endif
+    let [border_text, border_hls] = context#line#display(winid, border_line)
+    let statusline = ''
+    for hl in border_hls
+        let part = strpart(border_text, hl[1], hl[2])
+        let statusline .= '%#' . hl[0] . '#' . part
+    endfor
 
     setlocal buftype=nofile
     setlocal modifiable
@@ -96,16 +105,19 @@ function! s:show(lines, indent) abort
     setlocal nowrap
     setlocal signcolumn=no
 
-    execute 'setlocal syntax='     . syntax
-    execute 'setlocal tabstop='    . tabstop
-    execute 'setlocal foldcolumn=' . padding
     execute 'setlocal statusline=' . escape(statusline, ' ')
 
     let b:airline_disable_statusline=1
 
-    silent %d _          " delete everything
-    silent 0put =a:lines " paste lines
-    1                    " and jump to first line
+    silent %d _                " delete everything
+    silent 0put =display_lines " paste lines
+    1                          " and jump to first line
+
+    for h in range(0, len(hls)-1)
+        for hl in hls[h]
+            call matchaddpos(hl[0], [[h+1, hl[1]+1, hl[2]]], 10, -1)
+        endfor
+    endfor
 
     execute 'resize' len(a:lines)
 
