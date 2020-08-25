@@ -65,6 +65,7 @@ function! s:show(lines, indent) abort
     endif
 
     let winid = win_getid()
+    let list  = &list
 
     let display_lines = []
     let hls = [] " list of lists, one per context line
@@ -95,6 +96,7 @@ function! s:show(lines, indent) abort
         let statusline .= '%#' . hl[0] . '#' . part
     endfor
 
+    let &list = list
     setlocal buftype=nofile
     setlocal modifiable
     setlocal nobuflisted

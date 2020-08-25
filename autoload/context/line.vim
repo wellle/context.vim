@@ -111,7 +111,7 @@ function! context#line#display(winid, join_parts) abort
         let width = len(part)
         " NOTE: this highlight wouldn't be necessary for popup, but is added
         " to make it easier to assemble the statusline for preview
-        call add(highlights, ['Whitespace', len(text), width])
+        call add(highlights, ['NonText', len(text), width])
         let text .= part
     endif
 
