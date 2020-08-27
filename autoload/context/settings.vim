@@ -27,8 +27,10 @@ function! context#settings#parse() abort
     " how many lines to use at most for the context
     let max_height = get(g:, 'context_max_height', 21)
 
-    " how many lines are allowed per indent
-    let max_per_indent = get(g:, 'context_max_per_indent', 5)
+    " how many lines are allowed per level
+    " NOTE: the setting is called per_indent for legacy reasons
+    " TODO: might want to rename the setting and keep the legacy fallback
+    let max_per_level = get(g:, 'context_max_per_indent', 5)
 
     " how many lines can be joined in one line (if they match
     " regex_join) before the ones in the middle get hidden
@@ -40,8 +42,8 @@ function! context#settings#parse() abort
     let char_border = get(g:, 'context_border_char', '▬')
 
     " indent function used to create the context
-    let Indent        = get(g:, 'Context_indent',        function('indent'))
-    let Border_indent = get(g:, 'Context_border_indent', function('indent'))
+    let Indent        = get(g:, 'Context_indent',        function('s:indent'))
+    let Border_indent = get(g:, 'Context_border_indent', function('s:indent'))
 
     " TODO: skip label lines
 
@@ -97,7 +99,7 @@ function! context#settings#parse() abort
                 \ 'add_mappings':        add_mappings,
                 \ 'add_autocmds':        add_autocmds,
                 \ 'max_height':          max_height,
-                \ 'max_per_indent':      max_per_indent,
+                \ 'max_per_level':       max_per_level,
                 \ 'max_join_parts':      max_join_parts,
                 \ 'char_ellipsis':       char_ellipsis,
                 \ 'char_border':         char_border,
@@ -118,4 +120,9 @@ function! context#settings#parse() abort
                 \ 'popups':              {},
                 \ 'windows':             {},
                 \ }
+endfunction
+
+function! s:indent(line) abort
+    let indent = indent(a:line)
+    return [indent, indent]
 endfunction

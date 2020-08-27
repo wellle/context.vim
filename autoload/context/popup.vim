@@ -5,7 +5,7 @@ function! context#popup#update_context() abort
     " NOTE: we remember context lines and baseline indent per window so we can
     " redraw them in #layout when the window layout changes
     let w:context.lines  = lines
-    let w:context.indent = g:context.Border_indent(base_line)
+    let [w:context.level, w:context.indent] = g:context.Border_indent(base_line)
 
     call s:show_cursor()
     call s:show()
@@ -27,7 +27,7 @@ function! context#popup#get_context() abort
     while 1
         let line_number += 1
 
-        let indent = g:context.Indent(line_number) " -1 for invalid lines
+        let [level, indent] = g:context.Indent(line_number) " -1 for invalid lines
         if indent < 0
             call context#util#echof('negative indent', line_number)
             return [[], 0]
@@ -40,7 +40,7 @@ function! context#popup#get_context() abort
             continue
         endif
 
-        let base_line = context#line#make(line_number, indent, text)
+        let base_line = context#line#make(line_number, level, indent, text)
         let [context, line_count] = context#context#get(base_line)
         call context#util#echof('context#get', line_number, line_count)
 
@@ -122,7 +122,7 @@ function! context#popup#redraw(winid) abort
     endfor
 
     if g:context.show_border
-        let border_line = context#util#get_border_line(c.lines, w:context.indent, a:winid)
+        let border_line = context#util#get_border_line(c.lines, w:context.level, w:context.indent, a:winid)
         let [text, highlights] = context#line#display(a:winid, border_line)
         call add(display_lines, text)
         call add(hls, highlights)
