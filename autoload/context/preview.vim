@@ -3,10 +3,10 @@ let s:context_buffer_name = '<context.vim>'
 function! context#preview#update_context() abort
     while 1
         let [lines, base_line] = context#preview#get_context()
-        let indent = g:context.Indent(base_line)
+        let [level, indent] = g:context.Indent(base_line)
 
         call context#preview#close()
-        call s:show(lines, indent)
+        call s:show(lines, level, indent)
 
         let w:context.needs_update = 0
         call context#util#update_state() " NOTE: this might set w:context.needs_update
@@ -57,7 +57,7 @@ function! context#preview#close() abort
     let layout = winrestcmd() | set equalalways | noautocmd execute layout
 endfunction
 
-function! s:show(lines, indent) abort
+function! s:show(lines, level, indent) abort
     if len(a:lines) == 0
         " nothing to do
         call context#util#echof('  none')
@@ -76,7 +76,7 @@ function! s:show(lines, indent) abort
         call add(hls, highlights)
     endfor
 
-    let border_line = context#util#get_border_line(a:lines, a:indent, winid)
+    let border_line = context#util#get_border_line(a:lines, a:level, a:indent, winid)
 
     execute 'silent! aboveleft pedit' s:context_buffer_name
 

@@ -153,12 +153,13 @@ let g:context_join_regex = '^\W*$'
 ```
 If we extended the context on some indent, we will join a line of this indent into the one above if the lower one matches this regular expression. So back in the C-style case where our context contains an `if (condition)` line and a `{` line below, they will be merged to `if (condition) {`. And that is because the `{` line matched this regular expression. By default we join everything which has no word characters.
 
+TODO: update docs
 ```vim
-let g:Context_indent = function('indent')
+let g:Context_indent = { line -> [indent(line), indent(line)] }
 ```
 By default we create the context based on the indentation of the context lines. As we scan through the buffer lines we add lines to the context if they have less indent than the last context line. To get the indentation of a given buffer line we use the `indent()` function. You can use this setting to use your own function instead. That way you can customize what goes into your context.
 
-The function takes a line number and is supposed to return a number which you could consider a virtual indent. Smaller indent number means bigger scope, just like indentation. Make sure to return -1 if an invalid line number gets passed in, like `indent()` does.
+The function takes a line number and is supposed to return two numbers. The first one is the level. Smaller level means bigger scope, just like indentation. Make sure to return -1 if an invalid line number gets passed in, like `indent()` does. The second return value is the indentation used for display. You probably want to keep using `indent()` for this one. 
 
 Here's an example that considers Markdown headers for the context: [#45][indent-example] (Note that you need to change `g:context_skip_regex` too to make this work)
 

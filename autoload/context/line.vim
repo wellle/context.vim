@@ -1,12 +1,13 @@
-function! context#line#make(number, indent, text) abort
-    return context#line#make_highlight(a:number, '', a:indent, a:text, '')
+function! context#line#make(number, level, indent, text) abort
+    return context#line#make_highlight(a:number, '', a:level, a:indent, a:text, '')
 endfunction
 
-function! context#line#make_trimmed(number, indent, text) abort
+function! context#line#make_trimmed(number, level, indent, text) abort
     let trimmed_text = s:trim(a:text)
     return {
                 \ 'number':         a:number,
                 \ 'number_char':    '',
+                \ 'level':          a:level,
                 \ 'indent':         a:indent,
                 \ 'indent_chars':   len(a:text) - len(trimmed_text),
                 \ 'text':           trimmed_text,
@@ -14,10 +15,11 @@ function! context#line#make_trimmed(number, indent, text) abort
                 \ }
 endfunction
 
-function! context#line#make_highlight(number, number_char, indent, text, highlight) abort
+function! context#line#make_highlight(number, number_char, level, indent, text, highlight) abort
     return {
                 \ 'number':         a:number,
                 \ 'number_char':    a:number_char,
+                \ 'level':          a:level,
                 \ 'indent':         a:indent,
                 \ 'indent_chars':   a:indent,
                 \ 'text':           a:text,
@@ -29,13 +31,13 @@ function! s:trim(string) abort
     return substitute(a:string, '^\s*', '', '')
 endfunction
 
-let s:nil_line = context#line#make(0, 0, '')
+let s:nil_line = context#line#make(0, 0, 0, '')
 
 " find line downwards (from given line) which isn't empty
 function! context#line#get_base_line(line) abort
     let current_line = a:line
     while 1
-        let indent = g:context.Indent(current_line)
+        let [level, indent] = g:context.Indent(current_line)
         if indent < 0 " invalid line
             return s:nil_line
         endif
@@ -46,7 +48,7 @@ function! context#line#get_base_line(line) abort
             continue
         endif
 
-        return context#line#make(current_line, indent, text)
+        return context#line#make(current_line, level, indent, text)
     endwhile
 endfunction
 

@@ -1,4 +1,4 @@
-let s:nil_line = context#line#make(0, 0, '')
+let s:nil_line = context#line#make(0, 0, 0, '')
 
 " collect all context lines
 " returns [context, line_count]
@@ -37,29 +37,28 @@ function! context#context#get(base_line) abort
             break
         endif
 
-        let indent = context_line.indent
-        if !has_key(context_map, indent)
-            let context_map[indent] = []
+        let level = context_line.level
+        if !has_key(context_map, level)
+            let context_map[level] = []
         endif
 
-        call insert(context_map[indent], context_line, 0)
+        call insert(context_map[level], context_line, 0)
 
         " for next iteration
         let base_line = context_line
     endwhile
 
-
     let context_list = []
     let line_count = 0
     " join, limit and get context lines
     " NOTE: at this stage lines changes from list to list of lists
-    for indent in sort(keys(context_map), 'N')
+    for level in sort(keys(context_map), 'N')
         " NOTE: s:join switches from list to list of lists, grouping lines
         " that are allowed to be joined on the caller side
-        let joined = s:join(context_map[indent])
+        let joined = s:join(context_map[level])
         call add(context_list, joined)
-        if len(joined) > g:context.max_per_indent
-            let line_count += g:context.max_per_indent
+        if len(joined) > g:context.max_per_level
+            let line_count += g:context.max_per_level
         else
             let line_count += len(joined)
         endif
@@ -73,23 +72,24 @@ function! s:get_context_line(line) abort
     let skipped = get(b:context.skips, a:line.number, -1)
     if skipped != -1
         " call context#util#echof('  skipped', a:line.number, '->', skipped)
-        return context#line#make_trimmed(skipped, g:context.Indent(skipped), getline(skipped))
+        let [level, indent] = g:context.Indent(skipped)
+        return context#line#make_trimmed(skipped, level, indent, getline(skipped))
     endif
 
     " if line starts with closing brace or similar: jump to matching
     " opening one and add it to context. also for other prefixes to show
     " the if which belongs to an else etc.
     if context#line#should_extend(a:line.text)
-        let max_indent = a:line.indent " allow same indent
+        let max_level = a:line.level " allow same level
     else
-        let max_indent = a:line.indent - 1 " must be strictly less
+        let max_level = a:line.level - 1 " must be strictly less
     endif
 
-    if max_indent < 0
+    if max_level < 0
         return s:nil_line
     endif
 
-    " search for line with matching indent
+    " search for line with matching level
     let current_line = a:line.number - 1
     while 1
         if current_line <= 0
@@ -97,8 +97,8 @@ function! s:get_context_line(line) abort
             return s:nil_line
         endif
 
-        let indent = g:context.Indent(current_line)
-        if indent > max_indent
+        let [level, indent] = g:context.Indent(current_line)
+        if level > max_level
             " use skip if we have, next line otherwise
             let skipped = get(b:context.skips, current_line, current_line-1)
             let current_line = skipped
@@ -111,7 +111,7 @@ function! s:get_context_line(line) abort
             continue
         endif
 
-        return context#line#make_trimmed(current_line, indent, text)
+        return context#line#make_trimmed(current_line, level, indent, text)
     endwhile
 endfunction
 

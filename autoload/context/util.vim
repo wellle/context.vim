@@ -150,7 +150,7 @@ function! context#util#update_window_state(winid) abort
     endif
 endfunction
 
-function! context#util#get_border_line(lines, indent, winid) abort
+function! context#util#get_border_line(lines, level, indent, winid) abort
     let c = getwinvar(a:winid, 'context')
 
     " NOTE: we use a non breaking space after the border chars because there
@@ -161,7 +161,7 @@ function! context#util#get_border_line(lines, indent, winid) abort
     if !g:context.show_tag
         " here the NB space belongs to the border part
         let border_text = repeat(g:context.char_border, line_len) . ' '
-        return [context#line#make_highlight(0, border_char, a:indent, border_text, g:context.highlight_border)]
+        return [context#line#make_highlight(0, border_char, a:level, a:indent, border_text, g:context.highlight_border)]
     endif
 
     let line_len -= len(s:context_buffer_name) + 1
@@ -169,8 +169,8 @@ function! context#util#get_border_line(lines, indent, winid) abort
     " here the NB space belongs to the tag part (for minor highlighting reasons)
     let tag_text = ' ' . s:context_buffer_name . ' '
     return [
-                \ context#line#make_highlight(0, border_char, a:indent, border_text, g:context.highlight_border),
-                \ context#line#make_highlight(0, border_char, a:indent, tag_text,    g:context.highlight_tag)
+                \ context#line#make_highlight(0, border_char, a:level, a:indent, border_text, g:context.highlight_border),
+                \ context#line#make_highlight(0, border_char, a:level, a:indent, tag_text,    g:context.highlight_tag)
                 \ ]
 endfunction
 
@@ -190,18 +190,18 @@ function! context#util#filter(context, line_number, consider_height) abort
     let line_number    = a:line_number
     let show_border    = c.show_border
     let max_height     = c.max_height
-    let max_per_indent = c.max_per_indent
+    let max_per_level  = c.max_per_level
 
     let height = 0
     let done = 0
     let lines = []
-    for per_indent in a:context
+    for per_level in a:context
         if done
             break
         endif
 
         let inner_lines = []
-        for join_batch in per_indent
+        for join_batch in per_level
             if done
                 break
             endif
@@ -215,7 +215,7 @@ function! context#util#filter(context, line_number, consider_height) abort
             if a:consider_height
                 if height == 0 && show_border
                     let height += 2 " adding border line
-                elseif height < max_height + show_border && len(inner_lines) < max_per_indent
+                elseif height < max_height + show_border && len(inner_lines) < max_per_level
                     let height += 1
                 endif
             endif
@@ -234,7 +234,7 @@ function! context#util#filter(context, line_number, consider_height) abort
         endfor
 
         " apply max per indent
-        let diff = len(inner_lines) - max_per_indent
+        let diff = len(inner_lines) - max_per_level
         if diff <= 0
             call extend(lines, inner_lines)
             continue
@@ -243,11 +243,12 @@ function! context#util#filter(context, line_number, consider_height) abort
 
         " call context#util#echof('inner_lines', inner_lines)
 
+        let level  = inner_lines[0][0].level
         let indent = inner_lines[0][0].indent
-        let limited = inner_lines[: max_per_indent/2-1]
-        let ellipsis_lines = [context#line#make_highlight(0, c.char_ellipsis, indent, c.ellipsis, 'Comment')]
+        let limited = inner_lines[: max_per_level/2-1]
+        let ellipsis_lines = [context#line#make_highlight(0, c.char_ellipsis, level, indent, c.ellipsis, 'Comment')]
         call add(limited, ellipsis_lines)
-        call extend(limited, inner_lines[-(max_per_indent-1)/2 :])
+        call extend(limited, inner_lines[-(max_per_level-1)/2 :])
 
         call extend(lines, limited)
     endfor
@@ -259,10 +260,11 @@ function! context#util#filter(context, line_number, consider_height) abort
     " apply total limit
     let diff = len(lines) - max_height
     if diff > 0
-        let indent = lines[max_height/2][0].indent
+        let level   = lines[max_height/2][0].level
+        let indent  = lines[max_height/2][0].indent
         let indent2 = lines[-(max_height-1)/2][0].indent
         let ellipsis = repeat(c.char_ellipsis, max([indent2 - indent, 3]))
-        let ellipsis_lines = [context#line#make_highlight(0, c.char_ellipsis, indent, ellipsis, 'Comment')]
+        let ellipsis_lines = [context#line#make_highlight(0, c.char_ellipsis, level, indent, ellipsis, 'Comment')]
         call remove(lines, max_height/2, -(max_height+1)/2)
         call insert(lines, ellipsis_lines, max_height/2)
     endif
@@ -284,13 +286,13 @@ function! context#util#limit_join_parts(lines) abort
         return [a:lines[0]]
     elseif max == 2
         let text = ' ' . g:context.ellipsis
-        return [a:lines[0], context#line#make_highlight(0, '', 0, text, 'Comment')]
+        return [a:lines[0], context#line#make_highlight(0, '', 0, 0, text, 'Comment')]
     endif
 
     if len(a:lines) > max " too many parts
         let text = ' ' . g:context.ellipsis5 . ' '
         call remove(a:lines, (max+1)/2, -max/2-1)
-        call insert(a:lines, context#line#make_highlight(0, '', 0, text, 'Comment'), (max+1)/2) " middle marker
+        call insert(a:lines, context#line#make_highlight(0, '', 0, 0, text, 'Comment'), (max+1)/2) " middle marker
     endif
 
     " insert ellipses where there are gaps between the parts
@@ -300,7 +302,7 @@ function! context#util#limit_join_parts(lines) abort
         if n1 > 0 && n2 > 0
             " show ellipsis if line i+1 is not directly below line i
             let text = n2 > n1 + 1 ? ' ' . g:context.ellipsis . ' ' : ' '
-            call insert(a:lines, context#line#make_highlight(0, '', 0, text, 'Comment'), i+1)
+            call insert(a:lines, context#line#make_highlight(0, '', 0, 0, text, 'Comment'), i+1)
         endif
         let i += 1
     endwhile

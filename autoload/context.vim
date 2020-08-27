@@ -67,6 +67,7 @@ function! context#update(...) abort
                     \ 'pos_x':              0,
                     \ 'size_h':             0,
                     \ 'size_w':             0,
+                    \ 'level':              0,
                     \ 'indent':             0,
                     \ 'needs_layout':       0,
                     \ 'needs_update':       0,
