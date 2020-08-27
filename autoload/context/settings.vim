@@ -42,8 +42,19 @@ function! context#settings#parse() abort
     let char_border = get(g:, 'context_border_char', '▬')
 
     " indent function used to create the context
-    let Indent        = get(g:, 'Context_indent',        function('s:indent'))
-    let Border_indent = get(g:, 'Context_border_indent', function('s:indent'))
+    let Default_indent = function('s:indent')
+    let Indent         = get(g:, 'Context_indent',        Default_indent)
+    let Border_indent  = get(g:, 'Context_border_indent', Default_indent)
+
+    if type(Indent(0)) == type(0)
+        echom 'context.vim warning:'
+        echom '  The interfaces of custom indent functions have changed. They expect two'
+        echom '  return values now. Your implementation is ignored until you update it'
+        echom '  accordingly. Sorry for the inconvenience!'
+        echom '  See https://github.com/wellle/context.vim/pull/85'
+        let Indent        = Default_indent
+        let Border_indent = Default_indent
+    endif
 
     " TODO: skip label lines
 
