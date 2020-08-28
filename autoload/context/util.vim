@@ -111,10 +111,15 @@ function! context#util#update_state() abort
         let w:context.needs_update = 1
     endif
 
+    " NOTE: we need to save and restore the cursor position because setting
+    " 'virtualedit' resets curswant #84
+    let cursor = getcurpos()
     let old = [&virtualedit, &conceallevel]
     let [&virtualedit, &conceallevel] = ['all', 0]
     let sign_width = wincol() - virtcol('.') - number_width
     let [&virtualedit, &conceallevel] = old
+    call setpos('.', cursor)
+
     " NOTE: sign_width can be negative if the cursor is on the wrapped part of
     " a wrapped line. in that case ignore the value
     if sign_width >= 0 && w:context.sign_width != sign_width
