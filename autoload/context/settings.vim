@@ -39,7 +39,17 @@ function! context#settings#parse() abort
     " which character to use for the ellipsis "..."
     let char_ellipsis = get(g:, 'context_ellipsis_char', '·')
 
-    let char_border = get(g:, 'context_border_char', '▬')
+    " NOTE: we switched away from the earlier default value '▬' because there
+    " still is a display issue in the Kitty terminal:
+    " ▬▬▬▬ <context.vim>
+    " if you look at that line in terminal you will notice that the last
+    " instance of the character is displayed differently than the others.
+    " we used to work around this by using a non breaking space after the last
+    " character:
+    " ▬▬▬▬ <context.vim>
+    " but this led to other issues later on (see #81) so we switched to this
+    " new default border char which doesn't have such issues
+    let char_border = get(g:, 'context_border_char', '━')
 
     " indent function used to create the context
     let Default_indent = function('s:indent')

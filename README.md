@@ -121,7 +121,7 @@ let g:context_ellipsis_char = '·'
 By default we use this character (digraph `.M`) in our ellipsis (`···`). Change this variable if this character doesn't work for you or if you don't like it.
 
 ```vim
-g:context_border_char = '▬'
+g:context_border_char = '━'
 ```
 
 If your Vim/Neovim version supports popup/floating windows we draw a line to separate the context from your buffer context. This character is used to do that.
