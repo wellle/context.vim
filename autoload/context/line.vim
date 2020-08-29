@@ -69,7 +69,7 @@ function! context#line#display(winid, join_parts) abort
     " sign column
     let width = c.sign_width
     if width > 0
-        let part = repeat(' ', width)
+        let part = repeat(' ', width)
         let width = len(part)
         call add(highlights, ['SignColumn', len(text), width])
         let text .= part
@@ -79,9 +79,7 @@ function! context#line#display(winid, join_parts) abort
     let width = c.number_width
     if width > 0
         if part0.number_char != ''
-            " NOTE: we use a non breaking space here because number_char can
-            " be border_char
-            let part = repeat(part0.number_char, width-1) . ' '
+            let part = repeat(part0.number_char, width-1) . ' '
         else
             if &relativenumber
                 let n = c.cursor_line - part0.number
@@ -97,7 +95,7 @@ function! context#line#display(winid, join_parts) abort
                 let n = 0
             endif
             " let part = printf('%*d ', width - 1, n)
-            let part = repeat(' ', width-len(n)-1) . n . ' '
+            let part = repeat(' ', width-len(n)-1) . n . ' '
         endif
 
         let width = len(part)

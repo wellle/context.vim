@@ -164,15 +164,13 @@ function! context#util#get_border_line(lines, level, indent, winid) abort
     let line_len = c.size_w - c.sign_width - c.number_width - a:indent - 1
     let border_char = g:context.char_border
     if !g:context.show_tag
-        " here the NB space belongs to the border part
-        let border_text = repeat(g:context.char_border, line_len) . ' '
+        let border_text = repeat(g:context.char_border, line_len) . ' '
         return [context#line#make_highlight(0, border_char, a:level, a:indent, border_text, g:context.highlight_border)]
     endif
 
     let line_len -= len(s:context_buffer_name) + 1
     let border_text = repeat(g:context.char_border, line_len)
-    " here the NB space belongs to the tag part (for minor highlighting reasons)
-    let tag_text = ' ' . s:context_buffer_name . ' '
+    let tag_text = ' ' . s:context_buffer_name
     return [
                 \ context#line#make_highlight(0, border_char, a:level, a:indent, border_text, g:context.highlight_border),
                 \ context#line#make_highlight(0, border_char, a:level, a:indent, tag_text,    g:context.highlight_tag)
