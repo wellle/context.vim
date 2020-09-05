@@ -110,7 +110,7 @@ function! context#update(...) abort
                 \ || &previewwindow
                 \ || mode() != 'n'
                 \ || !context#util#active()
-                \ || bufname() =~# '^term://'
+                \ || bufname("%") =~# '^term://'
         let w:context.needs_update = 0
         " NOTE: we still consider needs_layout even if this buffer is disabled
     endif
