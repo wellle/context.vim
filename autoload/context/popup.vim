@@ -4,7 +4,7 @@ function! context#popup#update_context() abort
 
     " NOTE: we remember context lines and baseline indent per window so we can
     " redraw them in #layout when the window layout changes
-    let w:context.lines  = lines
+    let w:context.lines = lines
     let [w:context.level, w:context.indent] = g:context.Border_indent(base_line)
 
     call s:show_cursor()
@@ -163,6 +163,10 @@ function! context#popup#close() abort
 endfunction
 
 function! s:show_cursor() abort
+    if len(w:context.lines) == 0
+        return
+    endif
+
     " compare height of context to cursor line on screen
     let n = len(w:context.lines) + g:context.show_border - (w:context.cursor_line - w:context.top_line)
     if n <= 0
