@@ -198,7 +198,11 @@ function! context#util#filter(context, line_number, consider_height) abort
     " return an empty list when the window is not tall
     " enough to display the context lines, otherwise the
     " context display overwrites the buffer's status line
-    let w_height_lim   = winheight(0) - &scrolloff - 2
+    let scrolloff = &scrolloff
+    if scrolloff > winheight(0) / 2
+        let scrolloff = winheight(0) / 2
+    endif
+    let w_height_lim   = winheight(0) - scrolloff - 2
     if w_height_lim <= 0
         return [[], 0]
     endif
