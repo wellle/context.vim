@@ -264,7 +264,7 @@ function! context#util#filter(context, line_number, consider_height) abort
         call extend(lines, limited)
     endfor
 
-    if len(lines) == 0 || len(lines) > w_height_lim
+    if len(lines) > w_height_lim
         return [[], 0]
     endif
 
