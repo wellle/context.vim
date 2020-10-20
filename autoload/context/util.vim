@@ -195,6 +195,14 @@ function! context#util#filter(context, line_number, consider_height) abort
     let max_height     = c.max_height
     let max_per_level  = c.max_per_level
 
+    " return an empty list when the window is not tall
+    " enough to display the context lines, otherwise the
+    " context display overwrites the buffer's status line
+    let w_height_lim   = winheight(0) - &scrolloff - 2
+    if w_height_lim <= 0
+        return [[], 0]
+    endif
+
     let height = 0
     let done = 0
     let lines = []
@@ -256,7 +264,7 @@ function! context#util#filter(context, line_number, consider_height) abort
         call extend(lines, limited)
     endfor
 
-    if len(lines) == 0
+    if len(lines) == 0 || len(lines) > w_height_lim
         return [[], 0]
     endif
 
