@@ -55,14 +55,24 @@ endfunction
 " returns list of [line, [highlights]]
 " where each highlight is [hl, col, width]
 function! context#line#display(winid, join_parts) abort
-    let text = ''
-    let highlights = []
     let part0 = a:join_parts[0]
-
     let c = getwinvar(a:winid, 'context')
 
-    " NOTE: we use non breaking spaces for padding in order to not show
-    " 'listchars' in the sign and number columns
+    " TODO! there's another issue. if there are multiple lines with the same
+    " text, the line number can be part of the display line. so we need to
+    " adapt the key accordingly probably
+    " check cache
+    let key = repeat(' ', part0.indent)
+    for part in a:join_parts
+        let key .= part.text
+    endfor
+    let result = get(c.display_lines, key, [])
+    if result != []
+        return result
+    endif
+
+    let text = ''
+    let highlights = []
 
     " TODO: consider fold column too
 
@@ -181,7 +191,9 @@ function! context#line#display(winid, join_parts) abort
         call extend(highlights, join_part.highlights)
     endfor
 
-    return [text, highlights]
+    let result = [text, highlights]
+    let c.display_lines[key] = result " add to cache
+    return result
 endfunction
 
 function! context#line#should_extend(line) abort

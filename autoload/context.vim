@@ -60,6 +60,10 @@ function! context#update(...) abort
     let source = a:000[-1]
 
     if !exists('w:context')
+        " display_lines is a dictionary which maps a 'line' (identified by the
+        " combined text of all join parts) to the display line (result of
+        " context#line#display())
+        " TODO!: reset cache on change of tick and on option change!
         let w:context = {
                     \ 'enabled':            g:context.enabled,
                     \ 'lines':              [],
@@ -79,6 +83,8 @@ function! context#update(...) abort
                     \ 'cursor_line':        0,
                     \ 'peek':               0,
                     \ 'force_fix_strategy': '',
+                    \ 'tick':               b:changedtick,
+                    \ 'display_lines':      {},
                     \ }
     endif
 

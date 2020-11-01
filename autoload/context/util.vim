@@ -158,9 +158,6 @@ endfunction
 function! context#util#get_border_line(lines, level, indent, winid) abort
     let c = getwinvar(a:winid, 'context')
 
-    " NOTE: we use a non breaking space after the border chars because there
-    " can be some display issues in the Kitty terminal with a normal space
-
     let line_len = c.size_w - c.sign_width - c.number_width - a:indent - 1
     let border_char = g:context.char_border
     if !g:context.show_tag
