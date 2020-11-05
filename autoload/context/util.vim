@@ -56,6 +56,11 @@ function! context#util#update_state() abort
     let top_line_changed    = old_top_line != top_line
     let cursor_line_changed = old_cursor_line != cursor_line
 
+    " bench_limit is a crude way of terminating our benchmark
+    if cursor_line == g:context.bench_limit
+        quit!
+    endif
+
     let c = printf('W %d T %4d%s%-4d C %4d%s%-4d B %4d', win_getid(),
                 \ old_top_line,    top_line_changed    ? '->' : '  ', top_line,
                 \ old_cursor_line, cursor_line_changed ? '->' : '  ', cursor_line,

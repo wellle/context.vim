@@ -140,6 +140,7 @@ function! context#settings#parse() abort
                 \ 'Border_indent':       Border_indent,
                 \ 'popups':              {},
                 \ 'windows':             {},
+                \ 'bench_limit':         -1,
                 \ }
 endfunction
 
