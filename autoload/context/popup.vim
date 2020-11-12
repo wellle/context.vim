@@ -2,10 +2,32 @@ function! context#popup#update_context() abort
     let [lines, base_line] = context#popup#get_context()
     call context#util#echof('> context#popup#update_context', len(lines))
 
-    " NOTE: we remember context lines and baseline indent per window so we can
-    " redraw them in #layout when the window layout changes
-    let w:context.lines = lines
-    let [w:context.level, w:context.indent] = g:context.Border_indent(base_line)
+    let display_lines = []
+    let hls = [] " list of lists, one per context line
+    for line in lines
+        let [text, highlights] = context#line#display(line)
+        call add(display_lines, text)
+        call add(hls, highlights)
+    endfor
+
+    if g:context.show_border
+        let [level, indent] = g:context.Border_indent(base_line)
+
+        let border_line = context#util#get_border_line(lines, level, indent)
+        let [text, highlights] = context#line#display(border_line)
+        call add(display_lines, text)
+        call add(hls, highlights)
+    endif
+
+    " NOTE: we remember this window's context so we can redraw it in #layout
+    " when the window layout changes
+    " TODO: do we really need line_count, or can we use a different field
+    " instead?
+    let w:context.context = {
+                \ 'display_lines': display_lines,
+                \ 'highlights':    hls,
+                \ 'line_count':    len(lines),
+                \ }
 
     call s:show_cursor()
     call s:show()
@@ -107,36 +129,23 @@ function! context#popup#redraw(winid) abort
         return
     endif
 
-    if len(c.lines) == 0
+    let context = c.context
+    " TODO: check this differently
+    if context.line_count == 0
         return
     endif
 
-    call context#util#echof('  > context#popup#redraw', len(c.lines))
-
-    let display_lines = []
-    let hls = [] " list of lists, one per context line
-    for line in c.lines
-        let [text, highlights] = context#line#display(a:winid, line)
-        call add(display_lines, text)
-        call add(hls, highlights)
-    endfor
-
-    if g:context.show_border
-        let border_line = context#util#get_border_line(c.lines, w:context.level, w:context.indent, a:winid)
-        let [text, highlights] = context#line#display(a:winid, border_line)
-        call add(display_lines, text)
-        call add(hls, highlights)
-    endif
+    call context#util#echof('  > context#popup#redraw', context.line_count)
 
     if g:context.presenter == 'nvim-float'
-        call context#popup#nvim#redraw(a:winid, popup, display_lines)
+        call context#popup#nvim#redraw(a:winid, popup, context.display_lines)
     elseif g:context.presenter == 'vim-popup'
-        call context#popup#vim#redraw(a:winid, popup, display_lines)
+        call context#popup#vim#redraw(a:winid, popup, context.display_lines)
     endif
 
     let args = {'window': popup}
-    for h in range(0, len(hls)-1)
-        for hl in hls[h]
+    for h in range(0, len(context.highlights)-1)
+        for hl in context.highlights[h]
             call matchaddpos(hl[0], [[h+1, hl[1]+1, hl[2]]], 10, -1, args)
         endfor
     endfor
@@ -163,12 +172,14 @@ function! context#popup#close() abort
 endfunction
 
 function! s:show_cursor() abort
-    if len(w:context.lines) == 0
+    let context = w:context.context
+    if context.line_count == 0
         return
     endif
 
     " compare height of context to cursor line on screen
-    let n = len(w:context.lines) + g:context.show_border - (w:context.cursor_line - w:context.top_line)
+    " TODO: use context.height here (which would consider the optional border line)
+    let n = context.line_count + g:context.show_border - (w:context.cursor_line - w:context.top_line)
     if n <= 0
         " if cursor is low enough, nothing to do
         return
@@ -191,7 +202,9 @@ function! s:show() abort
         call remove(g:context.popups, winid)
     endif
 
-    if len(w:context.lines) == 0
+    " TODO: check w:context.context somehow here
+    let context = w:context.context
+    if context.line_count == 0
         call context#util#echof('  no lines')
 
         if popup > 0

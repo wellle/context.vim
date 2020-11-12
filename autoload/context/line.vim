@@ -54,12 +54,10 @@ endfunction
 
 " returns list of [line, [highlights]]
 " where each highlight is [hl, col, width]
-function! context#line#display(winid, join_parts) abort
+function! context#line#display(join_parts) abort
     let text = ''
     let highlights = []
     let part0 = a:join_parts[0]
-
-    let c = getwinvar(a:winid, 'context')
 
     " NOTE: we use non breaking spaces for padding in order to not show
     " 'listchars' in the sign and number columns
@@ -67,7 +65,7 @@ function! context#line#display(winid, join_parts) abort
     " TODO: consider fold column too
 
     " sign column
-    let width = c.sign_width
+    let width = w:context.sign_width
     if width > 0
         let part = repeat(' ', width)
         let width = len(part)
@@ -76,13 +74,13 @@ function! context#line#display(winid, join_parts) abort
     endif
 
     " number column
-    let width = c.number_width
+    let width = w:context.number_width
     if width > 0
         if part0.number_char != ''
             let part = repeat(part0.number_char, width-1) . ' '
         else
             if &relativenumber
-                let n = c.cursor_line - part0.number
+                let n = w:context.cursor_line - part0.number
             elseif &number
                 let n = part0.number
             else

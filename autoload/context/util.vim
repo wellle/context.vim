@@ -22,7 +22,7 @@ function! context#util#map_H() abort
         return 'H'
     endif
     " TODO: handle scrolloff
-    let n = len(w:context.lines) + g:context.show_border + v:count1
+    let n = w:context.context.line_count + g:context.show_border + v:count1
     return "\<Esc>". n . 'H'
 endfunction
 
@@ -160,13 +160,11 @@ function! context#util#update_window_state(winid) abort
     endif
 endfunction
 
-function! context#util#get_border_line(lines, level, indent, winid) abort
-    let c = getwinvar(a:winid, 'context')
-
+function! context#util#get_border_line(lines, level, indent) abort
     " NOTE: we use a non breaking space after the border chars because there
     " can be some display issues in the Kitty terminal with a normal space
 
-    let line_len = c.size_w - c.sign_width - c.number_width - a:indent - 1
+    let line_len = w:context.size_w - w:context.sign_width - w:context.number_width - a:indent - 1
     let border_char = g:context.char_border
     if !g:context.show_tag
         let border_text = repeat(g:context.char_border, line_len) . ' '
