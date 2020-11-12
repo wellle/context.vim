@@ -1,39 +1,12 @@
 function! context#popup#update_context() abort
-    let [lines, base_line] = context#popup#get_context()
-    call context#util#echof('> context#popup#update_context', len(lines))
-
-    let display_lines = []
-    let hls = [] " list of lists, one per context line
-    for line in lines
-        let [text, highlights] = context#line#display(line)
-        call add(display_lines, text)
-        call add(hls, highlights)
-    endfor
-
-    if g:context.show_border
-        let [level, indent] = g:context.Border_indent(base_line)
-
-        let border_line = context#util#get_border_line(lines, level, indent)
-        let [text, highlights] = context#line#display(border_line)
-        call add(display_lines, text)
-        call add(hls, highlights)
-    endif
-
-    " NOTE: we remember this window's context so we can redraw it in #layout
-    " when the window layout changes
-    " TODO: do we really need line_count, or can we use a different field
-    " instead?
-    let w:context.context = {
-                \ 'display_lines': display_lines,
-                \ 'highlights':    hls,
-                \ 'line_count':    len(lines),
-                \ }
-
+    let w:context.context = context#popup#get_context()
+    call context#util#echof('> context#popup#update_context', w:context.context.line_count)
     call s:show_cursor()
     call s:show()
 endfunction
 
-" returns [lines, base_line_nr]
+let s:empty_context = {'line_count': 0}
+
 function! context#popup#get_context() abort
     call context#util#echof('context#popup#get_context')
     " NOTE: there's a problem if some of the hidden lines
@@ -52,7 +25,7 @@ function! context#popup#get_context() abort
         let [level, indent] = g:context.Indent(line_number) " -1 for invalid lines
         if indent < 0
             call context#util#echof('negative indent', line_number)
-            return [[], 0]
+            return s:empty_context
         endif
 
         let text = getline(line_number) " empty for invalid lines
@@ -67,7 +40,7 @@ function! context#popup#get_context() abort
         call context#util#echof('context#get', line_number, line_count)
 
         if line_count == 0
-            return [[], 0]
+            return s:empty_context
         endif
 
         if w:context.fix_strategy == 'scroll'
@@ -87,7 +60,32 @@ function! context#popup#get_context() abort
 
     let [lines, line_number] = context#util#filter(context, line_number, 1)
 
-    return [lines, line_number]
+    let display_lines = []
+    let hls = [] " list of lists, one per context line
+    for line in lines
+        let [text, highlights] = context#line#display(line)
+        call add(display_lines, text)
+        call add(hls, highlights)
+    endfor
+
+    if g:context.show_border
+        let [level, indent] = g:context.Border_indent(line_number)
+
+        let border_line = context#util#get_border_line(lines, level, indent)
+        let [text, highlights] = context#line#display(border_line)
+        call add(display_lines, text)
+        call add(hls, highlights)
+    endif
+
+    " NOTE: we remember this window's context so we can redraw it in #layout
+    " when the window layout changes
+    " TODO: do we really need line_count, or can we use a different field
+    " instead?
+    return {
+                \ 'display_lines': display_lines,
+                \ 'highlights':    hls,
+                \ 'line_count':    len(lines),
+                \ }
 endfunction
 
 function! context#popup#layout() abort
