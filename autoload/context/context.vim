@@ -64,7 +64,8 @@ function! context#context#get(base_line) abort
         endif
     endfor
 
-    return [context_list, line_count]
+    let [lines, border_line_number] = context#util#filter(context_list, line_count, 1)
+    return [lines, border_line_number]
 endfunction
 
 function! s:get_context_line(line) abort

@@ -36,10 +36,10 @@ function! context#popup#get_context() abort
         endif
 
         let base_line = context#line#make(line_number, level, indent, text)
-        let [context, line_count] = context#context#get(base_line)
-        call context#util#echof('context#get', line_number, line_count)
+        let [lines, border_line_number] = context#context#get(base_line)
+        call context#util#echof('context#get', line_number, len(lines))
 
-        if line_count == 0
+        if len(lines) == 0
             return s:empty_context
         endif
 
@@ -50,7 +50,7 @@ function! context#popup#get_context() abort
 
         " call context#util#echof('fit?', top_line, line_count, border_height, line_number)
         " TODO: use context.height here
-        if top_line + line_count + border_height <= line_number
+        if top_line + len(lines) + border_height <= line_number
             " this context fits, use it
             break
         endif
@@ -58,9 +58,6 @@ function! context#popup#get_context() abort
         " try again on next line if this context doesn't fit
         let skipped = 0
     endwhile
-
-    let [lines, border_line_number] = context#util#filter(context, line_number, 1)
-    " call context#util#echof('filtered', context, line_number, lines, border_line_number)
 
     let display_lines = []
     let hls = [] " list of lists, one per context line
