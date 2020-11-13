@@ -49,6 +49,7 @@ function! context#popup#get_context() abort
         endif
 
         " call context#util#echof('fit?', top_line, line_count, border_height, line_number)
+        " TODO: use context.height here
         if top_line + line_count + border_height <= line_number
             " this context fits, use it
             break
@@ -58,7 +59,8 @@ function! context#popup#get_context() abort
         let skipped = 0
     endwhile
 
-    let [lines, line_number] = context#util#filter(context, line_number, 1)
+    let [lines, border_line_number] = context#util#filter(context, line_number, 1)
+    " call context#util#echof('filtered', context, line_number, lines, border_line_number)
 
     let display_lines = []
     let hls = [] " list of lists, one per context line
@@ -69,7 +71,7 @@ function! context#popup#get_context() abort
     endfor
 
     if g:context.show_border
-        let [level, indent] = g:context.Border_indent(line_number)
+        let [level, indent] = g:context.Border_indent(border_line_number)
 
         let border_line = context#util#get_border_line(lines, level, indent)
         let [text, highlights] = context#line#display(border_line)

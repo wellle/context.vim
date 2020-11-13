@@ -180,6 +180,8 @@ function! context#util#get_border_line(lines, level, indent) abort
                 \ ]
 endfunction
 
+" TODO: remove this function
+" NOTE: this function doesn't filter anymore, we'll do that differently later
 " this is a pretty weird function
 " it has been extracted to reduce duplication between popup and preview code
 " what it does: it goes through all lines of the given full context and
@@ -211,24 +213,14 @@ function! context#util#filter(context, line_number, consider_height) abort
     endif
 
     let height = 0
-    let done = 0
     let lines = []
     for per_level in a:context
-        if done
-            break
-        endif
-
         let inner_lines = []
         for join_batch in per_level
-            if done
-                break
-            endif
-
-            if join_batch[0].number >= w:context.top_line + height
-                let line_number = join_batch[0].number
-                let done = 1
-                break
-            endif
+            " TODO: just set it no number of last join_batch instead of
+            " overwriting the vare on every iteration?
+            " also note the fallback to a:line_number if the context is empty
+            let line_number = join_batch[0].number
 
             if a:consider_height
                 if height == 0 && show_border
@@ -239,12 +231,7 @@ function! context#util#filter(context, line_number, consider_height) abort
             endif
 
             for i in range(1, len(join_batch)-1)
-                if join_batch[i].number >= w:context.top_line + height
-                    let line_number = join_batch[i].number
-                    let done = 1
-                    call remove(join_batch, i, -1)
-                    break " inner loop
-                endif
+                let line_number = join_batch[i].number
             endfor
 
             let limited_lines = context#util#limit_join_parts(join_batch)
