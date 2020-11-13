@@ -1,4 +1,6 @@
 function! context#popup#update_context() abort
+    " NOTE: we remember this window's context so we can redraw it in #layout
+    " when the window layout changes
     let w:context.context = context#popup#get_context()
     call context#util#echof('> context#popup#update_context', w:context.context.line_count)
     call s:show_cursor()
@@ -36,10 +38,10 @@ function! context#popup#get_context() abort
         endif
 
         let base_line = context#line#make(line_number, level, indent, text)
-        let [lines, border_line_number] = context#context#get(base_line)
-        call context#util#echof('context#get', line_number, len(lines))
+        let context = context#context#get(base_line)
+        call context#util#echof('context#get', line_number, context.line_count)
 
-        if len(lines) == 0
+        if context.line_count == 0
             return s:empty_context
         endif
 
@@ -50,7 +52,7 @@ function! context#popup#get_context() abort
 
         " call context#util#echof('fit?', top_line, line_count, border_height, line_number)
         " TODO: use context.height here
-        if top_line + len(lines) + border_height <= line_number
+        if top_line + context.line_count + border_height <= line_number
             " this context fits, use it
             break
         endif
@@ -59,32 +61,7 @@ function! context#popup#get_context() abort
         let skipped = 0
     endwhile
 
-    let display_lines = []
-    let hls = [] " list of lists, one per context line
-    for line in lines
-        let [text, highlights] = context#line#display(line)
-        call add(display_lines, text)
-        call add(hls, highlights)
-    endfor
-
-    if g:context.show_border
-        let [level, indent] = g:context.Border_indent(border_line_number)
-
-        let border_line = context#util#get_border_line(lines, level, indent)
-        let [text, highlights] = context#line#display(border_line)
-        call add(display_lines, text)
-        call add(hls, highlights)
-    endif
-
-    " NOTE: we remember this window's context so we can redraw it in #layout
-    " when the window layout changes
-    " TODO: do we really need line_count, or can we use a different field
-    " instead?
-    return {
-                \ 'display_lines': display_lines,
-                \ 'highlights':    hls,
-                \ 'line_count':    len(lines),
-                \ }
+    return context
 endfunction
 
 function! context#popup#layout() abort

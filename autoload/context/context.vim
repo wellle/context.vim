@@ -65,7 +65,31 @@ function! context#context#get(base_line) abort
     endfor
 
     let [lines, border_line_number] = context#util#filter(context_list, line_count, 1)
-    return [lines, border_line_number]
+
+    let display_lines = []
+    let hls = [] " list of lists, one per context line
+    for line in lines
+        let [text, highlights] = context#line#display(line)
+        call add(display_lines, text)
+        call add(hls, highlights)
+    endfor
+
+    if g:context.show_border
+        let [level, indent] = g:context.Border_indent(border_line_number)
+
+        let border_line = context#util#get_border_line(lines, level, indent)
+        let [text, highlights] = context#line#display(border_line)
+        call add(display_lines, text)
+        call add(hls, highlights)
+    endif
+
+    " TODO: do we really need line_count, or can we use a different field
+    " instead?
+    return {
+                \ 'display_lines': display_lines,
+                \ 'highlights':    hls,
+                \ 'line_count':    len(lines),
+                \ }
 endfunction
 
 function! s:get_context_line(line) abort
