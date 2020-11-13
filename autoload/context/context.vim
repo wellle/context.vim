@@ -84,11 +84,12 @@ function! context#context#get(base_line) abort
     endif
 
     " TODO: do we really need line_count, or can we use a different field
-    " instead?
+    " instead? or do we need line_count AND height?
     return {
                 \ 'display_lines': display_lines,
                 \ 'highlights':    hls,
                 \ 'line_count':    len(lines),
+                \ 'height':        len(display_lines),
                 \ }
 endfunction
 

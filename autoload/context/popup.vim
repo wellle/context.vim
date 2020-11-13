@@ -19,7 +19,6 @@ function! context#popup#get_context() abort
     let skipped       =  0
     let line_number   = w:context.cursor_line - 1 " first iteration starts with cursor_line
     let top_line      = w:context.top_line
-    let border_height = g:context.show_border
 
     while 1
         let line_number += 1
@@ -50,9 +49,7 @@ function! context#popup#get_context() abort
             break
         endif
 
-        " call context#util#echof('fit?', top_line, line_count, border_height, line_number)
-        " TODO: use context.height here
-        if top_line + context.line_count + border_height <= line_number
+        if top_line + context.height <= line_number
             " this context fits, use it
             break
         endif
@@ -152,8 +149,7 @@ function! s:show_cursor() abort
     endif
 
     " compare height of context to cursor line on screen
-    " TODO: use context.height here (which would consider the optional border line)
-    let n = context.line_count + g:context.show_border - (w:context.cursor_line - w:context.top_line)
+    let n = context.height - (w:context.cursor_line - w:context.top_line)
     if n <= 0
         " if cursor is low enough, nothing to do
         return
