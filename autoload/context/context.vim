@@ -1,6 +1,7 @@
 let s:nil_line = context#line#make(0, 0, 0, '')
 
 " collect all context lines
+" TODO: update/remove this comment
 " returns [context, line_count]
 " context has this structure:
 " [
@@ -12,10 +13,14 @@ let s:nil_line = context#line#make(0, 0, 0, '')
 "   ]
 " ]
 function! context#context#get(base_line) abort
-    let base_line = a:base_line
-    if base_line.number == 0
-        return [[], 0]
+    " check cache
+    let context = get(w:context.contexts, a:base_line.number, {})
+    if context != {} " cache hit
+        " call context#util#echof('context#context#get found cached', a:base_line.number)
+        return context
     endif
+
+    let base_line = a:base_line
 
     let context_map = {}
 
@@ -23,6 +28,8 @@ function! context#context#get(base_line) abort
         " skips is a dictionary that maps a line to its next context line so
         " it allows us to skip large portions of the buffer instead of always
         " having to scan through all of it
+        " TODO: remove skips cache? otherwise consider caching the full line,
+        " not only the line number (as dict value)
         let b:context = {
                     \ 'tick':  b:changedtick,
                     \ 'skips': {},
@@ -85,12 +92,17 @@ function! context#context#get(base_line) abort
 
     " TODO: do we really need line_count, or can we use a different field
     " instead? or do we need line_count AND height?
-    return {
+    let context = {
                 \ 'display_lines': display_lines,
                 \ 'highlights':    hls,
                 \ 'line_count':    len(lines),
                 \ 'height':        len(display_lines),
                 \ }
+
+    " add to cache
+    let w:context.contexts[a:base_line.number] = context
+
+    return context
 endfunction
 
 function! s:get_context_line(line) abort
