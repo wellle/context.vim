@@ -76,7 +76,7 @@ function! s:show(lines, level, indent) abort
         call add(hls, highlights)
     endfor
 
-    let border_line = context#util#get_border_line(a:lines, a:level, a:indent, winid)
+    let border_line = context#util#get_border_line(a:level, a:indent, winid)
 
     execute 'silent! aboveleft pedit' s:context_buffer_name
 

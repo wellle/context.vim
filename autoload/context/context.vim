@@ -1,5 +1,12 @@
 let s:nil_line = context#line#make(0, 0, 0, '')
 
+let s:empty_context = {
+            \ 'display_lines': [],
+            \ 'highlights':    [],
+            \ 'line_count':    0,
+            \ 'height':        0,
+            \ }
+
 " collect all context lines
 " TODO: update/remove this comment
 " returns [context, line_count]
@@ -13,14 +20,14 @@ let s:nil_line = context#line#make(0, 0, 0, '')
 "   ]
 " ]
 function! context#context#get(base_line) abort
+    call context#util#echof('context#context#get', a:base_line.number)
+
     " check cache
     let context = get(w:context.contexts, a:base_line.number, {})
     if context != {} " cache hit
-        " call context#util#echof('context#context#get found cached', a:base_line.number)
+        call context#util#echof('found cached')
         return context
     endif
-
-    let base_line = a:base_line
 
     let context_map = {}
 
@@ -35,6 +42,43 @@ function! context#context#get(base_line) abort
                     \ 'skips': {},
                     \ }
     endif
+
+    " recursive call
+    let context_line = s:get_context_line(a:base_line)
+    let b:context.skips[a:base_line.number] = context_line.number " cache this lookup
+
+    if context_line.number == 0
+        " there's no context for a:base_line
+        " TODO: cache this too (empty context for this a:base_line)
+        " TODO: later, add wrapper function to take care of caching contexts?
+        return s:empty_context
+    endif
+    let context = deepcopy(context#context#get(context_line))
+
+    " TODO!: don't include the original base_line from the external caller
+    " TODO: handle skipping lines within this function too, instead of on the
+    " caller side?
+    let [text, highlights] = context#line#display([a:base_line])
+    call add(context.display_lines, text)
+    call add(context.highlights, highlights)
+    let context.line_count += 1
+    let context.height += 1
+
+    " TODO!: only add border line once/replace it
+    let [level, indent] = g:context.Border_indent(a:base_line.number)
+    let border_line = context#util#get_border_line(level, indent)
+    let [text, highlights] = context#line#display(border_line)
+    call add(context.display_lines, text)
+    call add(context.highlights, highlights)
+    let context.height += 1
+
+    let w:context.contexts[a:base_line.number] = context " add to cache
+    return context
+
+
+    " TODO: delete everything below
+
+    let context_map = {}
 
     while 1
         let context_line = s:get_context_line(base_line)
@@ -83,8 +127,7 @@ function! context#context#get(base_line) abort
 
     if g:context.show_border
         let [level, indent] = g:context.Border_indent(border_line_number)
-
-        let border_line = context#util#get_border_line(lines, level, indent)
+        let border_line = context#util#get_border_line(level, indent)
         let [text, highlights] = context#line#display(border_line)
         call add(display_lines, text)
         call add(hls, highlights)
@@ -98,10 +141,7 @@ function! context#context#get(base_line) abort
                 \ 'line_count':    len(lines),
                 \ 'height':        len(display_lines),
                 \ }
-
-    " add to cache
-    let w:context.contexts[a:base_line.number] = context
-
+    let w:context.contexts[a:base_line.number] = context " add to cache
     return context
 endfunction
 
