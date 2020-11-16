@@ -36,7 +36,7 @@ function! context#popup#get_context() abort
             continue
         endif
 
-        let base_line = context#line#make(line_number, level, indent, text)
+        let base_line = context#line#make_trimmed(line_number, level, indent, text)
         let context = context#context#get(base_line)
         call context#util#echof('context#get', line_number, context.line_count)
 

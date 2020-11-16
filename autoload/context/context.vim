@@ -53,24 +53,30 @@ function! context#context#get(base_line) abort
         " TODO: later, add wrapper function to take care of caching contexts?
         return s:empty_context
     endif
-    let context = deepcopy(context#context#get(context_line))
+    let parent_context = context#context#get(context_line)
+    let context = deepcopy(parent_context)
 
-    " TODO!: don't include the original base_line from the external caller
     " TODO: handle skipping lines within this function too, instead of on the
     " caller side?
-    let [text, highlights] = context#line#display([a:base_line])
-    call add(context.display_lines, text)
-    call add(context.highlights, highlights)
+    let [text, highlights] = context#line#display([context_line])
+    call insert(context.display_lines, text, parent_context.line_count)
+    call insert(context.highlights, highlights, parent_context.line_count)
     let context.line_count += 1
     let context.height += 1
 
-    " TODO!: only add border line once/replace it
-    let [level, indent] = g:context.Border_indent(a:base_line.number)
-    let border_line = context#util#get_border_line(level, indent)
-    let [text, highlights] = context#line#display(border_line)
-    call add(context.display_lines, text)
-    call add(context.highlights, highlights)
-    let context.height += 1
+    if g:context.show_border
+        let [level, indent] = g:context.Border_indent(a:base_line.number)
+        let border_line = context#util#get_border_line(level, indent)
+        let [text, highlights] = context#line#display(border_line)
+        if parent_context.line_count == 0
+            call add(context.display_lines, text)
+            call add(context.highlights, highlights)
+            let context.height += 1
+        else
+            let context.display_lines[-1] = text
+            let context.highlights[-1] = highlights
+        endif
+    endif
 
     let w:context.contexts[a:base_line.number] = context " add to cache
     return context
