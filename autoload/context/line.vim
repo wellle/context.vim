@@ -54,63 +54,62 @@ endfunction
 
 " returns list of [line, [highlights]]
 " where each highlight is [hl, col, width]
-function! context#line#display(join_parts) abort
+function! context#line#display(display_prefix, join_parts) abort
     let text = ''
     let highlights = []
     let part0 = a:join_parts[0]
 
-    " NOTE: we use non breaking spaces for padding in order to not show
-    " 'listchars' in the sign and number columns
+    if a:display_prefix
+        " TODO: consider fold column too
 
-    " TODO: consider fold column too
-
-    " sign column
-    let width = w:context.sign_width
-    if width > 0
-        let part = repeat(' ', width)
-        let width = len(part)
-        call add(highlights, ['SignColumn', len(text), width])
-        let text .= part
-    endif
-
-    " number column
-    let width = w:context.number_width
-    if width > 0
-        if part0.number_char != ''
-            let part = repeat(part0.number_char, width-1) . ' '
-        else
-            if &relativenumber
-                let n = w:context.cursor_line - part0.number
-            elseif &number
-                let n = part0.number
-            else
-                " NOTE: this is unexpected, but can happen because of a neovim
-                " bug, see neovim#11878
-                " to reproduce open a file with visible context, then invoke
-                " fzf preview window (which activates context.vim based on the
-                " context window contents (which is already very unexpected)
-                " in a confusing way)
-                let n = 0
-            endif
-            " let part = printf('%*d ', width - 1, n)
-            let part = repeat(' ', width-len(n)-1) . n . ' '
+        " sign column
+        let width = w:context.sign_width
+        if width > 0
+            let part = repeat(' ', width)
+            let width = len(part)
+            call add(highlights, ['SignColumn', len(text), width])
+            let text .= part
         endif
 
-        let width = len(part)
-        call add(highlights, ['LineNr', len(text), width])
-        let text .= part
-    endif
+        " number column
+        let width = w:context.number_width
+        if width > 0
+            if part0.number_char != ''
+                let part = repeat(part0.number_char, width-1) . ' '
+            else
+                if &relativenumber
+                    let n = w:context.cursor_line - part0.number
+                elseif &number
+                    let n = part0.number
+                else
+                    " NOTE: this is unexpected, but can happen because of a neovim
+                    " bug, see neovim#11878
+                    " to reproduce open a file with visible context, then invoke
+                    " fzf preview window (which activates context.vim based on the
+                    " context window contents (which is already very unexpected)
+                    " in a confusing way)
+                    let n = 0
+                endif
+                " let part = printf('%*d ', width - 1, n)
+                let part = repeat(' ', width-len(n)-1) . n . ' '
+            endif
 
-    " indent
-    " TODO: use `space` to fake tab listchars? maybe later
-    " let [_, space, text; _] = matchlist(part0.text, '\v^(\s*)(.*)$')
-    if part0.indent > 0
-        let part = repeat(' ', part0.indent)
-        let width = len(part)
-        " NOTE: this highlight wouldn't be necessary for popup, but is added
-        " to make it easier to assemble the statusline for preview
-        call add(highlights, ['NonText', len(text), width])
-        let text .= part
+            let width = len(part)
+            call add(highlights, ['LineNr', len(text), width])
+            let text .= part
+        endif
+
+        " indent
+        " TODO: use `space` to fake tab listchars? maybe later
+        " let [_, space, text; _] = matchlist(part0.text, '\v^(\s*)(.*)$')
+        if part0.indent > 0
+            let part = repeat(' ', part0.indent)
+            let width = len(part)
+            " NOTE: this highlight wouldn't be necessary for popup, but is added
+            " to make it easier to assemble the statusline for preview
+            call add(highlights, ['NonText', len(text), width])
+            let text .= part
+        endif
     endif
 
     " NOTE: below 'col' and 'len(text)' diverge because we add the text in one
