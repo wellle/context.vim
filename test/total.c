@@ -29,6 +29,7 @@ list_arg_vars(eap, arg, first)
             /* get_name_len() takes care of expanding curly braces */
             name_start = name = arg;
             len = get_name_len(&arg, &tofree, TRUE, TRUE);
+
             if (len <= 0)
             {
                 /* This is mainly to keep test 49 working: when expanding
@@ -45,12 +46,14 @@ list_arg_vars(eap, arg, first)
             {
                 if (tofree != NULL)
                     name = tofree;
+
                 if (get_var_tv(name, len, &tv, TRUE) == FAIL)
                     error = TRUE;
                 else
                 {
                     /* handle d.key, l[idx], f(expr) */
                     arg_subsc = arg;
+
                     if (handle_subscript(&arg, &tv, TRUE, TRUE) == FAIL)
                         error = TRUE;
                     else
@@ -71,6 +74,7 @@ list_arg_vars(eap, arg, first)
                                 default:
                                           while (!ends_excmd(*arg) && !got_int)
                                           {
+
                                               if (error || eap->skip)
                                               {
                                                   arg = find_name_end(arg, NULL, NULL, FNE_INCL_BR | FNE_CHECK_START);

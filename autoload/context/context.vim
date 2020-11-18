@@ -58,11 +58,21 @@ function! context#context#get(base_line) abort
 
     " TODO: handle skipping lines within this function too, instead of on the
     " caller side?
+
     let [text, highlights] = context#line#display([context_line])
-    call insert(context.display_lines, text, parent_context.line_count)
-    call insert(context.highlights, highlights, parent_context.line_count)
-    let context.line_count += 1
-    let context.height += 1
+
+    if context#line#should_join(context_line.text) && context.line_count > 0
+        " append to previous line
+        let context.display_lines[context.line_count-1] .= ' ' . g:context.ellipsis . ' ' . context_line.text
+        " TODO: add highlighting
+    else
+        " add new line
+        call insert(context.display_lines, text, parent_context.line_count)
+        call insert(context.highlights, highlights, parent_context.line_count)
+        let context.line_count += 1
+        let context.height += 1
+    endif
+
 
     if g:context.show_border
         let [level, indent] = g:context.Border_indent(a:base_line.number)

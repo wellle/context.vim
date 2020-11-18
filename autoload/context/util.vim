@@ -218,8 +218,8 @@ function! context#util#filter(context, line_number, consider_height) abort
     for per_level in a:context
         let inner_lines = []
         for join_batch in per_level
-            " TODO: just set it no number of last join_batch instead of
-            " overwriting the vare on every iteration?
+            " TODO: just set it to number of last join_batch instead of
+            " overwriting the var on every iteration?
             " also note the fallback to a:line_number if the context is empty
             let line_number = join_batch[0].number
 
