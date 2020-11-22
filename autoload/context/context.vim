@@ -59,28 +59,44 @@ function! context#context#get(base_line) abort
     " TODO: handle skipping lines within this function too, instead of on the
     " caller side?
 
-
     if context#line#should_join(context_line.text) && context.line_count > 0
         " append to previous line
-        let [text, highlights] = context#line#display(0, [context_line])
-        " TODO: only add ellipsis if there are line in between
+        let line = context.display_lines[context.line_count-1]
+        let col = strlen(line)
+
+        " TODO!: only add ellipsis if there are line in between
         " see context#util#limit_join_parts()
-        let context.display_lines[context.line_count-1] .= ' ' . g:context.ellipsis . ' ' . text
-        " TODO: add highlighting
+        let part = ' ' . g:context.ellipsis
+        let width = len(part)
+        let line .= part
+        call add(context.highlights[context.line_count-1], ['Comment', col, width])
+        let col += width
+
+        " TODO: add ellipsis5 as middle marker if max_join_parts is reached/exceeded
+
+        let [text, highlights] = context#line#display(0, [context_line], col+1)
+        let part = ' ' . text
+        let col = len(part)
+        let line .= part
+        call extend(context.highlights[context.line_count-1], highlights)
+
+        let context.display_lines[context.line_count-1] = line
+        " TODO: it seems that the LineNr highlight is duplicated, check and fix
+        " call context#util#echof('context.highlights', context.highlights)
+
     else
         " add new line
-        let [text, highlights] = context#line#display(1, [context_line])
+        let [text, highlights] = context#line#display(1, [context_line], 0)
         call insert(context.display_lines, text, parent_context.line_count)
         call insert(context.highlights, highlights, parent_context.line_count)
         let context.line_count += 1
         let context.height += 1
     endif
 
-
     if g:context.show_border
         let [level, indent] = g:context.Border_indent(a:base_line.number)
         let border_line = context#util#get_border_line(level, indent)
-        let [text, highlights] = context#line#display(1, border_line)
+        let [text, highlights] = context#line#display(1, border_line, 0)
         if parent_context.line_count == 0
             call add(context.display_lines, text)
             call add(context.highlights, highlights)
