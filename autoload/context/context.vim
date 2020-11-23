@@ -5,6 +5,7 @@ let s:empty_context = {
             \ 'highlights':    [],
             \ 'line_count':    0,
             \ 'height':        0,
+            \ 'bottom_line':   0,
             \ }
 
 " collect all context lines
@@ -53,8 +54,10 @@ function! context#context#get(base_line) abort
         " TODO: later, add wrapper function to take care of caching contexts?
         return s:empty_context
     endif
+
     let parent_context = context#context#get(context_line)
     let context = deepcopy(parent_context)
+    let context.bottom_line = context_line.number
 
     " TODO: handle skipping lines within this function too, instead of on the
     " caller side?
@@ -64,13 +67,13 @@ function! context#context#get(base_line) abort
         let line = context.display_lines[context.line_count-1]
         let col = strlen(line)
 
-        " TODO!: only add ellipsis if there are line in between
-        " see context#util#limit_join_parts()
-        let part = ' ' . g:context.ellipsis
-        let width = len(part)
-        let line .= part
-        call add(context.highlights[context.line_count-1], ['Comment', col, width])
-        let col += width
+        if context.bottom_line > parent_context.bottom_line + 1
+            let part = ' ' . g:context.ellipsis
+            let width = len(part)
+            let line .= part
+            call add(context.highlights[context.line_count-1], ['Comment', col, width])
+            let col += width
+        endif
 
         " TODO: add ellipsis5 as middle marker if max_join_parts is reached/exceeded
 
@@ -175,6 +178,7 @@ function! context#context#get(base_line) abort
                 \ 'highlights':    hls,
                 \ 'line_count':    len(lines),
                 \ 'height':        len(display_lines),
+                \ 'bottom_line':   base_line.number,
                 \ }
     let w:context.contexts[a:base_line.number] = context " add to cache
     return context
