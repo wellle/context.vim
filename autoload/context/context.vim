@@ -1,11 +1,12 @@
 let s:nil_line = context#line#make(0, 0, 0, '')
 
 let s:empty_context = {
-            \ 'display_lines': [],
-            \ 'highlights':    [],
-            \ 'line_count':    0,
-            \ 'height':        0,
-            \ 'bottom_line':   0,
+            \ 'display_lines':     [],
+            \ 'highlights':        [],
+            \ 'line_count':        0,
+            \ 'line_count_indent': 0,
+            \ 'height':            0,
+            \ 'bottom_line':       s:nil_line,
             \ }
 
 " collect all context lines
@@ -57,7 +58,7 @@ function! context#context#get(base_line) abort
 
     let parent_context = context#context#get(context_line)
     let context = deepcopy(parent_context)
-    let context.bottom_line = context_line.number
+    let context.bottom_line = context_line
 
     " TODO: handle skipping lines within this function too, instead of on the
     " caller side?
@@ -67,7 +68,7 @@ function! context#context#get(base_line) abort
         let line = context.display_lines[context.line_count-1]
         let col = strlen(line)
 
-        if context.bottom_line > parent_context.bottom_line + 1
+        if context.bottom_line.number > parent_context.bottom_line.number + 1
             let part = ' ' . g:context.ellipsis
             let width = len(part)
             let line .= part
@@ -94,6 +95,34 @@ function! context#context#get(base_line) abort
         call insert(context.highlights, highlights, parent_context.line_count)
         let context.line_count += 1
         let context.height += 1
+
+        if context.bottom_line.level != parent_context.bottom_line.level
+            let context.line_count_indent = 1
+        else
+            let context.line_count_indent += 1
+
+            if context.line_count_indent > g:context.max_per_level
+                let index = context.line_count - g:context.max_per_level/2 - 1
+
+                " TODO: only create ellipsis line once per level?
+                " currently we recreate it every time we add a line to the level
+                let ellipsis_line = context#line#make_highlight(0,
+                            \ g:context.char_ellipsis,
+                            \ context.bottom_line.level,
+                            \ context.bottom_line.indent,
+                            \ g:context.ellipsis,
+                            \ 'Comment')
+                let [text, highlights] = context#line#display(1, [ellipsis_line], 0)
+                let context.display_lines[index-1] = text
+                let context.highlights[index-1] = highlights
+
+                call remove(context.display_lines, index)
+                call remove(context.highlights, index)
+                let context.line_count -= 1
+                let context.line_count_indent -= 1
+                let context.height -= 1
+            endif
+        endif
     endif
 
     if g:context.show_border
