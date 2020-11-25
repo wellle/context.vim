@@ -106,6 +106,7 @@ If we extend the context on some indent and collect more than five lines, it wil
 
 Note: This is likely to happen if you have many `else if` conditions or many `case` statements within a `switch`.
 
+TODO: update this. new: -1 to disable joining (was 0 before), 0 is like 1, but without ellipsis (kinda was 2 before)
 ```vim
 let g:context_max_join_parts = 5
 ```

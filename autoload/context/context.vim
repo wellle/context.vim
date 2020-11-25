@@ -9,6 +9,7 @@ let s:empty_context = {
             \ 'line_count':        0,
             \ 'line_count_indent': 0,
             \ 'height':            0,
+            \ 'join_parts':        0,
             \ 'bottom_line':       s:nil_line,
             \ }
 
@@ -28,6 +29,7 @@ function! context#context#get(base_line) abort
     call context#util#echof('context#context#get', a:base_line.number)
 
     " check cache
+    " TODO: invalidate contexts cache in various cases
     let context = get(w:context.contexts, a:base_line.number, {})
     if context != {} " cache hit
         call context#util#echof('found cached')
@@ -69,29 +71,43 @@ function! context#context#get(base_line) abort
     if context#line#should_join(context_line.text)
                 \ && context.line_count > 0
                 \ && context_line.level == parent_context.bottom_line.level
-        " append to previous line
-        let line = context.display_lines[context.line_count-1]
-        let col = strlen(line)
 
-        if context_line.number > parent_context.bottom_line.number + 1
+        " append to previous line
+        let context.join_parts += 1
+        if context.join_parts == g:context.max_join_parts + 1
+            let line = context.display_lines[context.line_count-1]
+            let col = strlen(line)
+
             let part = ' ' . g:context.ellipsis
             let width = len(part)
             let line .= part
             call add(context.highlights[context.line_count-1], ['Comment', col, width])
             let col += width
+
+            let context.display_lines[context.line_count-1] = line
+
+        elseif context.join_parts <= g:context.max_join_parts
+            let line = context.display_lines[context.line_count-1]
+            let col = strlen(line)
+
+            if context_line.number > parent_context.bottom_line.number + 1
+                let part = ' ' . g:context.ellipsis
+                let width = len(part)
+                let line .= part
+                call add(context.highlights[context.line_count-1], ['Comment', col, width])
+                let col += width
+            endif
+
+            let [text, highlights] = context#line#display(0, [context_line], col+1)
+            let part = ' ' . text
+            let col = len(part)
+            let line .= part
+            call extend(context.highlights[context.line_count-1], highlights)
+
+            let context.display_lines[context.line_count-1] = line
+            " TODO: it seems that the LineNr highlight is duplicated, check and fix
+            " call context#util#echof('context.highlights', context.highlights)
         endif
-
-        " TODO: add ellipsis5 as middle marker if max_join_parts is reached/exceeded
-
-        let [text, highlights] = context#line#display(0, [context_line], col+1)
-        let part = ' ' . text
-        let col = len(part)
-        let line .= part
-        call extend(context.highlights[context.line_count-1], highlights)
-
-        let context.display_lines[context.line_count-1] = line
-        " TODO: it seems that the LineNr highlight is duplicated, check and fix
-        " call context#util#echof('context.highlights', context.highlights)
 
     else
         " add new line
@@ -101,6 +117,7 @@ function! context#context#get(base_line) abort
         call insert(context.indents, context_line.indent, parent_context.line_count)
         let context.line_count += 1
         let context.height += 1
+        let context.join_parts = 1
 
         if context_line.level != parent_context.bottom_line.level
             let context.line_count_indent = 1

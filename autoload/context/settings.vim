@@ -32,9 +32,10 @@ function! context#settings#parse() abort
     " TODO: might want to rename the setting and keep the legacy fallback
     let max_per_level = get(g:, 'context_max_per_indent', 5)
 
+    " TODO: update comment
     " how many lines can be joined in one line (if they match
     " regex_join) before the ones in the middle get hidden
-    let max_join_parts = get(g:, 'context_max_join_parts', 4)
+    let max_join_parts = get(g:, 'context_max_join_parts', 5)
 
     " which character to use for the ellipsis "..."
     let char_ellipsis = get(g:, 'context_ellipsis_char', '·')
@@ -135,7 +136,6 @@ function! context#settings#parse() abort
                 \ 'nvim_no_redraw':      nvim_no_redraw,
                 \ 'logfile':             logfile,
                 \ 'ellipsis':            repeat(char_ellipsis, 3),
-                \ 'ellipsis5':           repeat(char_ellipsis, 5),
                 \ 'Indent':              Indent,
                 \ 'Border_indent':       Border_indent,
                 \ 'popups':              {},

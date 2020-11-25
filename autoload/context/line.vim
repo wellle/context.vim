@@ -192,7 +192,7 @@ function! context#line#should_skip(line) abort
 endfunction
 
 function! context#line#should_join(line) abort
-    if g:context.max_join_parts < 1
+    if g:context.max_join_parts < 0
         return 0
     endif
 

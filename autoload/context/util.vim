@@ -278,6 +278,7 @@ function! context#util#filter(context, line_number, consider_height) abort
     return [lines, line_number]
 endfunction
 
+" TODO: remove this function and similar ones
 " takes a list of join parts and checks g:context.max_join_parts
 " if the limit is exceeded it's reduced with an ellipsis part
 function! context#util#limit_join_parts(lines) abort
