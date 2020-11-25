@@ -66,12 +66,14 @@ function! context#context#get(base_line) abort
     " TODO: handle skipping lines within this function too, instead of on the
     " caller side?
 
-    if context#line#should_join(context_line.text) && context.line_count > 0
+    if context#line#should_join(context_line.text)
+                \ && context.line_count > 0
+                \ && context_line.level == parent_context.bottom_line.level
         " append to previous line
         let line = context.display_lines[context.line_count-1]
         let col = strlen(line)
 
-        if context.bottom_line.number > parent_context.bottom_line.number + 1
+        if context_line.number > parent_context.bottom_line.number + 1
             let part = ' ' . g:context.ellipsis
             let width = len(part)
             let line .= part
@@ -100,7 +102,7 @@ function! context#context#get(base_line) abort
         let context.line_count += 1
         let context.height += 1
 
-        if context.bottom_line.level != parent_context.bottom_line.level
+        if context_line.level != parent_context.bottom_line.level
             let context.line_count_indent = 1
         else
             let context.line_count_indent += 1
@@ -110,8 +112,8 @@ function! context#context#get(base_line) abort
 
                 let ellipsis_line = context#line#make_highlight(0,
                             \ g:context.char_ellipsis,
-                            \ context.bottom_line.level,
-                            \ context.bottom_line.indent,
+                            \ context_line.level,
+                            \ context_line.indent,
                             \ g:context.ellipsis,
                             \ 'Comment')
 
