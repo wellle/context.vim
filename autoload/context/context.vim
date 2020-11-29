@@ -42,8 +42,7 @@ function! context#context#get(base_line) abort
     let context_line = s:get_context_line(a:base_line)
     if context_line.number == 0
         " there's no context for a:base_line
-        " TODO: cache this too (empty context for this a:base_line)
-        " TODO: later, add wrapper function to take care of caching contexts?
+        let w:context.contexts[a:base_line.number] = s:empty_context " add to cache
         return s:empty_context
     endif
 

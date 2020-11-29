@@ -15,10 +15,8 @@ function! context#popup#get_context() abort
     " (behind the popup) are wrapped. then our calculations are off
     " TODO: fix that?
 
-    " a skipped line has the same context as the next unskipped one below
-    let skipped       =  0
-    let line_number   = w:context.cursor_line - 1 " first iteration starts with cursor_line
-    let top_line      = w:context.top_line
+    let line_number = w:context.cursor_line - 1 " first iteration starts with cursor_line
+    let top_line    = w:context.top_line
 
     while 1
         let line_number += 1
@@ -31,7 +29,6 @@ function! context#popup#get_context() abort
 
         let text = getline(line_number) " empty for invalid lines
         if context#line#should_skip(text)
-            let skipped += 1
             " call context#util#echof('skip', line_number)
             continue
         endif
@@ -55,7 +52,12 @@ function! context#popup#get_context() abort
         endif
 
         " try again on next line if this context doesn't fit
-        let skipped = 0
+    endwhile
+
+    while top_line + context.height <= context.bottom_line.number
+        " bottom line of context would be visible on screen below the context
+        " popup. try parent context
+        let context = w:context.contexts[context.bottom_line.number]
     endwhile
 
     return context
