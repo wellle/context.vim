@@ -79,7 +79,6 @@ function! context#update(...) abort
                     \ 'cursor_line':        0,
                     \ 'peek':               0,
                     \ 'force_fix_strategy': '',
-                    \ 'contexts':           {},
                     \ }
     endif
 

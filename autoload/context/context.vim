@@ -28,9 +28,16 @@ let s:empty_context = {
 function! context#context#get(base_line) abort
     call context#util#echof('context#context#get', a:base_line.number)
 
+    if !exists('b:context') || b:context.tick != b:changedtick
+        let b:context = {
+                    \ 'tick':     b:changedtick,
+                    \ 'contexts': {},
+                    \ }
+    endif
+
     " check cache
     " TODO: invalidate contexts cache in various cases
-    let context = get(w:context.contexts, a:base_line.number, {})
+    let context = get(b:context.contexts, a:base_line.number, {})
     if context != {} " cache hit
         call context#util#echof('found cached')
         return context
@@ -42,7 +49,7 @@ function! context#context#get(base_line) abort
     let context_line = s:get_context_line(a:base_line)
     if context_line.number == 0
         " there's no context for a:base_line
-        let w:context.contexts[a:base_line.number] = s:empty_context " add to cache
+        let b:context.contexts[a:base_line.number] = s:empty_context " add to cache
         return s:empty_context
     endif
 
@@ -168,7 +175,7 @@ function! context#context#get(base_line) abort
         endif
     endif
 
-    let w:context.contexts[a:base_line.number] = context " add to cache
+    let b:context.contexts[a:base_line.number] = context " add to cache
     return context
 endfunction
 
