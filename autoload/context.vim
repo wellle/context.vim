@@ -102,6 +102,12 @@ function! context#update(...) abort
         " some options like 'relativenumber' and 'tabstop' don't change any
         " currently tracked state. let's just always update on OptionSet.
         let w:context.needs_update = 1
+
+        " invalidate cache
+        let b:context = {
+                    \ 'tick':     b:changedtick,
+                    \ 'contexts': {},
+                    \ }
     endif
 
     if 0

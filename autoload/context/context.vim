@@ -36,7 +36,6 @@ function! context#context#get(base_line) abort
     endif
 
     " check cache
-    " TODO: invalidate contexts cache in various cases
     let context = get(b:context.contexts, a:base_line.number, {})
     if context != {} " cache hit
         call context#util#echof('found cached')
