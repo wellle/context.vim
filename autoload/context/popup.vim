@@ -57,7 +57,7 @@ function! context#popup#get_context() abort
     while top_line + context.height <= context.bottom_line.number
         " bottom line of context would be visible on screen below the context
         " popup. try parent context
-        let context = b:context.contexts[context.bottom_line.number]
+        let context = context#context#get(context.bottom_line)
     endwhile
 
     return context

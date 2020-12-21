@@ -160,7 +160,7 @@ function! context#util#update_window_state(winid) abort
     endif
 endfunction
 
-" TODO: call Border_indent inside here instead on caller side
+" TODO: call Border_indent inside here instead on caller side, make #line function?
 function! context#util#get_border_line(level, indent) abort
     " NOTE: we use a non breaking space after the border chars because there
     " can be some display issues in the Kitty terminal with a normal space

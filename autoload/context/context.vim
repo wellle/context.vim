@@ -6,6 +6,7 @@ let s:empty_context = {
             \ 'display_lines':     [],
             \ 'highlights':        [],
             \ 'indents':           [],
+            \ 'line_numbers':      [],
             \ 'line_count':        0,
             \ 'line_count_indent': 0,
             \ 'height':            0,
@@ -39,6 +40,21 @@ function! context#context#get(base_line) abort
     let context = get(b:context.contexts, a:base_line.number, {})
     if context != {} " cache hit
         call context#util#echof('found cached')
+
+        " TODO: can we extract some logic to avoid duplication with within #line#display()?
+        let width = w:context.number_width
+        if &relativenumber && width > 0
+            for i in range(0, len(context.line_numbers)-1)
+                let line_number = context.line_numbers[i]
+                if line_number == 0
+                    continue
+                endif
+                let n = w:context.cursor_line - line_number
+                let part = repeat(' ', width-len(n)-1) . n . ' '
+                " TODO: make work with signcolumn and similar too
+                let context.display_lines[i] = part . context.display_lines[i][width :]
+            endfor
+        endif
         return context
     endif
 
@@ -104,6 +120,7 @@ function! context#context#get(base_line) abort
         call insert(context.display_lines, text, parent_context.line_count)
         call insert(context.highlights, highlights, parent_context.line_count)
         call insert(context.indents, context_line.indent, parent_context.line_count)
+        call insert(context.line_numbers, context_line.number, parent_context.line_count)
         let context.line_count += 1
         let context.height += 1
         let context.join_parts = 1
@@ -127,10 +144,12 @@ function! context#context#get(base_line) abort
                 let context.display_lines[index] = text
                 let context.highlights[index] = highlights
                 let context.indents[index] = ellipsis_line.indent
+                let context.line_numbers[index] = ellipsis_line.number
 
                 call remove(context.display_lines, index+1)
                 call remove(context.highlights, index+1)
                 call remove(context.indents, index+1)
+                call remove(context.line_numbers, index+1)
                 let context.line_count -= 1
                 let context.line_count_indent -= 1
                 let context.height -= 1
@@ -150,10 +169,12 @@ function! context#context#get(base_line) abort
             let context.display_lines[index] = text
             let context.highlights[index] = highlights
             let context.indents[index] = ellipsis_line.indent
+            let context.line_numbers[index] = ellipsis_line.number
 
             call remove(context.display_lines, index+1)
             call remove(context.highlights, index+1)
             call remove(context.indents, index+1)
+            call remove(context.line_numbers, index+1)
             let context.line_count -= 1
             let context.height -= 1
         endif

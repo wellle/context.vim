@@ -74,6 +74,8 @@ function! context#line#display(display_prefix, join_parts, offset) abort
         endif
 
         " number column
+        " TODO: need to invalidate cache on number_width change? (can this be
+        " triggered by scrolling?)
         let width = w:context.number_width
         if width > 0
             if part0.number_char != ''
