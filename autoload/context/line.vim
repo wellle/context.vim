@@ -62,7 +62,8 @@ function! context#line#display(display_prefix, join_parts, offset) abort
     let part0 = a:join_parts[0]
 
     if a:display_prefix
-        " TODO: consider fold column too
+        " TODO: consider fold column too? don't forget to update the code
+        " which updates relative numbers in context#context#get()
 
         " sign column
         let width = w:context.sign_width
@@ -74,8 +75,6 @@ function! context#line#display(display_prefix, join_parts, offset) abort
         endif
 
         " number column
-        " TODO: need to invalidate cache on number_width change? (can this be
-        " triggered by scrolling?)
         let width = w:context.number_width
         if width > 0
             if part0.number_char != ''

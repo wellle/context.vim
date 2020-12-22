@@ -41,7 +41,7 @@ function! context#context#get(base_line) abort
     if context != {} " cache hit
         call context#util#echof('found cached')
 
-        " TODO: can we extract some logic to avoid duplication with within #line#display()?
+        " update relative numbers
         let width = w:context.number_width
         if &relativenumber && width > 0
             for i in range(0, len(context.line_numbers)-1)
@@ -50,9 +50,8 @@ function! context#context#get(base_line) abort
                     continue
                 endif
                 let n = w:context.cursor_line - line_number
-                let part = repeat(' ', width-len(n)-1) . n . ' '
-                " TODO: make work with signcolumn and similar too
-                let context.display_lines[i] = part . context.display_lines[i][width :]
+                let part = repeat(' ', w:context.sign_width + width-len(n)-1) . n
+                let context.display_lines[i] = part . context.display_lines[i][len(part) :]
             endfor
         endif
         return context
@@ -71,9 +70,6 @@ function! context#context#get(base_line) abort
     let parent_context = context#context#get(context_line)
     let context = deepcopy(parent_context)
     let context.bottom_line = context_line
-
-    " TODO: handle skipping lines within this function too, instead of on the
-    " caller side?
 
     if context#line#should_join(context_line.text)
                 \ && context.line_count > 0
