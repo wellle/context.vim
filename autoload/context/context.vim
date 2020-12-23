@@ -29,10 +29,13 @@ let s:empty_context = {
 function! context#context#get(base_line) abort
     call context#util#echof('context#context#get', a:base_line.number)
 
-    if !exists('b:context') || b:context.tick != b:changedtick
+    if !exists('b:context')
+                \ || b:context.changedtick != b:changedtick
+                \ || b:context.sign_width  != w:context.sign_width
         let b:context = {
-                    \ 'tick':     b:changedtick,
-                    \ 'contexts': {},
+                    \ 'changedtick': b:changedtick,
+                    \ 'sign_width':  w:context.sign_width,
+                    \ 'contexts':    {},
                     \ }
     endif
 

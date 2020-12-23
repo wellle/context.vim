@@ -104,10 +104,7 @@ function! context#update(...) abort
         let w:context.needs_update = 1
 
         " invalidate cache
-        let b:context = {
-                    \ 'tick':     b:changedtick,
-                    \ 'contexts': {},
-                    \ }
+        silent! unlet b:context
     endif
 
     if 0
