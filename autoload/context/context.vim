@@ -108,7 +108,7 @@ function! context#context#get(base_line) abort
                 let col += width
             endif
 
-            let [text, highlights] = context#line#display(0, [context_line], col+1)
+            let [text, highlights] = context#line#display([context_line], col+1)
             let part = ' ' . text
             let col = len(part)
             let line .= part
@@ -119,7 +119,7 @@ function! context#context#get(base_line) abort
 
     else
         " add new line
-        let [text, highlights] = context#line#display(1, [context_line], 0)
+        let [text, highlights] = context#line#display([context_line], 0)
         call insert(context.display_lines, text, parent_context.line_count)
         call insert(context.highlights, highlights, parent_context.line_count)
         call insert(context.indents, context_line.indent, parent_context.line_count)
@@ -143,7 +143,7 @@ function! context#context#get(base_line) abort
                             \ g:context.ellipsis,
                             \ 'Comment')
 
-                let [text, highlights] = context#line#display(1, [ellipsis_line], 0)
+                let [text, highlights] = context#line#display([ellipsis_line], 0)
                 let context.display_lines[index] = text
                 let context.highlights[index] = highlights
                 let context.indents[index] = ellipsis_line.indent
@@ -168,7 +168,7 @@ function! context#context#get(base_line) abort
             let ellipsis = repeat(g:context.char_ellipsis, max([indent2 - indent, 3]))
             let ellipsis_line = context#line#make_highlight(0, g:context.char_ellipsis, 0, indent, ellipsis, 'Comment')
 
-            let [text, highlights] = context#line#display(1, [ellipsis_line], 0)
+            let [text, highlights] = context#line#display([ellipsis_line], 0)
             let context.display_lines[index] = text
             let context.highlights[index] = highlights
             let context.indents[index] = ellipsis_line.indent
@@ -186,7 +186,7 @@ function! context#context#get(base_line) abort
     if g:context.show_border
         let [level, indent] = g:context.Border_indent(a:base_line.number)
         let border_line = context#util#get_border_line(level, indent)
-        let [text, highlights] = context#line#display(1, border_line, 0)
+        let [text, highlights] = context#line#display(border_line, 0)
 
         if parent_context.line_count == 0
             call add(context.display_lines, text)

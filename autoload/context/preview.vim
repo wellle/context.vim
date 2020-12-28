@@ -57,6 +57,8 @@ function! context#preview#close() abort
     let layout = winrestcmd() | set equalalways | noautocmd execute layout
 endfunction
 
+" TODO! make preview work too
+
 function! s:show(lines, level, indent) abort
     if len(a:lines) == 0
         " nothing to do

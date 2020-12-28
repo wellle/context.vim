@@ -54,14 +54,14 @@ endfunction
 
 " returns list of [line, [highlights]]
 " where each highlight is [hl, col, width]
-" TODO: rename arg offset?
-" TODO: remove arg display_prefix, display if a:offset == 0
-function! context#line#display(display_prefix, join_parts, offset) abort
+function! context#line#display(join_parts, highlight_offset) abort
     let text = ''
     let highlights = []
     let part0 = a:join_parts[0]
 
-    if a:display_prefix
+    if a:highlight_offset == 0
+        " display the prefix if no highlight offset is given
+
         " TODO: consider fold column too? don't forget to update the code
         " which updates relative numbers in context#context#get()
 
@@ -118,7 +118,7 @@ function! context#line#display(display_prefix, join_parts, offset) abort
     " NOTE: below 'col' and 'len(text)' diverge because we add the text in one
     " big chunk but go through the highlights character by character to find
     " the highlight chunks
-    let col = len(text) + a:offset
+    let col = len(text) + a:highlight_offset
 
     " NOTE: if a context line is longer than then the window width we
     " currently keep adding highlights even if they won't be visible. we could
