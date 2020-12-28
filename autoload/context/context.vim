@@ -11,6 +11,7 @@ let s:empty_context = {
             \ 'line_count_indent': 0,
             \ 'height':            0,
             \ 'join_parts':        0,
+            \ 'top_line':          s:nil_line,
             \ 'bottom_line':       s:nil_line,
             \ }
 
@@ -73,6 +74,9 @@ function! context#context#get(base_line) abort
     let parent_context = context#context#get(context_line)
     let context = deepcopy(parent_context)
     let context.bottom_line = context_line
+    if context.line_count == 0
+        let context.top_line = context_line
+    endif
 
     if context#line#should_join(context_line.text)
                 \ && context.line_count > 0

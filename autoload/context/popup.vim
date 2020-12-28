@@ -54,13 +54,20 @@ function! context#popup#get_context() abort
         " try again on next line if this context doesn't fit
     endwhile
 
-    while top_line + context.height <= context.bottom_line.number
-        " bottom line of context would be visible on screen below the context
-        " popup. try parent context
-        let context = context#context#get(context.bottom_line)
-    endwhile
+    if context.top_line.number >= top_line
+        " context's top line can be visible on screen: don't show context
+        return s:empty_context
+    endif
 
-    return context
+    while 1
+        let parent_context = context#context#get(context.bottom_line)
+        " bottom line of context would not be visible if if we would show
+        " parent_context, so pick context instead
+        if top_line + parent_context.height > context.bottom_line.number
+            return context
+        endif
+        let context = parent_context
+    endwhile
 endfunction
 
 function! context#popup#layout() abort
