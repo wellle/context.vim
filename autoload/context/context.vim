@@ -1,5 +1,8 @@
 let s:nil_line = context#line#make(0, 0, 0, '')
 
+" TODO! typing H often beeps, look into that
+" TODO! also: if no context is visible, H seems to go to second line, not top line
+
 " NOTE: indents is being used for the ellipsis line which is shown if the
 " max_height would be exceeded
 let s:empty_context = {
@@ -16,7 +19,7 @@ let s:empty_context = {
             \ }
 
 " collect all context lines
-" TODO: update/remove this comment
+" TODO!: update/remove this comment
 " returns [context, line_count]
 " context has this structure:
 " [
@@ -184,8 +187,7 @@ function! context#context#get(base_line) abort
     endif
 
     if g:context.show_border
-        let [level, indent] = g:context.Border_indent(a:base_line.number)
-        let border_line = context#util#get_border_line(level, indent)
+        let border_line = context#util#get_border_line(a:base_line.number)
         let [text, highlights] = context#line#display(border_line, 0)
 
         if parent_context.line_count == 0

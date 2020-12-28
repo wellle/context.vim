@@ -160,28 +160,27 @@ function! context#util#update_window_state(winid) abort
     endif
 endfunction
 
-" TODO: call Border_indent inside here instead on caller side, make #line function?
-function! context#util#get_border_line(level, indent) abort
-    " NOTE: we use a non breaking space after the border chars because there
-    " can be some display issues in the Kitty terminal with a normal space
+" TODO: when only called from #context#get, make local s: function there
+function! context#util#get_border_line(base_line) abort
+    let [level, indent] = g:context.Border_indent(a:base_line)
 
-    let line_len = w:context.size_w - w:context.sign_width - w:context.number_width - a:indent - 1
+    let line_len = w:context.size_w - w:context.sign_width - w:context.number_width - indent - 1
     let border_char = g:context.char_border
     if !g:context.show_tag
         let border_text = repeat(g:context.char_border, line_len) . ' '
-        return [context#line#make_highlight(0, border_char, a:level, a:indent, border_text, g:context.highlight_border)]
+        return [context#line#make_highlight(0, border_char, level, indent, border_text, g:context.highlight_border)]
     endif
 
     let line_len -= len(s:context_buffer_name) + 1
     let border_text = repeat(g:context.char_border, line_len)
     let tag_text = ' ' . s:context_buffer_name
     return [
-                \ context#line#make_highlight(0, border_char, a:level, a:indent, border_text, g:context.highlight_border),
-                \ context#line#make_highlight(0, border_char, a:level, a:indent, tag_text,    g:context.highlight_tag)
+                \ context#line#make_highlight(0, border_char, level, indent, border_text, g:context.highlight_border),
+                \ context#line#make_highlight(0, border_char, level, indent, tag_text,    g:context.highlight_tag)
                 \ ]
 endfunction
 
-" TODO: remove this function
+" TODO!: remove this function
 " NOTE: this function doesn't filter anymore, we'll do that differently later
 " this is a pretty weird function
 " it has been extracted to reduce duplication between popup and preview code
@@ -259,7 +258,7 @@ function! context#util#filter(context, line_number, consider_height) abort
         call extend(lines, limited)
     endfor
 
-    " TODO: port this check
+    " TODO!: port this check
     if len(lines) == 0 || len(lines) > w_height_lim
         return [[], 0]
     endif
@@ -279,7 +278,7 @@ function! context#util#filter(context, line_number, consider_height) abort
     return [lines, line_number]
 endfunction
 
-" TODO: remove this function and similar ones
+" TODO!: remove this function and similar ones
 " takes a list of join parts and checks g:context.max_join_parts
 " if the limit is exceeded it's reduced with an ellipsis part
 function! context#util#limit_join_parts(lines) abort
