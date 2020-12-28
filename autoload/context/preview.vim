@@ -2,11 +2,10 @@ let s:context_buffer_name = '<context.vim>'
 
 function! context#preview#update_context() abort
     while 1
-        let [lines, base_line] = context#preview#get_context()
-        let [level, indent] = g:context.Indent(base_line)
+        let context = context#preview#get_context()
 
         call context#preview#close()
-        call s:show(lines, level, indent)
+        call s:show(context)
 
         let w:context.needs_update = 0
         call context#util#update_state() " NOTE: this might set w:context.needs_update
@@ -20,12 +19,13 @@ endfunction
 
 function! context#preview#get_context() abort
     let base_line = context#line#get_base_line(w:context.cursor_line)
-    let [context, _] = context#context#get(base_line)
-    let line_number = base_line.number
+    let context = context#context#get(base_line)
+
+    " TODO: filter context
 
     call context#util#echof('> context#preview#update_context', len(context))
 
-    return context#util#filter(context, line_number, 0)
+    return context
 endfunction
 
 function! context#preview#close() abort
@@ -57,28 +57,15 @@ function! context#preview#close() abort
     let layout = winrestcmd() | set equalalways | noautocmd execute layout
 endfunction
 
-" TODO! make preview work too
-
-function! s:show(lines, level, indent) abort
-    if len(a:lines) == 0
+function! s:show(context) abort
+    if len(a:context.display_lines) == 0
         " nothing to do
         call context#util#echof('  none')
-        return [[], 0]
+        return
     endif
 
     let winid = win_getid()
     let list  = &list
-
-    let display_lines = []
-    let hls = [] " list of lists, one per context line
-    for line in a:lines
-        let [text, highlights] = context#line#display(winid, line)
-        " call context#util#echof('highlights', text, highlights)
-        call add(display_lines, text)
-        call add(hls, highlights)
-    endfor
-
-    let border_line = context#util#get_border_line(a:level, a:indent, winid)
 
     execute 'silent! aboveleft pedit' s:context_buffer_name
 
@@ -88,13 +75,17 @@ function! s:show(lines, level, indent) abort
         " NOTE: apparently this can fail with E242, see #6
         " in that case just silently abort
         call context#util#echof('  no preview window')
-        return [[], 0]
+        return
     endif
 
-    let [border_text, border_hls] = context#line#display(winid, border_line)
+    let display_lines = a:context.display_lines[: -2]
+    let border_line   = a:context.display_lines[-1]
+    let hls           = a:context.highlights[: -2]
+    let border_hls    = a:context.highlights[-1]
+
     let statusline = ''
     for hl in border_hls
-        let part = strpart(border_text, hl[1], hl[2])
+        let part = strpart(border_line, hl[1], hl[2])
         let statusline .= '%#' . hl[0] . '#' . part
     endfor
 
@@ -123,7 +114,7 @@ function! s:show(lines, level, indent) abort
         endfor
     endfor
 
-    execute 'resize' len(a:lines)
+    execute 'resize' len(display_lines)
 
     wincmd p " jump back
 endfunction
