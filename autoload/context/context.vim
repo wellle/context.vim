@@ -19,17 +19,6 @@ let s:empty_context = {
             \ }
 
 " collect all context lines
-" TODO!: update/remove this comment
-" returns [context, line_count]
-" context has this structure:
-" [
-"   [ // lines in this list have the same indentation (used for max height per indent)
-"     [ // line in this list are allowed to be joined
-"       {line},
-"       {line}
-"     ]
-"   ]
-" ]
 function! context#context#get(base_line) abort
     call context#util#echof('context#context#get', a:base_line.number)
 

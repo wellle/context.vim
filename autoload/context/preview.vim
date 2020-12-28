@@ -17,15 +17,28 @@ function! context#preview#update_context() abort
     endwhile
 endfunction
 
+let s:empty_context = {'line_count': 0}
+
 function! context#preview#get_context() abort
+    let top_line = w:context.top_line
+
     let base_line = context#line#get_base_line(w:context.cursor_line)
     let context = context#context#get(base_line)
 
-    " TODO: filter context
+    if context.top_line.number >= top_line
+        " context's top line can be visible on screen: don't show context
+        return s:empty_context
+    endif
 
-    call context#util#echof('> context#preview#update_context', len(context))
-
-    return context
+    while 1
+        let parent_context = context#context#get(context.bottom_line)
+        " bottom line of context would not be visible if if we would show
+        " parent_context, so pick context instead
+        if context.bottom_line.number < top_line
+            return context
+        endif
+        let context = parent_context
+    endwhile
 endfunction
 
 function! context#preview#close() abort
@@ -58,7 +71,7 @@ function! context#preview#close() abort
 endfunction
 
 function! s:show(context) abort
-    if len(a:context.display_lines) == 0
+    if a:context.line_count == 0
         " nothing to do
         call context#util#echof('  none')
         return
@@ -114,7 +127,7 @@ function! s:show(context) abort
         endfor
     endfor
 
-    execute 'resize' len(display_lines)
+    execute 'resize' a:context.line_count
 
     wincmd p " jump back
 endfunction
