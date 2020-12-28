@@ -15,6 +15,11 @@ function! context#popup#get_context() abort
     " (behind the popup) are wrapped. then our calculations are off
     " TODO: fix that?
 
+    let max_height = winheight(0) - &scrolloff - 2
+    if max_height <= 0
+        return s:empty_context
+    endif
+
     let line_number = w:context.cursor_line - 1 " first iteration starts with cursor_line
     let top_line    = w:context.top_line
 
@@ -64,10 +69,16 @@ function! context#popup#get_context() abort
         " bottom line of context would not be visible if if we would show
         " parent_context, so pick context instead
         if top_line + parent_context.height > context.bottom_line.number
-            return context
+            break
         endif
         let context = parent_context
     endwhile
+
+    if context.height > max_height
+        return s:empty_context
+    endif
+
+    return context
 endfunction
 
 function! context#popup#layout() abort
