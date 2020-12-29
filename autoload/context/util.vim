@@ -1,5 +1,3 @@
-let s:context_buffer_name = '<context.vim>'
-
 function! context#util#active() abort
     return 1
                 \ && w:context.enabled
@@ -158,26 +156,6 @@ function! context#util#update_window_state(winid) abort
             let c.needs_layout = 1
         endif
     endif
-endfunction
-
-" TODO: when only called from #context#get, make local s: function there
-function! context#util#get_border_line(base_line) abort
-    let [level, indent] = g:context.Border_indent(a:base_line)
-
-    let line_len = w:context.size_w - w:context.sign_width - w:context.number_width - indent - 1
-    let border_char = g:context.char_border
-    if !g:context.show_tag
-        let border_text = repeat(g:context.char_border, line_len) . ' '
-        return [context#line#make_highlight(0, border_char, level, indent, border_text, g:context.highlight_border)]
-    endif
-
-    let line_len -= len(s:context_buffer_name) + 1
-    let border_text = repeat(g:context.char_border, line_len)
-    let tag_text = ' ' . s:context_buffer_name
-    return [
-                \ context#line#make_highlight(0, border_char, level, indent, border_text, g:context.highlight_border),
-                \ context#line#make_highlight(0, border_char, level, indent, tag_text,    g:context.highlight_tag)
-                \ ]
 endfunction
 
 let s:log_indent = 0

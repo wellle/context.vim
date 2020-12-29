@@ -176,7 +176,7 @@ function! context#context#get(base_line) abort
     endif
 
     if g:context.show_border
-        let border_line = context#util#get_border_line(a:base_line.number)
+        let border_line = s:get_border_line(a:base_line.number)
         let [text, highlights] = context#line#display(border_line, 0)
 
         if parent_context.line_count == 0
@@ -231,18 +231,23 @@ function! s:get_context_line(line) abort
     endwhile
 endfunction
 
-function! s:join(lines) abort
-    " call context#util#echof('> join', len(a:lines))
-    let joined = [a:lines[:0]] " start with first line
-    for line in a:lines[1:]
-        if context#line#should_join(line.text)
-            " add to previous group
-            call add(joined[-1], line)
-        else
-            " create new group
-            call add(joined, [line])
-        endif
-    endfor
+let s:context_buffer_name = '<context.vim>'
 
-    return joined
+function! s:get_border_line(base_line) abort
+    let [level, indent] = g:context.Border_indent(a:base_line)
+
+    let line_len = w:context.size_w - w:context.sign_width - w:context.number_width - indent - 1
+    let border_char = g:context.char_border
+    if !g:context.show_tag
+        let border_text = repeat(g:context.char_border, line_len) . ' '
+        return [context#line#make_highlight(0, border_char, level, indent, border_text, g:context.highlight_border)]
+    endif
+
+    let line_len -= len(s:context_buffer_name) + 1
+    let border_text = repeat(g:context.char_border, line_len)
+    let tag_text = ' ' . s:context_buffer_name
+    return [
+                \ context#line#make_highlight(0, border_char, level, indent, border_text, g:context.highlight_border),
+                \ context#line#make_highlight(0, border_char, level, indent, tag_text,    g:context.highlight_tag)
+                \ ]
 endfunction
