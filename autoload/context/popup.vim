@@ -7,7 +7,7 @@ function! context#popup#update_context() abort
     call s:show()
 endfunction
 
-let s:empty_context = {'line_count': 0}
+let s:empty_context = {'line_count': 0, 'height': 0}
 
 function! context#popup#get_context() abort
     call context#util#echof('context#popup#get_context')

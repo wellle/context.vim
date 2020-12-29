@@ -20,7 +20,7 @@ function! context#util#map_H() abort
         return 'H'
     endif
     " TODO: handle scrolloff
-    let n = w:context.context.line_count + g:context.show_border + v:count1
+    let n = w:context.context.height + v:count1
     return "\<Esc>". n . 'H'
 endfunction
 

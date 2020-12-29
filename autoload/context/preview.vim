@@ -23,7 +23,7 @@ function! context#preview#update_context() abort
     endwhile
 endfunction
 
-let s:empty_context = {'line_count': 0}
+let s:empty_context = {'line_count': 0, 'height': 0}
 
 function! context#preview#get_context() abort
     call context#util#echof('preview get_context')
