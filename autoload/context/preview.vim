@@ -8,6 +8,12 @@ function! context#preview#update_context() abort
         call s:show(context)
 
         let w:context.needs_update = 0
+        if context.line_count == 0
+            " NOTE: this check avoids an endless loop if we run into the case
+            " where we don't show the context because it was too big
+            return
+        endif
+
         call context#util#update_state() " NOTE: this might set w:context.needs_update
         if !w:context.needs_update
             return
@@ -20,10 +26,15 @@ endfunction
 let s:empty_context = {'line_count': 0}
 
 function! context#preview#get_context() abort
-    let top_line = w:context.top_line
+    call context#util#echof('preview get_context')
+    let max_height = winheight(0) - &scrolloff - 2
+    if max_height <= 0
+        return s:empty_context
+    endif
 
+    let top_line  = w:context.top_line
     let base_line = context#line#get_base_line(w:context.cursor_line)
-    let context = context#context#get(base_line)
+    let context   = context#context#get(base_line)
 
     if context.top_line.number >= top_line
         " context's top line can be visible on screen: don't show context
@@ -35,10 +46,16 @@ function! context#preview#get_context() abort
         " bottom line of context would not be visible if if we would show
         " parent_context, so pick context instead
         if context.bottom_line.number < top_line
-            return context
+            break
         endif
         let context = parent_context
     endwhile
+
+    if context.height > max_height
+        return s:empty_context
+    endif
+
+    return context
 endfunction
 
 function! context#preview#close() abort
