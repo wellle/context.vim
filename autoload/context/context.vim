@@ -1,7 +1,5 @@
 let s:nil_line = context#line#make(0, 0, 0, '')
 
-" TODO! typing H often beeps, look into that
-
 " NOTE: indents is being used for the ellipsis line which is shown if the
 " max_height would be exceeded
 let s:empty_context = {

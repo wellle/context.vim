@@ -21,7 +21,10 @@ function! context#util#map_H() abort
     endif
     " TODO: handle scrolloff
     let n = w:context.context.height + v:count1
-    return "\<Esc>". n . 'H'
+    if v:count > 0
+        return repeat("\<Del>", len(v:count)) . n . 'H'
+    endif
+    return n . 'H'
 endfunction
 
 function! context#util#map_zt() abort
