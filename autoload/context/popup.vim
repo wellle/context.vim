@@ -121,7 +121,6 @@ function! context#popup#redraw(winid) abort
     endif
 
     let context = c.context
-    " TODO: check this differently
     if context.line_count == 0
         return
     endif
@@ -192,7 +191,6 @@ function! s:show() abort
         call remove(g:context.popups, winid)
     endif
 
-    " TODO: check w:context.context somehow here
     let context = w:context.context
     if context.line_count == 0
         call context#util#echof('  no lines')

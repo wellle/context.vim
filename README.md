@@ -106,7 +106,6 @@ If we extend the context on some indent and collect more than five lines, it wil
 
 Note: This is likely to happen if you have many `else if` conditions or many `case` statements within a `switch`.
 
-TODO: update this. new: -1 to disable joining (was 0 before), 0 is like 1, but without ellipsis (kinda was 2 before)
 ```vim
 let g:context_max_join_parts = 5
 ```
@@ -114,7 +113,7 @@ If we extend the context on some indent we try to join them. By default we join 
 
 In complex cases there can be a big number of such context lines which we will join together. By default we only show up to 5 such parts.
 
-Note: This can happen if you have long lists of struct literals, so in the context it would look like `{ ··· }, { ··· }, { ··· }`. Set `g:context_max_join_parts` to 2 or 1 to shorten this to `{ ···` or just `{` respectively.
+Note: This can happen if you have long lists of struct literals, so in the context it would look like `{ ··· }, { ··· }, { ··· }`. Set `g:context_max_join_parts` to 1 or 0 to shorten this to `{ ···` or just `{` respectively. Set it to -1 to disable joining altogether.
 
 ```vim
 let g:context_ellipsis_char = '·'
@@ -154,7 +153,6 @@ let g:context_join_regex = '^\W*$'
 ```
 If we extended the context on some indent, we will join a line of this indent into the one above if the lower one matches this regular expression. So back in the C-style case where our context contains an `if (condition)` line and a `{` line below, they will be merged to `if (condition) {`. And that is because the `{` line matched this regular expression. By default we join everything which has no word characters.
 
-TODO: update docs
 ```vim
 let g:Context_indent = { line -> [indent(line), indent(line)] }
 ```

@@ -32,9 +32,8 @@ function! context#settings#parse() abort
     " TODO: might want to rename the setting and keep the legacy fallback
     let max_per_level = get(g:, 'context_max_per_indent', 5)
 
-    " TODO: update comment
     " how many lines can be joined in one line (if they match
-    " regex_join) before the ones in the middle get hidden
+    " regex_join) before adding ellipsis
     let max_join_parts = get(g:, 'context_max_join_parts', 5)
 
     " which character to use for the ellipsis "..."

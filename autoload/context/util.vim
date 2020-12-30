@@ -115,6 +115,7 @@ function! context#util#update_state() abort
         " call context#util#echof('number width changed', w:context.number_width, number_width)
         let w:context.number_width = number_width
         let w:context.needs_update = 1
+        silent! unlet b:context " invalidate cache
     endif
 
     " NOTE: we need to save and restore the cursor position because setting
@@ -132,6 +133,7 @@ function! context#util#update_state() abort
         " call context#util#echof('sign width changed', w:context.sign_width, sign_width)
         let w:context.sign_width = sign_width
         let w:context.needs_update = 1
+        silent! unlet b:context " invalidate cache
     endif
 endfunction
 
@@ -146,9 +148,16 @@ function! context#util#update_window_state(winid) abort
         return
     endif
 
-    let size = [winheight(a:winid), winwidth(a:winid)]
-    if [c.size_h, c.size_w] != size
-        let [c.size_h, c.size_w] = size
+    let [height, width] = [winheight(a:winid), winwidth(a:winid)]
+    if c.size_w != width
+        let [c.size_h, c.size_w] = [height, width]
+        " because we now cache the border line too, we need to update the
+        " context in order to redraw the border line with the new length
+        let c.needs_update = 1
+        silent! unlet b:context " invalidate cache
+    elseif c.size_h != height
+        let [c.size_h, c.size_w] = [height, width]
+        " on height change we only need to fix the layout
         let c.needs_layout = 1
     endif
 
