@@ -4,6 +4,7 @@ function! context#util#active() abort
     return 1
                 \ && w:context.enabled
                 \ && !get(g:context.filetype_blacklist, &filetype)
+                \ && !get(g:context.buftype_blacklist, &buftype)
 endfunction
 
 function! context#util#map(arg) abort

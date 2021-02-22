@@ -20,6 +20,10 @@ function! context#settings#parse() abort
     " filetype to this list.
     let filetype_blacklist = get(g:, 'context_filetype_blacklist', [])
 
+    " if you wish to blacklist a specific buftype, add the name of the
+    " buftype to this list.
+    let buftype_blacklist = get(g:, 'context_buftype_blacklist', [])
+
     " set to 0 to disable default mappings and/or auto commands
     let add_mappings = get(g:, 'context_add_mappings', 1)
     let add_autocmds = get(g:, 'context_add_autocmds', 1)
@@ -108,15 +112,20 @@ function! context#settings#parse() abort
     let logfile = get(g:, 'context_logfile', '')
 
     " transform list to lookup dictionary
-    let blacklist = {}
+    let filetype_dict = {}
     for filetype in filetype_blacklist
-        let blacklist[filetype] = 1
+        let filetype_dict[filetype] = 1
+    endfor
+    let buftype_dict = {}
+    for buftype in buftype_blacklist
+        let buftype_dict[buftype] = 1
     endfor
 
     let g:context = {
                 \ 'presenter':           presenter,
                 \ 'enabled':             enabled,
-                \ 'filetype_blacklist':  blacklist,
+                \ 'filetype_blacklist':  filetype_dict,
+                \ 'buftype_blacklist':   buftype_dict,
                 \ 'add_mappings':        add_mappings,
                 \ 'add_autocmds':        add_autocmds,
                 \ 'max_height':          max_height,
