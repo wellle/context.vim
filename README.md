@@ -77,6 +77,11 @@ let g:context_filetype_blacklist = []
 By default, no filetypes will be ignored for the context buffer to appear. If you wish to blacklist a specific filetype, add the name of the filetype to this list.
 
 ```vim
+let g:context_buftype_blacklist = []
+```
+By default, no buftypes will be ignored for the context buffer to appear. If you wish to blacklist a specific buftype, add the name of the buftype to this list.
+
+```vim
 let g:context_add_mappings = 1
 ```
 By default we create some mappings to update the context on all Vim commands which scroll the buffer. Set this variable to `0` to disable that. See below on how to customize these mappings if needed.
