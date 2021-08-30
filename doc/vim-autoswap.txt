@@ -1,0 +1,105 @@
+vim-autoswap.txt
+
+================================================================================
+CONTENTS                                                   *autoswap-contents*
+
+1. vim-autoswap........................................|vim-autoswap-vim-autoswap|
+    1.1. Why autoswap?................................|vim-autoswap-why_autoswap?|
+    1.2. Limitations....................................|vim-autoswap-limitations|
+    1.3. Installation..................................|vim-autoswap-installation|
+    1.4. Authors............................................|vim-autoswap-authors|
+    1.5. Development....................................|vim-autoswap-development|
+    1.6. License............................................|vim-autoswap-license|
+
+================================================================================
+VIM-AUTOSWAP                                           *autoswap-vim-autoswap*
+
+Please Vim, stop with these swap file messages. Just switch to the correct window!
+
+--------------------------------------------------------------------------------
+WHY AUTOSWAP?                                         *autoswap-why_autoswap?*
+
+Dealing with swap files is annoying. Most of the time you have to deal with
+a swap file because you either have the same file open in another
+window or it is a swap file left there by a previous crash.
+
+This plugin does for you what you would do in these cases:
+
+1.  Is file already open in another Vim session in some other window?
+2.  If so, swap to the window where we are editing that file.
+3.  Otherwise, if swapfile is older than file itself, just get rid of it.
+4.  Otherwise, open file read-only so we can have a look at it and may save it.
+
+Damian Conway presented this plugin at OSCON 2013 in his talk
+"More instantly better Vim (http://programming.oreilly.com/2013/10/more-instantly-better-vim.html)".
+
+The original version of this plugin (only for MacOS) is available at http://is.gd/IBV2013,
+together with other plugins presented in the same talk. This version has
+been modified to work also on Linux systems. Both Vim and GVim are supported.
+
+--------------------------------------------------------------------------------
+LIMITATIONS                                             *autoswap-limitations*
+
+At the moment this plugin does not reliably detect files open within tabs in
+Apple Terminal and iTerm2 as it matches based on the window name, not tab name.
+
+--------------------------------------------------------------------------------
+INSTALLATION                                           *autoswap-installation*
+
+Copy the `autoswap.vim` file in your `~/.vim/plugin` directory.
+
+Or use pathogen and just clone the git repository:
+>
+    $ cd ~/.vim/bundle
+    $ git clone https://github.com/gioele/vim-autoswap.git
+<
+
+Make sure that the `title` option is enabled and the `titlestring`
+variable contains the filename and the string `VIM` (the default
+`titlestring` will work just fine). To enable the `title` option
+set it in your `~/.vimrc` file:
+>
+    $ echo 'set title titlestring=' >> ~/.vimrc
+<
+
+Linux users: you must install `wmctrl` to be able to automatically
+switch to the Vim window with the open file.
+`wmctrl` is already packaged for most distributions.
+
+KDE/Konsole users: in addition to `wmctrl` you must install also
+the `vim-konsole` (https://github.com/gergap/vim-konsole) plugin.
+
+tmux users: if `tmux` is detected, autoswap can change the current
+pane to the one where vim is already open. `tmux` support is disabled
+by default. To enable support for `tmux` add
+ to your `.vimrc`.
+
+If you use Arch Linux you can install via the `vim-autoswap-git`
+package in the AUR (https://aur.archlinux.org/packages/vim-autoswap-git/).
+The package will install this plugin and all the needed dependencies.
+
+--------------------------------------------------------------------------------
+AUTHORS                                                     *autoswap-authors*
+
+*   Gioele Barabucci http://svario.it/gioele (made the plugin Linux-compatible, maintainer)
+*   Damian Conway http://damian.conway.org (original author)
+*   Greg Lutostanski (tmux support)
+
+--------------------------------------------------------------------------------
+DEVELOPMENT                                             *autoswap-development*
+
+Code
+: http://svario.it/vim-autoswap (redirects to GitHub)
+
+Report issues
+: http://svario.it/vim-autoswap/issues
+
+--------------------------------------------------------------------------------
+LICENSE                                                     *autoswap-license*
+
+This is free software released into the public domain (CC0 license).
+
+See the `COPYING.CC0` file or http://creativecommons.org/publicdomain/zero/1.0/
+for more details.
+
+ vim:tw=78:ts=8:ft=help:norl:
