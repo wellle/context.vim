@@ -60,15 +60,18 @@ function! context#popup#nvim#close(popup) abort
 endfunction
 
 function! context#popup#nvim#redraw_screen() abort
+    " NOTE: In earlier versions of Neovim there was an issue with redrawing
+    " popup. This has been fixed as of this minor version.
+    if has('nvim-0.5.0')
+        return
+    endif
+
     if g:context.nvim_no_redraw
         return
     endif
 
-    " NOTE: this redraws the screen. this is needed because there's
-    " a redraw issue: https://github.com/neovim/neovim/issues/11597
-    " TODO: remove this once that issue has been resolved
-    " sometimes it's not enough to :mode without :redraw we do it here because
-    " it's not needed for when we call update from layout
+    " On older versions we need to call :mode to force a hard redraw. In some
+    " cases we an additional call do :redraw is needed too.
     redraw
     mode
 endfunction
