@@ -118,7 +118,10 @@ function! context#util#update_state() abort
     let [&virtualedit, &conceallevel] = ['all', 0]
     let sign_width = wincol() - virtcol('.') - number_width
     let [&virtualedit, &conceallevel] = old
-    call setpos('.', cursor)
+    if match("\<C-v>", mode()) == -1
+        " Don't set cursor in visual block mode because that breaks appending, see #114
+        call setpos('.', cursor)
+    endif
 
     " NOTE: sign_width can be negative if the cursor is on the wrapped part of
     " a wrapped line. in that case ignore the value
