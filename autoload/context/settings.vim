@@ -102,7 +102,8 @@ function! context#settings#parse() abort
         let show_tag = 0
     endif
 
-    " hopefully temporary: disable nvim redraw to avoid flicker, see popup/nvim.vim
+    " Deprecated: Disable redraw to avoid flicker in older Neovim versions,
+    " see popup/nvim.vim
     let nvim_no_redraw = get(g:, 'context_nvim_no_redraw', 0)
 
     let logfile = get(g:, 'context_logfile', '')
