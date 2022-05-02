@@ -238,27 +238,36 @@ autocmd CursorHold   * call context#update('CursorHold')
 autocmd User GitGutter call context#update('GitGutter')
 autocmd OptionSet number,relativenumber,numberwidth,signcolumn,tabstop,list
             \          call context#update('OptionSet')
+
+if exists('##WinScrolled')
+    autocmd WinScrolled * call context#update('WinScrolled')
+endif
 ```
 
 Note the `VimEnter` one. When Vim starts this plugin isn't active yet, even if enabled. That is because there are some issues with trying to open a preview window before Vim finished opening all windows for the provided file arguments. So if you disable auto commands you will need to call `:ContextActivate` in some way to activate this plugin.
 
+Also note how we use the `WinScrolled` autocommand if it is available.
+
 
 ## Mappings
 
-Unfortunately there's no auto command for when the buffer has scrolled [vim#776]. As the next best thing we add a few mappings for commands which scroll the buffer. So whenever one of these commands get used, we call a function to update the context. You can disable that by setting `g:context_add_mappings` to `0`.
+Older versions of Vim and Neovim didn't have the `WinScrolled` autocommand. For those versions we use some mappings to update the context when the window scrolls. If available we prefer using the autocommand. Additionally we have custom mappings for `zt` and `H` to deal with the height of the visible context. If you want to set your own mappings you can disable the default ones by setting `g:context_add_mappings` to `0`.
 
 If you want to create your own mappings, here are the default ones for reference:
 
 ```vim
-nnoremap <silent> <expr> <C-Y> context#util#map('<C-Y>')
-nnoremap <silent> <expr> <C-E> context#util#map('<C-E>')
-nnoremap <silent> <expr> zz    context#util#map('zz')
-nnoremap <silent> <expr> zb    context#util#map('zb')
-nnoremap <silent> <expr> zt    context#util#map_zt()
-nnoremap <silent> <expr> H     context#util#map_H()
+if !exists('##WinScrolled')
+    nnoremap <silent> <expr> <C-Y> context#util#map('<C-Y>')
+    nnoremap <silent> <expr> <C-E> context#util#map('<C-E>')
+    nnoremap <silent> <expr> zz    context#util#map('zz')
+    nnoremap <silent> <expr> zb    context#util#map('zb')
+endif
+
+nnoremap <silent> <expr> zt context#util#map_zt()
+nnoremap <silent> <expr> H  context#util#map_H()
 ```
 
-Note how `zz`, `zt`, and `zb` get called twice in the mapping before updating the context. This is because otherwise there are some cases where they don't work as expected.
+Note how we have extra mappings for when the `WinScrolled` autocommand doesn't exist.
 
 
 ## Contribute
