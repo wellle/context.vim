@@ -51,7 +51,8 @@ endfunction
 function! context#peek() abort
     " enable and set the peek flag (to disable on next update)
     call context#enable('window')
-    let w:context.peek = 1
+    " set the flag correctly in case this function was called twice in a row
+    let w:context.peek = w:context.enabled
 endfunction
 
 function! context#update(...) abort
