@@ -114,10 +114,10 @@ function! context#util#update_state() abort
     " NOTE: we need to save and restore the cursor position because setting
     " 'virtualedit' resets curswant #84
     let cursor = getcurpos()
-    let old = [&virtualedit, &conceallevel]
-    let [&virtualedit, &conceallevel] = ['all', 0]
+    let old = [&l:virtualedit, &l:conceallevel]
+    let [&l:virtualedit, &l:conceallevel] = ['all', 0]
     let sign_width = wincol() - virtcol('.') - number_width
-    let [&virtualedit, &conceallevel] = old
+    let [&l:virtualedit, &l:conceallevel] = old
     if match("\<C-v>", mode()) == -1
         " Don't set cursor in visual block mode because that breaks appending, see #114
         call setpos('.', cursor)
