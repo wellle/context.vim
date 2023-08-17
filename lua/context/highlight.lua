@@ -104,4 +104,9 @@ local function nvim_hlgroup(winid, row, col)
 	return m:get_highlight(row, col)
 end
 
-return { nvim_hlgroup = nvim_hlgroup }
+return {
+	nvim_hlgroup = nvim_hlgroup,
+	clear_cache = function()
+		_list = {}
+	end,
+}
