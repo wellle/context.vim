@@ -13,10 +13,19 @@ function M:fill_hl_cache(row, col)
 
 	-- needs nvim >0.9.0
 	local pos = vim.inspect_pos(self.buf, row - 1, col, { extmarks = false })
+
+	-- will fallback to treesitter if hl_group is empty
 	if #pos.semantic_tokens > 0 then
-		-- first should have highest priority
+		local hl_group = nil
 		for _, token in ipairs(pos.semantic_tokens) do
-			self.cached[row][col] = token.opts.hl_group
+			-- TODO using nvim_get_hl() didn't work
+			-- returns { [true] = 6 } if hl_group is empty
+			if vim.api.nvim_get_hl_by_name(token.opts.hl_group, true)[true] ~= 6 then
+				hl_group = token.opts.hl_group
+			end
+		end
+		if hl_group then
+			self.cached[row][col] = hl_group
 			return
 		end
 	end
@@ -106,7 +115,11 @@ end
 
 return {
 	nvim_hlgroup = nvim_hlgroup,
-	clear_cache = function()
-		_list = {}
+	clear_cache = function(buf)
+		if buf then
+			_list[buf] = nil
+		else
+			_list = {}
+		end
 	end,
 }
