@@ -34,8 +34,7 @@ function M:fill_hl_cache(row, col)
 		-- last should have highest priority
 		local hl_group = ""
 		for _, token in ipairs(pos.treesitter) do
-			-- spell is special?
-			if token.capture ~= "spell" then
+			if not vim.tbl_contains({"spell", "conceal"}, token.capture) then
 				hl_group = token.hl_group
 			end
 		end
