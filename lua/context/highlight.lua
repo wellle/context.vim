@@ -63,7 +63,7 @@ function M:get_highlight(row, col)
 	if self.cached[row][col] ~= nil then
 		return self.cached[row][col]
 	end
-	self.cached[row][col] = ""
+	self.cached[row][col] = vim.g.context.highlight_normal
 
 	-- schedule to avoid stuttering
 	self.scheduled = self.scheduled + 1
@@ -80,7 +80,7 @@ function M:get_highlight(row, col)
 		end
 	end)
 
-	return ""
+	return self.cached[row][col]
 end
 
 function M.new(buf)
