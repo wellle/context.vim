@@ -1,8 +1,12 @@
 local M = {}
+local vim = vim
+local api = vim.api
+local inspect_pos = vim.inspect_pos
+local context_update = vim.fn["context#update"]
 
 function M:fill_hl_cache(row, col)
 	if self.eol_col[row] == nil then
-		local line = vim.api.nvim_buf_get_lines(self.buf, row - 1, row, false)[1]
+		local line = api.nvim_buf_get_lines(self.buf, row - 1, row, false)[1]
 		self.eol_col[row] = line and #line or 0
 	end
 
@@ -12,7 +16,7 @@ function M:fill_hl_cache(row, col)
 	end
 
 	-- needs nvim >0.9.0
-	local pos = vim.inspect_pos(self.buf, row - 1, col, { extmarks = false })
+	local pos = inspect_pos(self.buf, row - 1, col, { extmarks = false })
 
 	-- will fallback to treesitter if hl_group is empty
 	if #pos.semantic_tokens > 0 then
@@ -20,7 +24,7 @@ function M:fill_hl_cache(row, col)
 		for _, token in ipairs(pos.semantic_tokens) do
 			-- TODO using nvim_get_hl() didn't work
 			-- returns { [true] = 6 } if hl_group is empty
-			if vim.api.nvim_get_hl_by_name(token.opts.hl_group, true)[true] ~= 6 then
+			if api.nvim_get_hl_by_name(token.opts.hl_group, true)[true] ~= 6 then
 				hl_group = token.opts.hl_group
 			end
 		end
@@ -69,14 +73,14 @@ function M:get_highlight(row, col)
 	self.scheduled = self.scheduled + 1
 	vim.schedule(function()
 		self.scheduled = self.scheduled - 1
-		if self.cached[row] == nil then
+		if self.cached[row] == nil or not api.nvim_buf_is_valid(self.buf) then
 			return
 		end
 		self:fill_hl_cache(row, col)
 		if self.scheduled < 1 then
 			-- last to finish triggers update
 			self.scheduled = 0
-			vim.fn["context#update"]("OptionSet") -- need to use OptionSet to force update
+			context_update("OptionSet") -- need to use OptionSet to force update
 		end
 	end)
 
@@ -95,11 +99,11 @@ end
 
 local _list = {}
 local function nvim_hlgroup(winid, row, col)
-	local buf = vim.api.nvim_win_get_buf(winid)
+	local buf = api.nvim_win_get_buf(winid)
 	local m = _list[buf]
 	if m == nil then
 		m = M.new(buf)
-		vim.api.nvim_buf_attach(buf, false, {
+		api.nvim_buf_attach(buf, false, {
 			on_detach = function()
 				_list[buf] = nil
 			end,
