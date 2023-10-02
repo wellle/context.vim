@@ -160,7 +160,11 @@ function! context#line#display(winid, join_parts) abort
         let width = 0
         let start = join_part.indent_chars
         for line_col in range(start, start + len(join_part.text))
-            let hlgroup = synIDattr(synIDtrans(synID(join_part.number, line_col+1, 1)), 'name')
+            if has('nvim-0.9.0')
+                let hlgroup = v:lua.require('context.highlight').nvim_hlgroup(a:winid, join_part.number, line_col)
+            else
+                let hlgroup = synIDattr(synIDtrans(synID(join_part.number, line_col+1, 1)), 'name')
+            endif
 
             if hlgroup == prev_hl
                 let width += 1

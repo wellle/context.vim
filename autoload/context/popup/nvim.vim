@@ -42,17 +42,10 @@ function! context#popup#nvim#redraw(winid, popup, lines) abort
                 \ 'row':      c.pos_y - 1,
                 \ 'col':      c.pos_x - 1,
                 \ 'height':   len(a:lines),
-                \ 'width':    c.size_w,
+                \ 'width':    c.size_w > 0 ? c.size_w : 1,
                 \ })
 
     call setwinvar(a:popup, '&list', &list)
-
-    " NOTE: because of some neovim limitation we have to temporarily switch to
-    " the popup window so we can clear the highlighting
-    " https://github.com/neovim/neovim/issues/10822
-    execute 'noautocmd' bufwinnr(buf) . 'wincmd w'
-    call clearmatches()
-    wincmd p
 endfunction
 
 function! context#popup#nvim#close(popup) abort
