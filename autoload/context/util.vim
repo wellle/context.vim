@@ -283,8 +283,12 @@ function! context#util#filter(context, line_number, consider_height) abort
         let indent2 = lines[-(max_height-1)/2][0].indent
         let ellipsis = repeat(c.char_ellipsis, max([indent2 - indent, 3]))
         let ellipsis_lines = [context#line#make_highlight(0, c.char_ellipsis, level, indent, ellipsis, 'Comment')]
-        call remove(lines, max_height/2, -(max_height+1)/2)
-        call insert(lines, ellipsis_lines, max_height/2)
+        if max_height == 1
+            call remove(lines, 0, -2)
+        else
+            call remove(lines, max_height/2, -(max_height+1)/2)
+            call insert(lines, ellipsis_lines, max_height/2)
+        endif
     endif
 
     return [lines, line_number]
