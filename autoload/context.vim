@@ -109,8 +109,6 @@ function! context#update(...) abort
                 \ || !s:activated
                 \ || s:ignore_update
                 \ || &previewwindow
-                " NOTE: Checking for mode() != 't' fixes interaction with
-                " fzf.vim buffer switching. See #132
                 \ || (mode() != 'n' && mode() != 't')
                 \ || !context#util#active()
                 \ || bufname("%") =~# '^term://'
