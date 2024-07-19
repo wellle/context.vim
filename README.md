@@ -171,7 +171,7 @@ Here's an example that considers Markdown headers for the context: [#45][indent-
 ```vim
 let g:Context_border_indent = function('indent')
 ```
-When using popup windows we indent the border line to be aligned with the context base line. You can use this setting to use a different function to control that indent. Similar to `g:Context_indent` this function also takes a line number and returns an indentation number. For example you can disable that indentation at all to always show a full width border line like this: `let g:Context_border_indent = { -> 0 }`
+When using popup windows we indent the border line to be aligned with the context base line. You can use this setting to use a different function to control that indent. Similar to `g:Context_indent` this function also takes a line number and returns an indentation number. For example you can disable that indentation at all to always show a full width border line like this: `let g:Context_border_indent = { -> [0, 0] }`
 
 
 [indent-example]: https://github.com/wellle/context.vim/pull/45#issuecomment-582654810
