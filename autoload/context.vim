@@ -55,6 +55,37 @@ function! context#peek() abort
     let w:context.peek = w:context.enabled
 endfunction
 
+function! context#update_context() abort
+    if g:context.presenter == 'preview'
+        let s:ignore_update = 1
+
+        if w:context.needs_update
+            let w:context.needs_update = 0
+            call context#preview#update_context()
+        endif
+
+        let s:ignore_update = 0
+
+    else " popup
+        if w:context.needs_update
+            let w:context.needs_update = 0
+            call context#popup#update_context()
+        endif
+
+        if w:context.needs_layout
+            let w:context.needs_layout = 0
+            call context#popup#layout()
+        endif
+    endif
+endfunction
+
+function! context#update_context_callback(timer) abort
+    if w:update_timer != a:timer
+        return
+    endif
+    call context#update_context()
+endfunction
+
 function! context#update(...) abort
     " NOTE: this function used to have two arguments, but now it's only one
     " for compatibility reasons we still allow multiple arguments
@@ -129,26 +160,10 @@ function! context#update(...) abort
     call context#util#echof('> context#update', source)
     call context#util#log_indent(2)
 
-    if g:context.presenter == 'preview'
-        let s:ignore_update = 1
-
-        if w:context.needs_update
-            let w:context.needs_update = 0
-            call context#preview#update_context()
-        endif
-
-        let s:ignore_update = 0
-
-    else " popup
-        if w:context.needs_update
-            let w:context.needs_update = 0
-            call context#popup#update_context()
-        endif
-
-        if w:context.needs_layout
-            let w:context.needs_layout = 0
-            call context#popup#layout()
-        endif
+    if g:context.delayed_update != 0
+        let w:update_timer = timer_start(g:context.delayed_update, 'context#update_context_callback')
+    else
+        call context#update_context()
     endif
 
     call context#util#log_indent(-2)
