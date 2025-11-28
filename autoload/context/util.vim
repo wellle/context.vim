@@ -22,9 +22,23 @@ function! context#util#map_H() abort
         " nothing needed for preview
         return 'H'
     endif
+
     " TODO: handle scrolloff
+
+    if len(w:context.lines) == 0
+        return 'H'
+    endif
+
     let n = len(w:context.lines) + g:context.show_border + v:count1
-    return "\<Esc>". n . 'H'
+
+    " If the user typed a count, we clear it with \<Esc> before applying our
+    " adjusted count. If we didn't do this, the user's count and our adjusted
+    " count would be concatenated as strings
+    if v:count != 0 || v:count1 != 1
+        return "\<Esc>". n . 'H'
+    endif
+
+    return n . 'H'
 endfunction
 
 function! context#util#map_zt() abort
