@@ -70,11 +70,13 @@ function! context#settings#parse() abort
         let Border_indent = Default_indent
     endif
 
+    " TODO: skip label lines
+
     " lines matching this regex will be ignored for the context
     " match whitespace only lines to show the full context
     " also by default excludes comment lines etc.
     let regex_skip = get(g:, 'context_skip_regex',
-                \ '^\([<=>]\{7\}\|\s*\($\|\h\+\S\s*:\|#\|//\|/\*\|\*\($\|\s\|/\)\)\)')
+                \ '^\([<=>]\{7\}\|\s*\($\|#\|//\|/\*\|\*\($\|\s\|/\)\)\)')
 
     " if a line matches this regex we will extend the context by looking upwards
     " for another line with the same indent
