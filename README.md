@@ -173,6 +173,11 @@ let g:Context_border_indent = function('indent')
 ```
 When using popup windows we indent the border line to be aligned with the context base line. You can use this setting to use a different function to control that indent. Similar to `g:Context_indent` this function also takes a line number and returns an indentation number. For example you can disable that indentation at all to always show a full width border line like this: `let g:Context_border_indent = { -> [0, 0] }`
 
+```vim
+let g:context_delayed_update = 20
+```
+If you are using a plugin that redraws windows, such as the language server plugin, updates to **context.vim** and screen updates from other plugins can affect each other and cause problems. To solve this, you can delay the update of **context.vim** via `g:context_delayed_update`. The default value is 0, in milliseconds.
+
 
 [indent-example]: https://github.com/wellle/context.vim/pull/45#issuecomment-582654810
 

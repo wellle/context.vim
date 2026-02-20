@@ -172,7 +172,12 @@ Here's an example that considers Markdown headers for the context: #45 (https://
 When using popup windows we indent the border line to be aligned with the context base line. You can use this setting to use a different function to control that indent. Similar to `g:Context_indent` this function also takes a line number and returns an indentation number. For example you can disable that indentation at all to always show a full width border line like this: 
 >
     let g:context_nvim_no_redraw = 0
+
+
+If you use other plugins that redraw the window, they can update each other, resulting in infinite updates. To solve the problem, delay the update of the context by a certain amount of time. The default value is 0, in milliseconds.
 <
+    let g:context_delayed_update = 0
+
 
 There's an issue in Neovim which leads to some artefacts. To avoid those we manually refresh the screen after every context update. This can lead to screen flickering, see #23 (https://github.com/wellle/context.vim/pull/23). You disable those redraws (at the cost of visual artefacts) like this: 
 

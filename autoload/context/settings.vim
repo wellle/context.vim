@@ -122,6 +122,9 @@ function! context#settings#parse() abort
         let buftype_dict[buftype] = 1
     endfor
 
+    " delayed time by milliseconds for update
+    let delayed_update = get(g:, 'context_delayed_update', 0)
+
     let g:context = {
                 \ 'presenter':           presenter,
                 \ 'enabled':             enabled,
@@ -150,6 +153,7 @@ function! context#settings#parse() abort
                 \ 'Border_indent':       Border_indent,
                 \ 'popups':              {},
                 \ 'windows':             {},
+                \ 'delayed_update':      delayed_update,
                 \ }
 endfunction
 
